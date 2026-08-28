@@ -19,14 +19,14 @@ class RegisterScreen extends StatefulWidget {
 class _RegisterScreenState extends State<RegisterScreen> {
   final PageController _pageController = PageController();
   int _currentStep = 0;
-  
+
   // Form controllers
   final TextEditingController _fullNameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _dateOfBirthController = TextEditingController();
-  
+
   bool _obscurePassword = true;
   Country _selectedCountry = getDefaultCountry();
   String? _selectedBarber;
@@ -34,9 +34,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String? _selectedGender;
   DateTime? _selectedDateOfBirth;
   bool _agreeToTerms = false;
-  XFile? _selectedImage;
   Uint8List? _selectedImageBytes;
-  String? _selectedImagePath;
   String? _base64Image;
   bool _isLoading = false;
   final _formKey = GlobalKey<FormState>();
@@ -60,9 +58,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
           _barbers = employees.where((e) {
             final isActive = e['is_active'];
             bool active = false;
-            if (isActive is bool) active = isActive;
-            else if (isActive is int) active = isActive == 1;
-            else if (isActive is String) active = isActive == '1' || isActive.toLowerCase() == 'true';
+            if (isActive is bool)
+              active = isActive;
+            else if (isActive is int)
+              active = isActive == 1;
+            else if (isActive is String)
+              active = isActive == '1' || isActive.toLowerCase() == 'true';
             return active;
           }).toList();
           _isLoadingBarbers = false;
@@ -95,7 +96,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         return;
       }
     }
-    
+
     if (_currentStep < 3) {
       _pageController.nextPage(
         duration: const Duration(milliseconds: 300),
@@ -106,7 +107,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       });
     }
   }
-  
+
   Future<void> _handleRegister() async {
     final fullName = _fullNameController.text.trim();
     final email = _emailController.text.trim();
@@ -126,17 +127,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (email.isEmpty || !email.contains('@')) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Please enter a valid email', style: GoogleFonts.manrope()),
+          content:
+              Text('Please enter a valid email', style: GoogleFonts.manrope()),
           backgroundColor: Colors.red,
         ),
       );
       return;
     }
 
-    if (password.length < 6) {
+    if (password.length < 8) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Password must be at least 6 characters', style: GoogleFonts.manrope()),
+          content: Text('Password must be at least 8 characters',
+              style: GoogleFonts.manrope()),
           backgroundColor: Colors.red,
         ),
       );
@@ -146,7 +149,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (phone.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Phone number is required', style: GoogleFonts.manrope()),
+          content:
+              Text('Phone number is required', style: GoogleFonts.manrope()),
           backgroundColor: Colors.red,
         ),
       );
@@ -169,11 +173,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
     setState(() {
       _isLoading = true;
     });
-    
+
     try {
       // Combine country code with phone number
-      final phoneNumber = '${_selectedCountry.dialCode}${_phoneController.text.trim()}';
-      
+      final phoneNumber =
+          '${_selectedCountry.dialCode}${_phoneController.text.trim()}';
+
       // Prepare registration data
       final registrationData = {
         'full_name': _fullNameController.text.trim(),
@@ -181,16 +186,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
         'password': _passwordController.text,
         'phone': phoneNumber,
       };
-      
+
       // Add optional fields if available
       if (_selectedGender != null && _selectedGender!.isNotEmpty) {
         registrationData['gender'] = _selectedGender!;
       }
-      
+
       if (_selectedDateOfBirth != null) {
-        // Format date as YYYY-MM-DD for MySQL
-        registrationData['date_of_birth'] = 
-          '${_selectedDateOfBirth!.year}-${_selectedDateOfBirth!.month.toString().padLeft(2, '0')}-${_selectedDateOfBirth!.day.toString().padLeft(2, '0')}';
+        // Store the date in PostgreSQL's ISO date format.
+        registrationData['date_of_birth'] =
+            '${_selectedDateOfBirth!.year}-${_selectedDateOfBirth!.month.toString().padLeft(2, '0')}-${_selectedDateOfBirth!.day.toString().padLeft(2, '0')}';
       }
 
       if (_base64Image != null && _base64Image!.isNotEmpty) {
@@ -198,7 +203,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
       }
 
       final notesParts = <String>[];
-      if (_selectedBarber != null && _selectedBarber!.isNotEmpty && _selectedBarber != 'Any Barber') {
+      if (_selectedBarber != null &&
+          _selectedBarber!.isNotEmpty &&
+          _selectedBarber != 'Any Barber') {
         notesParts.add('Preferred Barber: $_selectedBarber');
       }
       if (_selectedAvailability != null && _selectedAvailability!.isNotEmpty) {
@@ -207,14 +214,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
       if (notesParts.isNotEmpty) {
         registrationData['notes'] = notesParts.join(' | ');
       }
-      
+
       final result = await ApiService.register(registrationData);
-      
+
       if (mounted) {
         setState(() {
           _isLoading = false;
         });
-        
+
         if (result != null) {
           // Registration successful - customer has been added to schema
           // Show success dialog prompting user to log in
@@ -243,7 +250,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ],
                 ),
                 content: Text(
-                  'Your account has been created successfully. Please log in with your email and password to continue.',
+                  'Your account has been created. Check your email to confirm '
+                  'the account, then log in with your email and password.',
                   style: GoogleFonts.manrope(
                     fontSize: 14,
                     color: Colors.grey[700],
@@ -293,13 +301,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
         setState(() {
           _isLoading = false;
         });
-        
+
         // Extract error message (remove "Exception: " prefix if present)
         String errorMessage = e.toString();
         if (errorMessage.startsWith('Exception: ')) {
           errorMessage = errorMessage.substring(11);
         }
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -330,7 +338,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      resizeToAvoidBottomInset: false, // Prevent screen from resizing when keyboard opens
+      resizeToAvoidBottomInset:
+          false, // Prevent screen from resizing when keyboard opens
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -349,7 +358,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         children: [
           // Progress indicator with icons
           _buildProgressIndicator(),
-          
+
           // Page view for steps
           Expanded(
             child: PageView(
@@ -431,7 +440,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
             ),
             const SizedBox(height: 32),
-            
+
             // Full Name
             TextFormField(
               controller: _fullNameController,
@@ -458,16 +467,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 filled: true,
                 fillColor: Colors.grey[50],
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               ),
               style: GoogleFonts.manrope(),
             ),
             const SizedBox(height: 24),
-            
+
             // Email
             TextFormField(
               controller: _emailController,
               keyboardType: TextInputType.emailAddress,
+              autofillHints: const [AutofillHints.email],
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
                   return 'Email is required';
@@ -494,22 +505,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 filled: true,
                 fillColor: Colors.grey[50],
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               ),
               style: GoogleFonts.manrope(),
             ),
             const SizedBox(height: 24),
-            
+
             // Password
             TextFormField(
               controller: _passwordController,
               obscureText: _obscurePassword,
+              autofillHints: const [AutofillHints.newPassword],
               validator: (value) {
                 if (value == null || value.isEmpty) {
                   return 'Password is required';
                 }
-                if (value.length < 6) {
-                  return 'Password must be at least 6 characters';
+                if (value.length < 8) {
+                  return 'Password must be at least 8 characters';
                 }
                 return null;
               },
@@ -530,7 +543,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 filled: true,
                 fillColor: Colors.grey[50],
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                 suffixIcon: IconButton(
                   icon: Icon(
                     _obscurePassword ? Icons.visibility_off : Icons.visibility,
@@ -546,7 +560,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               style: GoogleFonts.manrope(),
             ),
             const SizedBox(height: 24),
-            
+
             // Phone Number with Country Code and Flag Picker
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -624,11 +638,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Colors.blue, width: 2),
+                        borderSide:
+                            const BorderSide(color: Colors.blue, width: 2),
                       ),
                       filled: true,
                       fillColor: Colors.grey[50],
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 16),
                     ),
                     style: GoogleFonts.manrope(),
                   ),
@@ -636,7 +652,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ],
             ),
             const SizedBox(height: 24),
-            
+
             // Gender Dropdown
             Container(
               decoration: BoxDecoration(
@@ -650,7 +666,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   labelText: 'Gender',
                   labelStyle: GoogleFonts.manrope(color: Colors.grey[600]),
                   border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                 ),
                 items: ['Male', 'Female', 'Other']
                     .map((gender) => DropdownMenuItem(
@@ -666,7 +683,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
             ),
             const SizedBox(height: 24),
-            
+
             // Date of Birth
             TextFormField(
               controller: _dateOfBirthController,
@@ -674,7 +691,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
               onTap: () async {
                 final DateTime? picked = await showDatePicker(
                   context: context,
-                  initialDate: DateTime.now().subtract(const Duration(days: 365 * 18)),
+                  initialDate:
+                      DateTime.now().subtract(const Duration(days: 365 * 18)),
                   firstDate: DateTime(1900),
                   lastDate: DateTime.now(),
                   builder: (context, child) {
@@ -693,8 +711,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 if (picked != null) {
                   setState(() {
                     _selectedDateOfBirth = picked;
-                    _dateOfBirthController.text = 
-                      '${picked.day.toString().padLeft(2, '0')}/${picked.month.toString().padLeft(2, '0')}/${picked.year}';
+                    _dateOfBirthController.text =
+                        '${picked.day.toString().padLeft(2, '0')}/${picked.month.toString().padLeft(2, '0')}/${picked.year}';
                   });
                 }
               },
@@ -715,13 +733,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 filled: true,
                 fillColor: Colors.grey[50],
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                prefixIcon: const Icon(Icons.calendar_today, color: Colors.grey),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                prefixIcon:
+                    const Icon(Icons.calendar_today, color: Colors.grey),
               ),
               style: GoogleFonts.manrope(),
             ),
             const SizedBox(height: 48),
-            
+
             // Next Button
             SizedBox(
               width: double.infinity,
@@ -764,9 +784,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       if (pickedFile != null) {
         final bytes = await pickedFile.readAsBytes();
         setState(() {
-          _selectedImage = pickedFile;
           _selectedImageBytes = bytes;
-          _selectedImagePath = pickedFile.name;
           _base64Image = 'data:image/jpeg;base64,${base64Encode(bytes)}';
         });
       }
@@ -774,7 +792,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to pick image: $e', style: GoogleFonts.manrope()),
+            content:
+                Text('Failed to pick image: $e', style: GoogleFonts.manrope()),
             backgroundColor: Colors.red,
           ),
         );
@@ -812,15 +831,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       color: Color(0x1A5BBCFF),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.photo_library, color: Color(0xFF1E88E5)),
+                    child: const Icon(Icons.photo_library,
+                        color: Color(0xFF1E88E5)),
                   ),
                   title: Text(
                     'Choose from Gallery',
-                    style: GoogleFonts.manrope(fontSize: 16, fontWeight: FontWeight.w600),
+                    style: GoogleFonts.manrope(
+                        fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                   subtitle: Text(
                     'Select a photo from your device storage',
-                    style: GoogleFonts.manrope(fontSize: 13, color: Colors.grey[600]),
+                    style: GoogleFonts.manrope(
+                        fontSize: 13, color: Colors.grey[600]),
                   ),
                   onTap: () {
                     Navigator.pop(context);
@@ -834,15 +856,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       color: Color(0x1A5BBCFF),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.camera_alt, color: Color(0xFF1E88E5)),
+                    child:
+                        const Icon(Icons.camera_alt, color: Color(0xFF1E88E5)),
                   ),
                   title: Text(
                     'Take a Photo',
-                    style: GoogleFonts.manrope(fontSize: 16, fontWeight: FontWeight.w600),
+                    style: GoogleFonts.manrope(
+                        fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                   subtitle: Text(
                     'Use your camera to take a new picture',
-                    style: GoogleFonts.manrope(fontSize: 13, color: Colors.grey[600]),
+                    style: GoogleFonts.manrope(
+                        fontSize: 13, color: Colors.grey[600]),
                   ),
                   onTap: () {
                     Navigator.pop(context);
@@ -858,18 +883,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         color: Colors.red.withOpacity(0.1),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.delete_outline, color: Colors.red),
+                      child:
+                          const Icon(Icons.delete_outline, color: Colors.red),
                     ),
                     title: Text(
                       'Remove Photo',
-                      style: GoogleFonts.manrope(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.red),
+                      style: GoogleFonts.manrope(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.red),
                     ),
                     onTap: () {
                       Navigator.pop(context);
                       setState(() {
-                        _selectedImage = null;
                         _selectedImageBytes = null;
-                        _selectedImagePath = null;
                         _base64Image = null;
                       });
                     },
@@ -907,7 +934,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
           ),
           const SizedBox(height: 36),
-          
+
           // Choose File Button
           Center(
             child: GestureDetector(
@@ -919,7 +946,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   color: Colors.grey[50],
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: _selectedImageBytes != null ? const Color(0xB25BBCFF) : Colors.grey[300]!,
+                    color: _selectedImageBytes != null
+                        ? const Color(0xB25BBCFF)
+                        : Colors.grey[300]!,
                     width: 2,
                   ),
                   boxShadow: [
@@ -951,7 +980,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 color: Colors.black87,
                                 shape: BoxShape.circle,
                               ),
-                              child: const Icon(Icons.edit, color: Colors.white, size: 18),
+                              child: const Icon(Icons.edit,
+                                  color: Colors.white, size: 18),
                             ),
                           ),
                         ],
@@ -965,7 +995,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               color: Color(0x1A5BBCFF),
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(Icons.photo_library, size: 36, color: Color(0xFF1E88E5)),
+                            child: const Icon(Icons.photo_library,
+                                size: 36, color: Color(0xFF1E88E5)),
                           ),
                           const SizedBox(height: 12),
                           Text(
@@ -994,7 +1025,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
             Center(
               child: TextButton.icon(
                 onPressed: _showImagePickerOptions,
-                icon: const Icon(Icons.refresh, size: 18, color: Color(0xFF1E88E5)),
+                icon: const Icon(Icons.refresh,
+                    size: 18, color: Color(0xFF1E88E5)),
                 label: Text(
                   'Change Photo',
                   style: GoogleFonts.manrope(
@@ -1006,7 +1038,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
             ),
           const SizedBox(height: 36),
-          
+
           // Next Button
           SizedBox(
             width: double.infinity,
@@ -1051,7 +1083,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
           ),
           const SizedBox(height: 32),
-          
+
           // Preferred Barber Dropdown
           Container(
             decoration: BoxDecoration(
@@ -1061,7 +1093,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
             child: _isLoadingBarbers
                 ? Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 18),
                     child: Row(
                       children: [
                         const SizedBox(
@@ -1083,7 +1116,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       labelText: 'Preferred Barber',
                       labelStyle: GoogleFonts.manrope(color: Colors.grey[600]),
                       border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
                     ),
                     items: [
                       DropdownMenuItem<String>(
@@ -1096,10 +1130,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 color: const Color(0x1A5BBCFF),
                                 shape: BoxShape.circle,
                               ),
-                              child: const Icon(Icons.people_outline, size: 16, color: Color(0xFF1E88E5)),
+                              child: const Icon(Icons.people_outline,
+                                  size: 16, color: Color(0xFF1E88E5)),
                             ),
                             const SizedBox(width: 10),
-                            Text('Any Barber (No Preference)', style: GoogleFonts.manrope(fontWeight: FontWeight.w500)),
+                            Text('Any Barber (No Preference)',
+                                style: GoogleFonts.manrope(
+                                    fontWeight: FontWeight.w500)),
                           ],
                         ),
                       ),
@@ -1114,17 +1151,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             children: [
                               _buildBarberThumbnail(photo, name),
                               const SizedBox(width: 10),
-                              Text(name, style: GoogleFonts.manrope(fontWeight: FontWeight.w600)),
+                              Text(name,
+                                  style: GoogleFonts.manrope(
+                                      fontWeight: FontWeight.w600)),
                               const SizedBox(width: 6),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 2),
                                 decoration: BoxDecoration(
                                   color: Colors.grey[200],
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Text(
                                   role,
-                                  style: GoogleFonts.manrope(fontSize: 10, color: Colors.grey[700]),
+                                  style: GoogleFonts.manrope(
+                                      fontSize: 10, color: Colors.grey[700]),
                                 ),
                               ),
                             ],
@@ -1140,7 +1181,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
           ),
           const SizedBox(height: 24),
-          
+
           // Your Availability Dropdown
           Container(
             decoration: BoxDecoration(
@@ -1154,9 +1195,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 labelText: 'Your Availability',
                 labelStyle: GoogleFonts.manrope(color: Colors.grey[600]),
                 border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               ),
-              items: ['Morning (9 AM - 12 PM)', 'Afternoon (12 PM - 5 PM)', 'Evening (5 PM - 9 PM)', 'Flexible']
+              items: [
+                'Morning (9 AM - 12 PM)',
+                'Afternoon (12 PM - 5 PM)',
+                'Evening (5 PM - 9 PM)',
+                'Flexible'
+              ]
                   .map((availability) => DropdownMenuItem(
                         value: availability,
                         child: Text(availability, style: GoogleFonts.manrope()),
@@ -1170,7 +1217,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
           ),
           const SizedBox(height: 48),
-          
+
           // Next Button
           SizedBox(
             width: double.infinity,
@@ -1215,7 +1262,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
           ),
           const SizedBox(height: 24),
-          
+
           RichText(
             text: TextSpan(
               style: GoogleFonts.manrope(
@@ -1225,7 +1272,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               children: [
                 const TextSpan(
-                  text: 'You are one step away from completing the registration. To wrap this up, you can agree to our ',
+                  text:
+                      'You are one step away from completing the registration. To wrap this up, you can agree to our ',
                 ),
                 TextSpan(
                   text: 'Terms & Conditions',
@@ -1247,13 +1295,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                 ),
                 const TextSpan(
-                  text: ' so that you know what to expect as you use our services.\n\nBy checking the box below, you agree to these terms.',
+                  text:
+                      ' so that you know what to expect as you use our services.\n\nBy checking the box below, you agree to these terms.',
                 ),
               ],
             ),
           ),
           const SizedBox(height: 24),
-          
+
           // Terms & Conditions Checkbox
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1289,13 +1338,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ],
           ),
           const SizedBox(height: 48),
-          
+
           // Register Button
           SizedBox(
             width: double.infinity,
             height: 55,
             child: ElevatedButton(
-              onPressed: (_agreeToTerms && !_isLoading) ? _handleRegister : null,
+              onPressed:
+                  (_agreeToTerms && !_isLoading) ? _handleRegister : null,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xB25BBCFF),
                 disabledBackgroundColor: Colors.grey[300],
@@ -1345,7 +1395,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
       }
       try {
         final base64Data = clean.contains(',') ? clean.split(',').last : clean;
-        final bytes = base64Decode(base64Data.replaceAll('\n', '').replaceAll('\r', '').trim());
+        final bytes = base64Decode(
+            base64Data.replaceAll('\n', '').replaceAll('\r', '').trim());
         return ClipRRect(
           borderRadius: BorderRadius.circular(10),
           child: Image.memory(
@@ -1373,9 +1424,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
       alignment: Alignment.center,
       child: Text(
         initial,
-        style: const TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.bold),
+        style: const TextStyle(
+            fontSize: 11, color: Colors.white, fontWeight: FontWeight.bold),
       ),
     );
   }
 }
-

@@ -30,11 +30,11 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
   final TextEditingController _durationController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
   final TextEditingController _costController = TextEditingController();
-  
+
   String? _selectedCategoryId;
   bool _isActive = true;
   List<Map<String, dynamic>> _categories = [];
-  
+
   // Image state
   Uint8List? _customImageBytes;
   String? _base64Image;
@@ -69,25 +69,26 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
       if (mounted) {
         setState(() {
           _categories = categories;
-          
+
           if (service != null && service.isNotEmpty) {
             _nameController.text = service['name'] ?? '';
             _descriptionController.text = service['description'] ?? '';
-            _durationController.text = (service['duration_minutes'] ?? 0).toString();
-            
+            _durationController.text =
+                (service['duration_minutes'] ?? 0).toString();
+
             final priceValue = service['price'];
             if (priceValue != null) {
               _priceController.text = priceValue.toString();
             }
-            
+
             final costValue = service['cost'];
             if (costValue != null) {
               _costController.text = costValue.toString();
             }
-            
+
             _selectedCategoryId = service['category_id'];
             _existingImageUrl = service['image_url'] ?? service['photo'];
-            
+
             final isActiveValue = service['is_active'];
             if (isActiveValue == null) {
               _isActive = true;
@@ -96,11 +97,12 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
             } else if (isActiveValue is int) {
               _isActive = isActiveValue == 1;
             } else if (isActiveValue is String) {
-              _isActive = isActiveValue == '1' || isActiveValue.toLowerCase() == 'true';
+              _isActive =
+                  isActiveValue == '1' || isActiveValue.toLowerCase() == 'true';
             } else {
               _isActive = true;
             }
-            
+
             _isLoading = false;
           } else {
             _nameController.text = widget.name ?? '';
@@ -138,14 +140,18 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
         });
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Service photo selected!'), backgroundColor: Colors.green),
+            const SnackBar(
+                content: Text('Service photo selected!'),
+                backgroundColor: Colors.green),
           );
         }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error picking image: $e'), backgroundColor: Colors.red),
+          SnackBar(
+              content: Text('Error picking image: $e'),
+              backgroundColor: Colors.red),
         );
       }
     }
@@ -160,10 +166,14 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
 
     try {
       final all = await CatalogService.getAllServices();
-      if (all.any((s) => s['service_id'] != widget.serviceId && (s['name'] ?? '').toString().trim().toLowerCase() == serviceName.toLowerCase())) {
+      if (all.any((s) =>
+          s['service_id'] != widget.serviceId &&
+          (s['name'] ?? '').toString().trim().toLowerCase() ==
+              serviceName.toLowerCase())) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Another service named "$serviceName" already exists in the catalog.'),
+            content: Text(
+                'Another service named "$serviceName" already exists in the catalog.'),
             backgroundColor: Colors.orange[800],
           ),
         );
@@ -189,11 +199,13 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
         'price': price,
         'cost': cost,
         'description': _descriptionController.text.trim(),
-        'image_url': _hasDeletedImage ? '' : (_base64Image ?? _existingImageUrl),
+        'image_url':
+            _hasDeletedImage ? '' : (_base64Image ?? _existingImageUrl),
         'is_active': _isActive,
       };
 
-      final result = await CatalogService.updateService(widget.serviceId, serviceData);
+      final result =
+          await CatalogService.updateService(widget.serviceId, serviceData);
 
       if (mounted) {
         if (result['success'] == true) {
@@ -207,7 +219,9 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(result['message'] ?? result['error'] ?? 'Failed to update service'),
+              content: Text(result['message'] ??
+                  result['error'] ??
+                  'Failed to update service'),
               backgroundColor: Colors.red,
             ),
           );
@@ -236,7 +250,8 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
 
     if (_hasDeletedImage) {
       imageContent = const Center(
-        child: Icon(Icons.add_photo_alternate_outlined, size: 48, color: Color(0xFF1E88E5)),
+        child: Icon(Icons.add_photo_alternate_outlined,
+            size: 48, color: Color(0xFF1E88E5)),
       );
     } else if (_customImageBytes != null) {
       imageContent = Image.memory(_customImageBytes!, fit: BoxFit.cover);
@@ -246,20 +261,25 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
         imageContent = Image.network(
           clean,
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.content_cut, size: 48, color: Colors.grey)),
+          errorBuilder: (_, __, ___) => const Center(
+              child: Icon(Icons.content_cut, size: 48, color: Colors.grey)),
         );
       } else {
         try {
-          final base64Data = clean.contains(',') ? clean.split(',').last : clean;
-          final bytes = base64Decode(base64Data.replaceAll('\n', '').replaceAll('\r', '').trim());
+          final base64Data =
+              clean.contains(',') ? clean.split(',').last : clean;
+          final bytes = base64Decode(
+              base64Data.replaceAll('\n', '').replaceAll('\r', '').trim());
           imageContent = Image.memory(bytes, fit: BoxFit.cover);
         } catch (_) {
-          imageContent = const Center(child: Icon(Icons.content_cut, size: 48, color: Colors.grey));
+          imageContent = const Center(
+              child: Icon(Icons.content_cut, size: 48, color: Colors.grey));
         }
       }
     } else {
       imageContent = const Center(
-        child: Icon(Icons.add_photo_alternate_outlined, size: 48, color: Color(0xFF1E88E5)),
+        child: Icon(Icons.add_photo_alternate_outlined,
+            size: 48, color: Color(0xFF1E88E5)),
       );
     }
 
@@ -268,7 +288,8 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
       children: [
         Text(
           'Service Image / Photo',
-          style: GoogleFonts.manrope(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black87),
+          style: GoogleFonts.manrope(
+              fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black87),
         ),
         const SizedBox(height: 8),
         GestureDetector(
@@ -297,23 +318,31 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
                   child: Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 5),
                         decoration: BoxDecoration(
                           color: Colors.black.withOpacity(0.7),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.photo_library, size: 14, color: Colors.white),
+                            const Icon(Icons.photo_library,
+                                size: 14, color: Colors.white),
                             const SizedBox(width: 4),
                             Text(
                               'Change',
-                              style: GoogleFonts.manrope(fontSize: 12, color: Colors.white, fontWeight: FontWeight.bold),
+                              style: GoogleFonts.manrope(
+                                  fontSize: 12,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold),
                             ),
                           ],
                         ),
                       ),
-                      if (!_hasDeletedImage && (_customImageBytes != null || (_existingImageUrl != null && _existingImageUrl!.isNotEmpty))) ...[
+                      if (!_hasDeletedImage &&
+                          (_customImageBytes != null ||
+                              (_existingImageUrl != null &&
+                                  _existingImageUrl!.isNotEmpty))) ...[
                         const SizedBox(width: 8),
                         GestureDetector(
                           onTap: () {
@@ -329,7 +358,8 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
                               color: Colors.red,
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(Icons.delete_outline, size: 16, color: Colors.white),
+                            child: const Icon(Icons.delete_outline,
+                                size: 16, color: Colors.white),
                           ),
                         ),
                       ],
@@ -395,14 +425,15 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
                     // Image Editor Banner
                     _buildImageHeader(),
                     const SizedBox(height: 24),
-                    
+
                     // Service Name
                     TextFormField(
                       controller: _nameController,
                       decoration: InputDecoration(
                         labelText: 'Service Name *',
                         labelStyle: GoogleFonts.manrope(),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12)),
                         filled: true,
                         fillColor: Colors.grey[50],
                         prefixIcon: const Icon(Icons.content_cut),
@@ -423,7 +454,8 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
                       decoration: InputDecoration(
                         labelText: 'Category',
                         labelStyle: GoogleFonts.manrope(),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12)),
                         prefixIcon: const Icon(Icons.category_outlined),
                         filled: true,
                         fillColor: Colors.grey[50],
@@ -432,12 +464,16 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
                       items: [
                         DropdownMenuItem<String>(
                           value: null,
-                          child: Text('No Category', style: GoogleFonts.manrope(color: Colors.black87)),
+                          child: Text('No Category',
+                              style:
+                                  GoogleFonts.manrope(color: Colors.black87)),
                         ),
                         ..._categories.map((category) {
                           return DropdownMenuItem<String>(
                             value: category['category_id'],
-                            child: Text(category['name'] ?? '', style: GoogleFonts.manrope(color: Colors.black87)),
+                            child: Text(category['name'] ?? '',
+                                style:
+                                    GoogleFonts.manrope(color: Colors.black87)),
                           );
                         }),
                       ],
@@ -455,7 +491,8 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
                       decoration: InputDecoration(
                         labelText: 'Duration (minutes) *',
                         labelStyle: GoogleFonts.manrope(),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12)),
                         filled: true,
                         fillColor: Colors.grey[50],
                         prefixIcon: const Icon(Icons.timer_outlined),
@@ -481,13 +518,15 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
                       decoration: InputDecoration(
                         labelText: 'Price (\$) *',
                         labelStyle: GoogleFonts.manrope(),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12)),
                         filled: true,
                         fillColor: Colors.grey[50],
                         prefixIcon: const Icon(Icons.attach_money),
                       ),
                       style: GoogleFonts.manrope(),
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
                           return 'Please enter price';
@@ -507,13 +546,15 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
                       decoration: InputDecoration(
                         labelText: 'Cost (optional)',
                         labelStyle: GoogleFonts.manrope(),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12)),
                         filled: true,
                         fillColor: Colors.grey[50],
                         prefixIcon: const Icon(Icons.money_off_outlined),
                       ),
                       style: GoogleFonts.manrope(),
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
                     ),
                     const SizedBox(height: 20),
 
@@ -523,7 +564,8 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
                       decoration: InputDecoration(
                         labelText: 'Description',
                         labelStyle: GoogleFonts.manrope(),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12)),
                         filled: true,
                         fillColor: Colors.grey[50],
                         prefixIcon: const Icon(Icons.description_outlined),
@@ -566,14 +608,19 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
                         onPressed: _isSaving ? null : _saveService,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF5BBCFF),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
                           elevation: 0,
                         ),
                         child: _isSaving
-                            ? const CircularProgressIndicator(color: Colors.white)
+                            ? const CircularProgressIndicator(
+                                color: Colors.white)
                             : Text(
                                 'Save Changes',
-                                style: GoogleFonts.manrope(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                                style: GoogleFonts.manrope(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white),
                               ),
                       ),
                     ),

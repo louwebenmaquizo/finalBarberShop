@@ -8,7 +8,7 @@ import 'customer_navigation_screen.dart';
 
 class CustomerCatalogScreen extends StatefulWidget {
   final Map<String, dynamic>? userData;
-  
+
   const CustomerCatalogScreen({super.key, this.userData});
 
   @override
@@ -53,24 +53,21 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
         CatalogService.getAllServices(),
         EmployeeService.getAllEmployees(),
       ]);
-      
+
       final categories = results[0] as List<dynamic>;
       final services = results[1] as List<dynamic>;
       final employees = results[2] as List<dynamic>;
-      
-      print('✅ Loaded ${categories.length} categories: ${categories.map((c) => c['name']).toList()}');
-      print('✅ Loaded ${services.length} services');
-      print('✅ Loaded ${employees.length} employees');
-      
+
       // Filter services to only active ones
       final activeServices = services.where((s) {
         final isActive = s['is_active'];
         if (isActive is bool) return isActive;
         if (isActive is int) return isActive == 1;
-        if (isActive is String) return isActive == '1' || isActive.toLowerCase() == 'true';
+        if (isActive is String)
+          return isActive == '1' || isActive.toLowerCase() == 'true';
         return true;
       }).toList();
-      
+
       // Filter barbers to only active staff (exclude purely administrative roles)
       final barbers = employees.where((e) {
         final isActive = e['is_active'];
@@ -82,15 +79,13 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
         } else if (isActive is String) {
           active = isActive == '1' || isActive.toLowerCase() == 'true';
         }
-        
+
         final role = (e['role'] ?? '').toString().toLowerCase().trim();
-        final isNonBarber = role == 'admin' || role == 'administrator' || role == 'cashier';
+        final isNonBarber =
+            role == 'admin' || role == 'administrator' || role == 'cashier';
         return active && !isNonBarber;
       }).toList();
-      
-      print('✅ Filtered to ${activeServices.length} active services');
-      print('✅ Filtered to ${barbers.length} active barbers');
-      
+
       setState(() {
         _categories = categories;
         _services = activeServices;
@@ -98,7 +93,6 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
         _isLoading = false;
       });
     } catch (e) {
-      print('❌ Error loading catalog: $e');
       setState(() {
         _isLoading = false;
       });
@@ -112,28 +106,32 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
       }
     }
   }
-  
+
   List<dynamic> get _filteredServices {
     var filtered = _services;
-    
+
     // Filter by search query
     if (_searchQuery.isNotEmpty) {
       final query = _searchQuery.toLowerCase();
       filtered = filtered.where((service) {
         final name = (service['name'] ?? '').toString().toLowerCase();
-        final description = (service['description'] ?? '').toString().toLowerCase();
-        final category = (service['category_name'] ?? '').toString().toLowerCase();
-        return name.contains(query) || description.contains(query) || category.contains(query);
+        final description =
+            (service['description'] ?? '').toString().toLowerCase();
+        final category =
+            (service['category_name'] ?? '').toString().toLowerCase();
+        return name.contains(query) ||
+            description.contains(query) ||
+            category.contains(query);
       }).toList();
     }
-    
+
     // Filter by category
     if (_selectedCategoryId != null) {
       filtered = filtered.where((service) {
         return service['category_id'] == _selectedCategoryId;
       }).toList();
     }
-    
+
     return filtered;
   }
 
@@ -181,7 +179,8 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
                                 hintStyle: GoogleFonts.manrope(
                                   color: Colors.grey[600],
                                 ),
-                                prefixIcon: Icon(Icons.search, color: Colors.grey[600]),
+                                prefixIcon:
+                                    Icon(Icons.search, color: Colors.grey[600]),
                                 border: InputBorder.none,
                                 contentPadding: const EdgeInsets.symmetric(
                                   horizontal: 16,
@@ -192,7 +191,7 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
                             ),
                           ),
                           const SizedBox(height: 16),
-                          
+
                           // Categories (Horizontal Scrollable)
                           SizedBox(
                             height: 40,
@@ -212,7 +211,7 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
                             ),
                           ),
                           const SizedBox(height: 20),
-                          
+
                           // Popular Barber Section
                           Text(
                             'Popular Barber',
@@ -223,7 +222,7 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
                             ),
                           ),
                           const SizedBox(height: 12),
-                          
+
                           // Barber Avatars
                           SizedBox(
                             height: 100,
@@ -248,7 +247,7 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
                         ],
                       ),
                     ),
-                    
+
                     // Services Section Title & All Services Grid
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
@@ -276,7 +275,8 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
                               ),
                               const SizedBox(height: 16),
                               Text(
-                                _searchQuery.isNotEmpty || _selectedCategoryId != null
+                                _searchQuery.isNotEmpty ||
+                                        _selectedCategoryId != null
                                     ? 'No services found'
                                     : 'No services available',
                                 style: GoogleFonts.manrope(
@@ -294,7 +294,8 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
                         child: GridView.builder(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: 2,
                             crossAxisSpacing: 14,
                             mainAxisSpacing: 14,
@@ -334,7 +335,10 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
 
   Widget _buildBarberAvatar(Map<String, dynamic> barber) {
     final name = barber['name'] ?? 'Barber';
-    final photo = barber['profile_photo'] ?? barber['photo'] ?? barber['profile_picture'] ?? barber['image_url'];
+    final photo = barber['profile_photo'] ??
+        barber['photo'] ??
+        barber['profile_picture'] ??
+        barber['image_url'];
     return GestureDetector(
       onTap: () {
         _showBarberInfoModal(barber);
@@ -364,17 +368,10 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
     );
   }
 
-  Widget _buildBarberProfileImage(String? photo, String name, double size, double fontSize) {
+  Widget _buildBarberProfileImage(
+      String? photo, String name, double size, double fontSize) {
     if (photo != null && photo.trim().isNotEmpty) {
       String clean = photo.trim();
-      if (!clean.startsWith('http://') && !clean.startsWith('https://') && !clean.startsWith('data:image')) {
-        if (clean.startsWith('/')) {
-          clean = 'http://localhost$clean';
-        } else if (clean.startsWith('uploads/')) {
-          clean = 'http://localhost/barber_api/$clean';
-        }
-      }
-
       if (clean.startsWith('http://') || clean.startsWith('https://')) {
         return ClipOval(
           child: Image.network(
@@ -382,20 +379,23 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
             width: size,
             height: size,
             fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => _buildBarberInitialAvatar(name, size, fontSize),
+            errorBuilder: (_, __, ___) =>
+                _buildBarberInitialAvatar(name, size, fontSize),
           ),
         );
       }
       try {
         final base64Data = clean.contains(',') ? clean.split(',').last : clean;
-        final bytes = base64Decode(base64Data.replaceAll('\n', '').replaceAll('\r', '').trim());
+        final bytes = base64Decode(
+            base64Data.replaceAll('\n', '').replaceAll('\r', '').trim());
         return ClipOval(
           child: Image.memory(
             bytes,
             width: size,
             height: size,
             fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => _buildBarberInitialAvatar(name, size, fontSize),
+            errorBuilder: (_, __, ___) =>
+                _buildBarberInitialAvatar(name, size, fontSize),
           ),
         );
       } catch (_) {}
@@ -439,7 +439,10 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
   }
 
   void _showBarberInfoModal(Map<String, dynamic> barber) {
-    final photo = barber['profile_photo'] ?? barber['photo'] ?? barber['profile_picture'] ?? barber['image_url'];
+    final photo = barber['profile_photo'] ??
+        barber['photo'] ??
+        barber['profile_picture'] ??
+        barber['image_url'];
     final name = barber['name'] ?? 'Unknown';
     showDialog(
       context: context,
@@ -549,7 +552,7 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
     final description = service['description'] ?? '';
     final categoryName = service['category_name'] ?? '';
     final durationMinutes = service['duration_minutes'] ?? 30;
-    
+
     final priceValue = service['price'];
     double price = 0.0;
     if (priceValue is int) {
@@ -561,7 +564,7 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
     } else if (priceValue is num) {
       price = priceValue.toDouble();
     }
-    
+
     final rating = 4.9;
 
     return Container(
@@ -587,14 +590,16 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
           // Service Image with Overlays
           Stack(
             children: [
-              _buildCustomerCatalogImage(service['image_url'] ?? service['photo']),
+              _buildCustomerCatalogImage(
+                  service['image_url'] ?? service['photo']),
               // Category Pill
               if (categoryName.isNotEmpty)
                 Positioned(
                   top: 8,
                   left: 8,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                     decoration: BoxDecoration(
                       color: Colors.black.withOpacity(0.65),
                       borderRadius: BorderRadius.circular(16),
@@ -615,7 +620,8 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
                 top: 8,
                 right: 8,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.92),
                     borderRadius: BorderRadius.circular(10),
@@ -645,7 +651,7 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
               ),
             ],
           ),
-          
+
           // Card Details
           Expanded(
             child: Padding(
@@ -690,7 +696,7 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
                         ),
                     ],
                   ),
-                  
+
                   // Price and Book Button Row
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -730,7 +736,8 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF5BBCFF),
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 0),
                           minimumSize: const Size(60, 26),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
@@ -764,7 +771,8 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
         height: imgHeight,
         width: double.infinity,
         color: const Color(0x1A5BBCFF),
-        child: const Icon(Icons.content_cut, size: 36, color: Color(0xFF5BBCFF)),
+        child:
+            const Icon(Icons.content_cut, size: 36, color: Color(0xFF5BBCFF)),
       );
     }
 
@@ -779,14 +787,16 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
           height: imgHeight,
           width: double.infinity,
           color: const Color(0x1A5BBCFF),
-          child: const Icon(Icons.content_cut, size: 36, color: Color(0xFF5BBCFF)),
+          child:
+              const Icon(Icons.content_cut, size: 36, color: Color(0xFF5BBCFF)),
         ),
       );
     }
 
     try {
       final base64Data = clean.contains(',') ? clean.split(',').last : clean;
-      final bytes = base64Decode(base64Data.replaceAll('\n', '').replaceAll('\r', '').trim());
+      final bytes = base64Decode(
+          base64Data.replaceAll('\n', '').replaceAll('\r', '').trim());
       return Image.memory(
         bytes,
         height: imgHeight,
@@ -796,7 +806,8 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
           height: imgHeight,
           width: double.infinity,
           color: const Color(0x1A5BBCFF),
-          child: const Icon(Icons.content_cut, size: 36, color: Color(0xFF5BBCFF)),
+          child:
+              const Icon(Icons.content_cut, size: 36, color: Color(0xFF5BBCFF)),
         ),
       );
     } catch (_) {
@@ -804,9 +815,9 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
         height: imgHeight,
         width: double.infinity,
         color: const Color(0x1A5BBCFF),
-        child: const Icon(Icons.content_cut, size: 36, color: Color(0xFF5BBCFF)),
+        child:
+            const Icon(Icons.content_cut, size: 36, color: Color(0xFF5BBCFF)),
       );
     }
   }
 }
-

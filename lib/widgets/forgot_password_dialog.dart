@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 void showForgotPasswordDialog(BuildContext context) {
   showDialog(
@@ -12,93 +14,58 @@ class _ForgotPasswordDialogContent extends StatefulWidget {
   const _ForgotPasswordDialogContent();
 
   @override
-  State<_ForgotPasswordDialogContent> createState() => _ForgotPasswordDialogContentState();
+  State<_ForgotPasswordDialogContent> createState() =>
+      _ForgotPasswordDialogContentState();
 }
 
-class _ForgotPasswordDialogContentState extends State<_ForgotPasswordDialogContent> {
+class _ForgotPasswordDialogContentState
+    extends State<_ForgotPasswordDialogContent> {
   final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _codeController = TextEditingController();
-  final TextEditingController _newPasswordController = TextEditingController();
-  
-  int _step = 1; // 1: Enter email, 2: Enter code, 3: Reset password, 4: Success
   bool _isLoading = false;
-  bool _obscurePassword = true;
+  bool _sent = false;
 
   @override
   void dispose() {
     _emailController.dispose();
-    _codeController.dispose();
-    _newPasswordController.dispose();
     super.dispose();
   }
 
-  void _sendCode() {
+  Future<void> _sendResetLink() async {
     final email = _emailController.text.trim();
     if (email.isEmpty || !email.contains('@')) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Please enter a valid email', style: GoogleFonts.manrope()),
-          backgroundColor: Colors.red,
-        ),
-      );
+      _showMessage('Please enter a valid email address', isError: true);
       return;
     }
 
     setState(() => _isLoading = true);
-    Future.delayed(const Duration(milliseconds: 900), () {
+    try {
+      await Supabase.instance.client.auth.resetPasswordForEmail(
+        email,
+        redirectTo:
+            kIsWeb ? Uri.base.origin : 'io.supabase.barber://login-callback/',
+      );
+      if (mounted) setState(() => _sent = true);
+    } on AuthException catch (error) {
+      if (mounted) _showMessage(error.message, isError: true);
+    } catch (_) {
       if (mounted) {
-        setState(() {
-          _isLoading = false;
-          _step = 2;
-        });
+        _showMessage(
+          'Unable to send the reset email. Please try again.',
+          isError: true,
+        );
       }
-    });
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
-  void _verifyCode() {
-    final code = _codeController.text.trim();
-    if (code.isEmpty || code.length < 4) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Please enter the 4-digit code', style: GoogleFonts.manrope()),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    setState(() => _isLoading = true);
-    Future.delayed(const Duration(milliseconds: 700), () {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-          _step = 3;
-        });
-      }
-    });
-  }
-
-  void _resetPassword() {
-    final newPass = _newPasswordController.text;
-    if (newPass.length < 6) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Password must be at least 6 characters', style: GoogleFonts.manrope()),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    setState(() => _isLoading = true);
-    Future.delayed(const Duration(milliseconds: 900), () {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-          _step = 4;
-        });
-      }
-    });
+  void _showMessage(String message, {required bool isError}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: GoogleFonts.manrope()),
+        backgroundColor: isError ? Colors.red : Colors.green,
+      ),
+    );
   }
 
   @override
@@ -112,12 +79,11 @@ class _ForgotPasswordDialogContentState extends State<_ForgotPasswordDialogConte
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header Row
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  _step == 4 ? 'Password Reset!' : 'Reset Password',
+                  _sent ? 'Check Your Email' : 'Reset Password',
                   style: GoogleFonts.manrope(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -131,20 +97,28 @@ class _ForgotPasswordDialogContentState extends State<_ForgotPasswordDialogConte
               ],
             ),
             const SizedBox(height: 12),
-
-            if (_step == 1) ...[
+            if (!_sent) ...[
               Text(
-                'Enter the email address registered with your account. We will send you a reset code.',
-                style: GoogleFonts.manrope(fontSize: 14, color: Colors.grey[600], height: 1.5),
+                'Enter the email registered with your account. Supabase will '
+                'send a secure password-recovery link.',
+                style: GoogleFonts.manrope(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                  height: 1.5,
+                ),
               ),
               const SizedBox(height: 20),
               TextField(
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
+                autofillHints: const [AutofillHints.email],
                 decoration: InputDecoration(
                   labelText: 'Email Address',
-                  prefixIcon: const Icon(Icons.email_outlined, color: Colors.grey),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  prefixIcon:
+                      const Icon(Icons.email_outlined, color: Colors.grey),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   filled: true,
                   fillColor: Colors.grey[50],
                 ),
@@ -155,119 +129,72 @@ class _ForgotPasswordDialogContentState extends State<_ForgotPasswordDialogConte
                 width: double.infinity,
                 height: 48,
                 child: ElevatedButton(
-                  onPressed: _isLoading ? null : _sendCode,
+                  onPressed: _isLoading ? null : _sendResetLink,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF5BBCFF),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    elevation: 0,
-                  ),
-                  child: _isLoading
-                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                      : Text('Send Reset Code', style: GoogleFonts.manrope(fontWeight: FontWeight.bold, color: Colors.white)),
-                ),
-              ),
-            ] else if (_step == 2) ...[
-              Text(
-                'A 4-digit verification code has been sent to ${_emailController.text.trim()}. (Use demo code: 1234)',
-                style: GoogleFonts.manrope(fontSize: 14, color: Colors.grey[600], height: 1.5),
-              ),
-              const SizedBox(height: 20),
-              TextField(
-                controller: _codeController,
-                keyboardType: TextInputType.number,
-                textAlign: TextAlign.center,
-                maxLength: 4,
-                decoration: InputDecoration(
-                  hintText: '• • • •',
-                  hintStyle: GoogleFonts.manrope(fontSize: 22, letterSpacing: 8),
-                  counterText: '',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  filled: true,
-                  fillColor: Colors.grey[50],
-                ),
-                style: GoogleFonts.manrope(fontSize: 22, fontWeight: FontWeight.bold, letterSpacing: 8),
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _verifyCode,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF5BBCFF),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    elevation: 0,
-                  ),
-                  child: _isLoading
-                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                      : Text('Verify Code', style: GoogleFonts.manrope(fontWeight: FontWeight.bold, color: Colors.white)),
-                ),
-              ),
-            ] else if (_step == 3) ...[
-              Text(
-                'Create a new password for your account.',
-                style: GoogleFonts.manrope(fontSize: 14, color: Colors.grey[600]),
-              ),
-              const SizedBox(height: 20),
-              TextField(
-                controller: _newPasswordController,
-                obscureText: _obscurePassword,
-                decoration: InputDecoration(
-                  labelText: 'New Password',
-                  prefixIcon: const Icon(Icons.lock_outline, color: Colors.grey),
-                  suffixIcon: IconButton(
-                    icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility, color: Colors.grey),
-                    onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                  ),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  filled: true,
-                  fillColor: Colors.grey[50],
-                ),
-                style: GoogleFonts.manrope(),
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _resetPassword,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF5BBCFF),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    elevation: 0,
-                  ),
-                  child: _isLoading
-                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                      : Text('Save New Password', style: GoogleFonts.manrope(fontWeight: FontWeight.bold, color: Colors.white)),
-                ),
-              ),
-            ] else if (_step == 4) ...[
-              const SizedBox(height: 12),
-              Center(
-                child: Column(
-                  children: [
-                    const Icon(Icons.check_circle, color: Colors.green, size: 56),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Your password has been successfully updated.',
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.manrope(fontSize: 14, color: Colors.grey[700]),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    const SizedBox(height: 24),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 48,
-                      child: ElevatedButton(
-                        onPressed: () => Navigator.pop(context),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF5BBCFF),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          elevation: 0,
+                    elevation: 0,
+                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : Text(
+                          'Send Recovery Link',
+                          style: GoogleFonts.manrope(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
                         ),
-                        child: Text('Back to Login', style: GoogleFonts.manrope(fontWeight: FontWeight.bold, color: Colors.white)),
-                      ),
+                ),
+              ),
+            ] else ...[
+              const Center(
+                child: Icon(
+                  Icons.mark_email_read_outlined,
+                  color: Colors.green,
+                  size: 56,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'If an account exists for ${_emailController.text.trim()}, a '
+                'recovery link has been sent. Open it on this device, then '
+                'choose a new password in the app.',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.manrope(
+                  fontSize: 14,
+                  color: Colors.grey[700],
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF5BBCFF),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                  ],
+                    elevation: 0,
+                  ),
+                  child: Text(
+                    'Done',
+                    style: GoogleFonts.manrope(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
                 ),
               ),
             ],

@@ -18,7 +18,8 @@ class _EmployeeScreenState extends State<EmployeeScreen> {
   List<Map<String, dynamic>> _allEmployees = [];
   bool _isLoading = true;
   String? _errorMessage;
-  String? _statusFilter = 'active'; // 'active' = active only (default), 'inactive' = inactive only
+  String? _statusFilter =
+      'active'; // 'active' = active only (default), 'inactive' = inactive only
   String? _selectedRole; // Selected role filter (null = all roles)
 
   @override
@@ -58,7 +59,7 @@ class _EmployeeScreenState extends State<EmployeeScreen> {
 
   void _filterEmployees() {
     final query = _searchController.text;
-    
+
     // First filter by status (is_active)
     // Schema: is_active = 1 for active, 0 for inactive
     List<Map<String, dynamic>> statusFiltered = _allEmployees;
@@ -99,7 +100,7 @@ class _EmployeeScreenState extends State<EmployeeScreen> {
         return false;
       }).toList();
     }
-    
+
     // Then filter by role
     List<Map<String, dynamic>> roleFiltered = statusFiltered;
     if (_selectedRole != null) {
@@ -107,7 +108,7 @@ class _EmployeeScreenState extends State<EmployeeScreen> {
         return employee['role'] == _selectedRole;
       }).toList();
     }
-    
+
     // Then filter by search query
     if (query.isEmpty) {
       setState(() {
@@ -124,14 +125,14 @@ class _EmployeeScreenState extends State<EmployeeScreen> {
       });
     }
   }
-  
+
   void _setStatusFilter(String? filter) {
     setState(() {
       _statusFilter = filter;
     });
     _filterEmployees();
   }
-  
+
   void _showRoleFilterDialog() {
     // Get unique roles from employees
     final roles = _allEmployees
@@ -140,7 +141,7 @@ class _EmployeeScreenState extends State<EmployeeScreen> {
         .toSet()
         .toList()
       ..sort();
-    
+
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -189,7 +190,9 @@ class _EmployeeScreenState extends State<EmployeeScreen> {
                 title: Text(
                   'All Roles',
                   style: GoogleFonts.manrope(
-                    fontWeight: _selectedRole == null ? FontWeight.w600 : FontWeight.normal,
+                    fontWeight: _selectedRole == null
+                        ? FontWeight.w600
+                        : FontWeight.normal,
                   ),
                 ),
                 onTap: () {
@@ -218,8 +221,8 @@ class _EmployeeScreenState extends State<EmployeeScreen> {
                   title: Text(
                     role ?? '',
                     style: GoogleFonts.manrope(
-                      fontWeight: _selectedRole == role 
-                          ? FontWeight.w600 
+                      fontWeight: _selectedRole == role
+                          ? FontWeight.w600
                           : FontWeight.normal,
                     ),
                   ),
@@ -310,7 +313,9 @@ class _EmployeeScreenState extends State<EmployeeScreen> {
                           child: Container(
                             height: 30,
                             decoration: BoxDecoration(
-                              color: _statusFilter == 'active' ? Colors.black : Colors.white,
+                              color: _statusFilter == 'active'
+                                  ? Colors.black
+                                  : Colors.white,
                               borderRadius: const BorderRadius.only(
                                 topLeft: Radius.circular(11),
                                 bottomLeft: Radius.circular(11),
@@ -322,7 +327,9 @@ class _EmployeeScreenState extends State<EmployeeScreen> {
                               style: GoogleFonts.manrope(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w500,
-                                color: _statusFilter == 'active' ? Colors.white : Colors.black87,
+                                color: _statusFilter == 'active'
+                                    ? Colors.white
+                                    : Colors.black87,
                               ),
                             ),
                           ),
@@ -334,7 +341,9 @@ class _EmployeeScreenState extends State<EmployeeScreen> {
                           child: Container(
                             height: 30,
                             decoration: BoxDecoration(
-                              color: _statusFilter == 'inactive' ? Colors.black : Colors.white,
+                              color: _statusFilter == 'inactive'
+                                  ? Colors.black
+                                  : Colors.white,
                               borderRadius: const BorderRadius.only(
                                 topRight: Radius.circular(11),
                                 bottomRight: Radius.circular(11),
@@ -346,7 +355,9 @@ class _EmployeeScreenState extends State<EmployeeScreen> {
                               style: GoogleFonts.manrope(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w500,
-                                color: _statusFilter == 'inactive' ? Colors.white : Colors.black87,
+                                color: _statusFilter == 'inactive'
+                                    ? Colors.white
+                                    : Colors.black87,
                               ),
                             ),
                           ),
@@ -361,7 +372,8 @@ class _EmployeeScreenState extends State<EmployeeScreen> {
                 TextButton(
                   onPressed: () => _showRoleFilterDialog(),
                   style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -386,7 +398,7 @@ class _EmployeeScreenState extends State<EmployeeScreen> {
               ],
             ),
           ),
-          
+
           // Scrollable Employee List
           Expanded(
             child: SingleChildScrollView(
@@ -396,55 +408,56 @@ class _EmployeeScreenState extends State<EmployeeScreen> {
                 children: [
                   const SizedBox(height: 18),
                   // Employee List
-            _isLoading
-                ? const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(32.0),
-                      child: CircularProgressIndicator(),
-                    ),
-                  )
-                : _errorMessage != null
-                    ? Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(32.0),
-                          child: Column(
-                            children: [
-                              Text(
-                                _errorMessage!,
-                                style: GoogleFonts.manrope(
-                                  color: Colors.red,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 16),
-                              ElevatedButton(
-                                onPressed: _loadEmployees,
-                                child: Text('Retry'),
-                              ),
-                            ],
+                  _isLoading
+                      ? const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(32.0),
+                            child: CircularProgressIndicator(),
                           ),
-                        ),
-                      )
-                    : _filteredEmployees.isEmpty
-                        ? Center(
-                            child: Padding(
-                              padding: const EdgeInsets.all(32.0),
-                              child: Text(
-                                'No employees found',
-                                style: GoogleFonts.manrope(
-                                  color: Colors.grey[600],
+                        )
+                      : _errorMessage != null
+                          ? Center(
+                              child: Padding(
+                                padding: const EdgeInsets.all(32.0),
+                                child: Column(
+                                  children: [
+                                    Text(
+                                      _errorMessage!,
+                                      style: GoogleFonts.manrope(
+                                        color: Colors.red,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    const SizedBox(height: 16),
+                                    ElevatedButton(
+                                      onPressed: _loadEmployees,
+                                      child: Text('Retry'),
+                                    ),
+                                  ],
                                 ),
                               ),
-                            ),
-                          )
-                        : ListView.builder(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: _filteredEmployees.length,
-                            itemBuilder: (context, index) {
-                              return _buildEmployeeItem(_filteredEmployees[index]);
-                            },
-                          ),
+                            )
+                          : _filteredEmployees.isEmpty
+                              ? Center(
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(32.0),
+                                    child: Text(
+                                      'No employees found',
+                                      style: GoogleFonts.manrope(
+                                        color: Colors.grey[600],
+                                      ),
+                                    ),
+                                  ),
+                                )
+                              : ListView.builder(
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  itemCount: _filteredEmployees.length,
+                                  itemBuilder: (context, index) {
+                                    return _buildEmployeeItem(
+                                        _filteredEmployees[index]);
+                                  },
+                                ),
                 ],
               ),
             ),
@@ -459,7 +472,7 @@ class _EmployeeScreenState extends State<EmployeeScreen> {
               builder: (context) => const AddEmployeeScreen(),
             ),
           );
-          
+
           // Refresh list if employee was added
           if (result == true) {
             _loadEmployees();
@@ -476,7 +489,9 @@ class _EmployeeScreenState extends State<EmployeeScreen> {
   }
 
   Widget _buildEmployeeItem(Map<String, dynamic> employee) {
-    final isActive = employee['is_active'] == true || employee['is_active'] == 1 || employee['is_active'] == '1';
+    final isActive = employee['is_active'] == true ||
+        employee['is_active'] == 1 ||
+        employee['is_active'] == '1';
 
     return InkWell(
       onTap: () async {
@@ -515,7 +530,8 @@ class _EmployeeScreenState extends State<EmployeeScreen> {
         child: Row(
           children: [
             // Circle Avatar with photo or gradient initial
-            _buildBarberAvatar(employee['profile_photo'], employee['name'] ?? 'B'),
+            _buildBarberAvatar(
+                employee['profile_photo'], employee['name'] ?? 'B'),
             const SizedBox(width: 16),
             // Name, Role, and Active/Inactive Badge
             Expanded(
@@ -538,7 +554,8 @@ class _EmployeeScreenState extends State<EmployeeScreen> {
                       ),
                       if (!isActive)
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
                             color: Colors.red.withOpacity(0.12),
                             borderRadius: BorderRadius.circular(6),
@@ -598,7 +615,8 @@ class _EmployeeScreenState extends State<EmployeeScreen> {
       }
       try {
         final base64Data = clean.contains(',') ? clean.split(',').last : clean;
-        final cleanBase64 = base64Data.replaceAll('\n', '').replaceAll('\r', '').trim();
+        final cleanBase64 =
+            base64Data.replaceAll('\n', '').replaceAll('\r', '').trim();
         final bytes = base64Decode(cleanBase64);
         return Container(
           width: 56,
@@ -649,4 +667,3 @@ class _EmployeeScreenState extends State<EmployeeScreen> {
     );
   }
 }
-

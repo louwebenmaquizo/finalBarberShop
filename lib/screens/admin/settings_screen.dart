@@ -16,26 +16,28 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   static const Color blueColor = Color(0xFF5BBCFF);
-  static const Color blackColor = Colors.black87;
 
   void _showAppearanceDialog() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Appearance', style: GoogleFonts.manrope(fontWeight: FontWeight.bold)),
+        title: Text('Appearance',
+            style: GoogleFonts.manrope(fontWeight: FontWeight.bold)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
               leading: const Icon(Icons.light_mode, color: Colors.orange),
-              title: Text('Light Mode (Default)', style: GoogleFonts.manrope(fontWeight: FontWeight.w600)),
+              title: Text('Light Mode (Default)',
+                  style: GoogleFonts.manrope(fontWeight: FontWeight.w600)),
               trailing: const Icon(Icons.check_circle, color: blueColor),
               onTap: () => Navigator.pop(context),
             ),
             ListTile(
               leading: const Icon(Icons.dark_mode, color: Colors.indigo),
-              title: Text('Dark Mode (Auto / System)', style: GoogleFonts.manrope()),
+              title: Text('Dark Mode (Auto / System)',
+                  style: GoogleFonts.manrope()),
               onTap: () {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -49,29 +51,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  void _showAccountDetailsDialog() {
+  Future<void> _showAccountDetailsDialog() async {
+    final session = await AuthSessionService.getSession();
+    if (!mounted || session == null) return;
+    final username = session['username']?.toString() ?? 'Admin';
+    final role = session['role']?.toString() ?? 'admin';
+    final email = session['email']?.toString() ?? '';
+    final isActive = session['is_active'] == true;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Admin Account Details', style: GoogleFonts.manrope(fontWeight: FontWeight.bold)),
+        title: Text('Admin Account Details',
+            style: GoogleFonts.manrope(fontWeight: FontWeight.bold)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildDetailRow('Username', 'admin'),
+            _buildDetailRow('Username', username),
             const SizedBox(height: 8),
-            _buildDetailRow('Role', 'Administrator'),
+            _buildDetailRow('Role', role),
             const SizedBox(height: 8),
-            _buildDetailRow('Email', 'admin@admin.com'),
+            _buildDetailRow('Email', email),
             const SizedBox(height: 8),
-            _buildDetailRow('Status', 'Active'),
+            _buildDetailRow('Status', isActive ? 'Active' : 'Inactive'),
             const SizedBox(height: 16),
             const Divider(),
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: const Icon(Icons.lock_reset, color: blueColor),
-              title: Text('Change Admin Password', style: GoogleFonts.manrope(fontWeight: FontWeight.w600, fontSize: 14)),
+              title: Text('Change Admin Password',
+                  style: GoogleFonts.manrope(
+                      fontWeight: FontWeight.w600, fontSize: 14)),
               trailing: const Icon(Icons.chevron_right, size: 20),
               onTap: () {
                 Navigator.pop(context);
@@ -83,7 +94,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Close', style: GoogleFonts.manrope(color: blueColor, fontWeight: FontWeight.bold)),
+            child: Text('Close',
+                style: GoogleFonts.manrope(
+                    color: blueColor, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -94,8 +107,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: GoogleFonts.manrope(color: Colors.grey[600], fontSize: 13)),
-        Text(value, style: GoogleFonts.manrope(fontWeight: FontWeight.bold, fontSize: 14)),
+        Text(label,
+            style: GoogleFonts.manrope(color: Colors.grey[600], fontSize: 13)),
+        Text(value,
+            style:
+                GoogleFonts.manrope(fontWeight: FontWeight.bold, fontSize: 14)),
       ],
     );
   }
@@ -135,12 +151,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
               elevation: 0,
             ),
             child: Text(
               'Log Out',
-              style: GoogleFonts.manrope(color: Colors.white, fontWeight: FontWeight.bold),
+              style: GoogleFonts.manrope(
+                  color: Colors.white, fontWeight: FontWeight.bold),
             ),
           ),
         ],
@@ -164,42 +182,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           const SizedBox(height: 24),
-
           _buildSettingsItem(
             icon: Icons.palette,
             title: 'Appearance',
             onTap: _showAppearanceDialog,
           ),
           const SizedBox(height: 16),
-
           _buildSettingsItem(
             icon: Icons.person,
             title: 'Account Details',
             onTap: _showAccountDetailsDialog,
           ),
           const SizedBox(height: 16),
-
           _buildSettingsItem(
             icon: Icons.help_outline,
             title: 'Help Center',
             onTap: () => showHelpSupportModal(context),
           ),
           const SizedBox(height: 16),
-
           _buildSettingsItem(
             icon: Icons.privacy_tip_outlined,
             title: 'Terms and Privacy Policy',
             onTap: () => showTermsAndConditionsModal(context),
           ),
           const SizedBox(height: 16),
-
           _buildSettingsItem(
             icon: Icons.info_outline,
             title: 'About Liem Barber Shop',
             onTap: () => showAboutAppDialog(context),
           ),
           const SizedBox(height: 16),
-
           _buildSettingsItem(
             icon: Icons.logout,
             title: 'Log out',
@@ -240,7 +252,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: isLogout ? Colors.red.withOpacity(0.1) : blueColor.withOpacity(0.2),
+                color: isLogout
+                    ? Colors.red.withOpacity(0.1)
+                    : blueColor.withOpacity(0.2),
                 shape: BoxShape.circle,
               ),
               child: Icon(

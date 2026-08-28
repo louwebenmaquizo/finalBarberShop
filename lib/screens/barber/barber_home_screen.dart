@@ -1,9 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../config/api_config.dart';
-import '../../services/api_service.dart';
 import '../../services/auth_session_service.dart';
+import '../../services/booking_service.dart';
 import '../../widgets/notifications_modal.dart';
 import '../auth/login_screen.dart';
 
@@ -43,42 +42,48 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
   Future<void> _loadAppointments() async {
     setState(() => _isLoading = true);
     try {
-      String url = '${ApiConfig.baseUrl}/appointments.php?';
-      if (_staffId != null && _staffId!.isNotEmpty) {
-        url += 'staff_id=$_staffId&';
-      }
-      if (_selectedFilter == 'today') {
-        url += 'date=today';
-      } else if (_selectedFilter == 'upcoming') {
-        url += 'upcoming_only=1';
-      }
+      final rows = await BookingService.getAllBookings();
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final filtered = rows.where((appointment) {
+        if (_staffId != null &&
+            _staffId!.isNotEmpty &&
+            appointment['staff_id']?.toString() != _staffId) {
+          return false;
+        }
 
-      final response = await ApiServiceExtension.get(url);
-      if (response['success'] == true && response['data'] != null) {
-        final List list = response['data'] as List;
+        final start =
+            DateTime.tryParse(appointment['start_time']?.toString() ?? '')
+                ?.toLocal();
+        if (_selectedFilter == 'today') {
+          return start != null &&
+              start.year == today.year &&
+              start.month == today.month &&
+              start.day == today.day;
+        }
+        if (_selectedFilter == 'upcoming') {
+          return start != null && !start.isBefore(now);
+        }
+        return true;
+      }).toList();
+
+      if (mounted) {
         setState(() {
-          _appointments = list.map((e) => Map<String, dynamic>.from(e)).toList();
-          _isLoading = false;
-        });
-      } else {
-        setState(() {
-          _appointments = [];
+          _appointments = filtered;
           _isLoading = false;
         });
       }
     } catch (e) {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  Future<void> _updateAppointmentStatus(String appointmentId, String newStatus) async {
+  Future<void> _updateAppointmentStatus(
+      String appointmentId, String newStatus) async {
     try {
-      final response = await ApiServiceExtension.put(
-        '${ApiConfig.baseUrl}/appointments.php',
-        {
-          'appointment_id': appointmentId,
-          'status': newStatus,
-        },
+      final response = await BookingService.updateBooking(
+        appointmentId,
+        {'status': newStatus},
       );
 
       if (response['success'] == true && mounted) {
@@ -92,7 +97,9 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
                       : 'Status updated to $newStatus',
               style: GoogleFonts.manrope(),
             ),
-            backgroundColor: newStatus == 'completed' ? Colors.green : const Color(0xFF1E88E5),
+            backgroundColor: newStatus == 'completed'
+                ? Colors.green
+                : const Color(0xFF1E88E5),
           ),
         );
         _loadAppointments();
@@ -100,7 +107,9 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error updating status: $e'), backgroundColor: Colors.red),
+          SnackBar(
+              content: Text('Error updating status: $e'),
+              backgroundColor: Colors.red),
         );
       }
     }
@@ -118,7 +127,9 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
           children: [
             const Icon(Icons.edit_note, color: Color(0xFF1E88E5)),
             const SizedBox(width: 8),
-            Text('Haircut Notes', style: GoogleFonts.manrope(fontWeight: FontWeight.bold, fontSize: 18)),
+            Text('Haircut Notes',
+                style: GoogleFonts.manrope(
+                    fontWeight: FontWeight.bold, fontSize: 18)),
           ],
         ),
         content: Column(
@@ -134,9 +145,12 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
               controller: noteController,
               maxLines: 4,
               decoration: InputDecoration(
-                hintText: 'e.g. Skin fade #1.5 on sides, scissor texture on top, matte clay styling...',
-                hintStyle: GoogleFonts.manrope(fontSize: 13, color: Colors.grey[400]),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                hintText:
+                    'e.g. Skin fade #1.5 on sides, scissor texture on top, matte clay styling...',
+                hintStyle:
+                    GoogleFonts.manrope(fontSize: 13, color: Colors.grey[400]),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 filled: true,
                 fillColor: Colors.grey[50],
               ),
@@ -147,32 +161,36 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Cancel', style: GoogleFonts.manrope(color: Colors.grey[600])),
+            child: Text('Cancel',
+                style: GoogleFonts.manrope(color: Colors.grey[600])),
           ),
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(context);
               try {
-                await ApiServiceExtension.put(
-                  '${ApiConfig.baseUrl}/appointments.php',
-                  {
-                    'appointment_id': appointment['appointment_id'],
-                    'notes': noteController.text.trim(),
-                  },
+                await BookingService.updateBooking(
+                  appointment['appointment_id'].toString(),
+                  {'notes': noteController.text.trim()},
                 );
                 _loadAppointments();
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Haircut note saved!', style: GoogleFonts.manrope()), backgroundColor: Colors.green),
+                    SnackBar(
+                        content: Text('Haircut note saved!',
+                            style: GoogleFonts.manrope()),
+                        backgroundColor: Colors.green),
                   );
                 }
               } catch (_) {}
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF5BBCFF),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
             ),
-            child: Text('Save Note', style: GoogleFonts.manrope(fontWeight: FontWeight.bold, color: Colors.white)),
+            child: Text('Save Note',
+                style: GoogleFonts.manrope(
+                    fontWeight: FontWeight.bold, color: Colors.white)),
           ),
         ],
       ),
@@ -184,12 +202,15 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Log Out', style: GoogleFonts.manrope(fontWeight: FontWeight.bold)),
-        content: Text('Are you sure you want to log out of the Barber Portal?', style: GoogleFonts.manrope()),
+        title: Text('Log Out',
+            style: GoogleFonts.manrope(fontWeight: FontWeight.bold)),
+        content: Text('Are you sure you want to log out of the Barber Portal?',
+            style: GoogleFonts.manrope()),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Cancel', style: GoogleFonts.manrope(color: Colors.grey[600])),
+            child: Text('Cancel',
+                style: GoogleFonts.manrope(color: Colors.grey[600])),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -205,9 +226,12 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
             ),
-            child: Text('Log Out', style: GoogleFonts.manrope(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: Text('Log Out',
+                style: GoogleFonts.manrope(
+                    color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -243,7 +267,8 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
                     ),
                     const SizedBox(width: 6),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
                         color: const Color(0x1A5BBCFF),
                         borderRadius: BorderRadius.circular(6),
@@ -272,7 +297,8 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
           ),
           // Actions
           IconButton(
-            icon: const Icon(Icons.notifications_outlined, color: Colors.black87),
+            icon:
+                const Icon(Icons.notifications_outlined, color: Colors.black87),
             onPressed: () => showNotificationsModal(context, isAdmin: false),
           ),
           IconButton(
@@ -286,27 +312,38 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
 
   Widget _buildStatsRow() {
     final totalToday = _appointments.length;
-    final inProgress = _appointments.where((a) => a['status'] == 'in_progress').length;
-    final completed = _appointments.where((a) => a['status'] == 'completed').length;
+    final inProgress =
+        _appointments.where((a) => a['status'] == 'in_progress').length;
+    final completed =
+        _appointments.where((a) => a['status'] == 'completed').length;
     final waiting = _appointments.where((a) => a['status'] == 'booked').length;
 
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Row(
         children: [
-          Expanded(child: _buildStatCard('Total Cuts', '$totalToday', Colors.blue, Icons.content_cut)),
+          Expanded(
+              child: _buildStatCard(
+                  'Total Cuts', '$totalToday', Colors.blue, Icons.content_cut)),
           const SizedBox(width: 8),
-          Expanded(child: _buildStatCard('Waiting', '$waiting', Colors.orange, Icons.access_time)),
+          Expanded(
+              child: _buildStatCard(
+                  'Waiting', '$waiting', Colors.orange, Icons.access_time)),
           const SizedBox(width: 8),
-          Expanded(child: _buildStatCard('In Chair', '$inProgress', Colors.purple, Icons.airline_seat_recline_extra)),
+          Expanded(
+              child: _buildStatCard('In Chair', '$inProgress', Colors.purple,
+                  Icons.airline_seat_recline_extra)),
           const SizedBox(width: 8),
-          Expanded(child: _buildStatCard('Finished', '$completed', Colors.green, Icons.check_circle_outline)),
+          Expanded(
+              child: _buildStatCard('Finished', '$completed', Colors.green,
+                  Icons.check_circle_outline)),
         ],
       ),
     );
   }
 
-  Widget _buildStatCard(String label, String value, Color color, IconData icon) {
+  Widget _buildStatCard(
+      String label, String value, Color color, IconData icon) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
       decoration: BoxDecoration(
@@ -320,11 +357,15 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
           const SizedBox(height: 4),
           Text(
             value,
-            style: GoogleFonts.manrope(fontSize: 16, fontWeight: FontWeight.bold, color: color),
+            style: GoogleFonts.manrope(
+                fontSize: 16, fontWeight: FontWeight.bold, color: color),
           ),
           Text(
             label,
-            style: GoogleFonts.manrope(fontSize: 10, color: Colors.grey[700], fontWeight: FontWeight.w500),
+            style: GoogleFonts.manrope(
+                fontSize: 10,
+                color: Colors.grey[700],
+                fontWeight: FontWeight.w500),
           ),
         ],
       ),
@@ -447,11 +488,13 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
                         const SizedBox(height: 2),
                         Row(
                           children: [
-                            const Icon(Icons.phone, size: 12, color: Colors.grey),
+                            const Icon(Icons.phone,
+                                size: 12, color: Colors.grey),
                             const SizedBox(width: 4),
                             Text(
                               customerPhone,
-                              style: GoogleFonts.manrope(fontSize: 12, color: Colors.grey[600]),
+                              style: GoogleFonts.manrope(
+                                  fontSize: 12, color: Colors.grey[600]),
                             ),
                           ],
                         ),
@@ -460,7 +503,8 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: statusColor.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(12),
@@ -487,17 +531,22 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.content_cut, size: 16, color: Color(0xFF1E88E5)),
+                    const Icon(Icons.content_cut,
+                        size: 16, color: Color(0xFF1E88E5)),
                     const SizedBox(width: 6),
                     Text(
                       serviceName,
-                      style: GoogleFonts.manrope(fontWeight: FontWeight.bold, fontSize: 14),
+                      style: GoogleFonts.manrope(
+                          fontWeight: FontWeight.bold, fontSize: 14),
                     ),
                   ],
                 ),
                 Text(
                   '\$$price',
-                  style: GoogleFonts.manrope(fontWeight: FontWeight.bold, fontSize: 15, color: const Color(0xFF0F8751)),
+                  style: GoogleFonts.manrope(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                      color: const Color(0xFF0F8751)),
                 ),
               ],
             ),
@@ -509,7 +558,8 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
                 const SizedBox(width: 6),
                 Text(
                   '$timeStr  •  $dateStr',
-                  style: GoogleFonts.manrope(fontSize: 13, color: Colors.grey[700]),
+                  style: GoogleFonts.manrope(
+                      fontSize: 13, color: Colors.grey[700]),
                 ),
               ],
             ),
@@ -533,7 +583,10 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
                     Expanded(
                       child: Text(
                         notes,
-                        style: GoogleFonts.manrope(fontSize: 12, color: Colors.brown[800], height: 1.3),
+                        style: GoogleFonts.manrope(
+                            fontSize: 12,
+                            color: Colors.brown[800],
+                            height: 1.3),
                       ),
                     ),
                   ],
@@ -552,8 +605,10 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
                   icon: const Icon(Icons.note_add_outlined, size: 16),
                   label: Text('Note', style: GoogleFonts.manrope(fontSize: 12)),
                   style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
                   ),
                 ),
                 const Spacer(),
@@ -563,21 +618,34 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
                   OutlinedButton.icon(
                     onPressed: () => _confirmDeclineAppointment(appointment),
                     icon: const Icon(Icons.close, size: 16, color: Colors.red),
-                    label: Text('Decline', style: GoogleFonts.manrope(fontSize: 12, color: Colors.red, fontWeight: FontWeight.w600)),
+                    label: Text('Decline',
+                        style: GoogleFonts.manrope(
+                            fontSize: 12,
+                            color: Colors.red,
+                            fontWeight: FontWeight.w600)),
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(color: Colors.red),
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
                     ),
                   ),
                   const SizedBox(width: 8),
                   ElevatedButton.icon(
-                    onPressed: () => _updateAppointmentStatus(appointmentId, 'booked'),
-                    icon: const Icon(Icons.check, size: 16, color: Colors.white),
-                    label: Text('Accept', style: GoogleFonts.manrope(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white)),
+                    onPressed: () =>
+                        _updateAppointmentStatus(appointmentId, 'booked'),
+                    icon:
+                        const Icon(Icons.check, size: 16, color: Colors.white),
+                    label: Text('Accept',
+                        style: GoogleFonts.manrope(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
                       elevation: 0,
                     ),
                   ),
@@ -586,12 +654,19 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
                 // CONFIRMED / BOOKED: Start Cut Button
                 if (status == 'booked' || status == 'confirmed') ...[
                   ElevatedButton.icon(
-                    onPressed: () => _updateAppointmentStatus(appointmentId, 'in_progress'),
-                    icon: const Icon(Icons.play_arrow, size: 16, color: Colors.white),
-                    label: Text('Start Cut', style: GoogleFonts.manrope(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white)),
+                    onPressed: () =>
+                        _updateAppointmentStatus(appointmentId, 'in_progress'),
+                    icon: const Icon(Icons.play_arrow,
+                        size: 16, color: Colors.white),
+                    label: Text('Start Cut',
+                        style: GoogleFonts.manrope(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF5BBCFF),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
                       elevation: 0,
                     ),
                   ),
@@ -600,12 +675,19 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
                 // IN PROGRESS: Complete Cut Button
                 if (status == 'in_progress') ...[
                   ElevatedButton.icon(
-                    onPressed: () => _updateAppointmentStatus(appointmentId, 'completed'),
-                    icon: const Icon(Icons.check, size: 16, color: Colors.white),
-                    label: Text('Complete Cut', style: GoogleFonts.manrope(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white)),
+                    onPressed: () =>
+                        _updateAppointmentStatus(appointmentId, 'completed'),
+                    icon:
+                        const Icon(Icons.check, size: 16, color: Colors.white),
+                    label: Text('Complete Cut',
+                        style: GoogleFonts.manrope(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
                       elevation: 0,
                     ),
                   ),
@@ -631,7 +713,9 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
           children: [
             const Icon(Icons.warning_amber_rounded, color: Colors.red),
             const SizedBox(width: 8),
-            Text('Decline Booking', style: GoogleFonts.manrope(fontWeight: FontWeight.bold, fontSize: 18)),
+            Text('Decline Booking',
+                style: GoogleFonts.manrope(
+                    fontWeight: FontWeight.bold, fontSize: 18)),
           ],
         ),
         content: Text(
@@ -641,7 +725,8 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Cancel', style: GoogleFonts.manrope(color: Colors.grey[600])),
+            child: Text('Cancel',
+                style: GoogleFonts.manrope(color: Colors.grey[600])),
           ),
           ElevatedButton(
             onPressed: () {
@@ -650,9 +735,12 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
             ),
-            child: Text('Decline Request', style: GoogleFonts.manrope(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: Text('Decline Request',
+                style: GoogleFonts.manrope(
+                    color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -662,19 +750,13 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
   Widget _buildAvatar(String? photo, String name, {double size = 48}) {
     if (photo != null && photo.trim().isNotEmpty) {
       String clean = photo.trim();
-      if (!clean.startsWith('http://') && !clean.startsWith('https://') && !clean.startsWith('data:image')) {
-        if (clean.startsWith('/')) {
-          clean = 'http://localhost$clean';
-        } else if (clean.startsWith('uploads/')) {
-          clean = 'http://localhost/barber_api/$clean';
-        }
-      }
-
       if (clean.startsWith('http://') || clean.startsWith('https://')) {
         return Container(
           width: size,
           height: size,
-          decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: const Color(0xFF5BBCFF), width: 1.5)),
+          decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: const Color(0xFF5BBCFF), width: 1.5)),
           child: ClipOval(
             child: Image.network(
               clean,
@@ -686,11 +768,14 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
       }
       try {
         final base64Data = clean.contains(',') ? clean.split(',').last : clean;
-        final bytes = base64Decode(base64Data.replaceAll('\n', '').replaceAll('\r', '').trim());
+        final bytes = base64Decode(
+            base64Data.replaceAll('\n', '').replaceAll('\r', '').trim());
         return Container(
           width: size,
           height: size,
-          decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: const Color(0xFF5BBCFF), width: 1.5)),
+          decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: const Color(0xFF5BBCFF), width: 1.5)),
           child: ClipOval(child: Image.memory(bytes, fit: BoxFit.cover)),
         );
       } catch (_) {}
@@ -736,7 +821,6 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
                     _buildStatsRow(),
                     _buildFilterChips(),
                     const SizedBox(height: 12),
-
                     if (_isLoading)
                       const Padding(
                         padding: EdgeInsets.all(40.0),
@@ -754,26 +838,30 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
                                 color: Colors.blue.withOpacity(0.08),
                                 shape: BoxShape.circle,
                               ),
-                              child: const Icon(Icons.content_cut, size: 48, color: Color(0xFF1E88E5)),
+                              child: const Icon(Icons.content_cut,
+                                  size: 48, color: Color(0xFF1E88E5)),
                             ),
                             const SizedBox(height: 16),
                             Text(
                               'No Cuts in Queue',
-                              style: GoogleFonts.manrope(fontSize: 18, fontWeight: FontWeight.bold),
+                              style: GoogleFonts.manrope(
+                                  fontSize: 18, fontWeight: FontWeight.bold),
                             ),
                             const SizedBox(height: 4),
                             Text(
                               _selectedFilter == 'today'
                                   ? 'No customers scheduled for cuts today.'
                                   : 'No appointments found for this filter.',
-                              style: GoogleFonts.manrope(color: Colors.grey[600], fontSize: 13),
+                              style: GoogleFonts.manrope(
+                                  color: Colors.grey[600], fontSize: 13),
                               textAlign: TextAlign.center,
                             ),
                           ],
                         ),
                       )
                     else
-                      ..._appointments.map((appointment) => _buildAppointmentCard(appointment)),
+                      ..._appointments.map(
+                          (appointment) => _buildAppointmentCard(appointment)),
                     const SizedBox(height: 24),
                   ],
                 ),

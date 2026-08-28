@@ -1,5 +1,8 @@
 # Barber API Documentation
 
+> **Legacy reference only.** This PHP/MySQL API is disabled. The Flutter app
+> now uses the Supabase schema and Edge Function in `../supabase/`.
+
 ## Base URL
 - For browser/web: `http://localhost/barber_api/`
 - For physical device: `http://192.168.1.7/barber_api/` (your computer's IP)

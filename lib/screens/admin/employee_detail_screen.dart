@@ -34,7 +34,8 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
   final TextEditingController _roleController = TextEditingController();
   final TextEditingController _skillsController = TextEditingController();
   final TextEditingController _payRateController = TextEditingController();
-  final TextEditingController _commissionRateController = TextEditingController();
+  final TextEditingController _commissionRateController =
+      TextEditingController();
   bool _isActive = true;
   String? _profilePhoto;
   Uint8List? _newPhotoBytes;
@@ -119,7 +120,8 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
           } else if (isActiveValue is int) {
             _isActive = isActiveValue == 1;
           } else if (isActiveValue is String) {
-            _isActive = isActiveValue == '1' || isActiveValue.toLowerCase() == 'true';
+            _isActive =
+                isActiveValue == '1' || isActiveValue.toLowerCase() == 'true';
           } else {
             _isActive = true;
           }
@@ -153,7 +155,10 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
 
     try {
       final all = await EmployeeService.getAllEmployees();
-      if (all.any((e) => e['staff_id'] != widget.staffId && (e['name'] ?? '').toString().trim().toLowerCase() == name.toLowerCase())) {
+      if (all.any((e) =>
+          e['staff_id'] != widget.staffId &&
+          (e['name'] ?? '').toString().trim().toLowerCase() ==
+              name.toLowerCase())) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Another barber named "$name" already exists.'),
@@ -163,20 +168,29 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
         return;
       }
 
-      if (phone.isNotEmpty && all.any((e) => e['staff_id'] != widget.staffId && (e['phone'] ?? '').toString().trim() == phone)) {
+      if (phone.isNotEmpty &&
+          all.any((e) =>
+              e['staff_id'] != widget.staffId &&
+              (e['phone'] ?? '').toString().trim() == phone)) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Phone number "$phone" is already assigned to another barber.'),
+            content: Text(
+                'Phone number "$phone" is already assigned to another barber.'),
             backgroundColor: Colors.orange[800],
           ),
         );
         return;
       }
 
-      if (email.isNotEmpty && all.any((e) => e['staff_id'] != widget.staffId && (e['email'] ?? '').toString().trim().toLowerCase() == email.toLowerCase())) {
+      if (email.isNotEmpty &&
+          all.any((e) =>
+              e['staff_id'] != widget.staffId &&
+              (e['email'] ?? '').toString().trim().toLowerCase() ==
+                  email.toLowerCase())) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Email "$email" is already in use by another barber.'),
+            content:
+                Text('Email "$email" is already in use by another barber.'),
             backgroundColor: Colors.orange[800],
           ),
         );
@@ -194,14 +208,21 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
         'phone': phone.isEmpty ? null : phone,
         'email': email.isEmpty ? null : email,
         'role': _roleController.text.trim(),
-        'skills': _skillsController.text.trim().isEmpty ? null : _skillsController.text.trim(),
-        'pay_rate': _payRateController.text.trim().isEmpty ? null : double.tryParse(_payRateController.text.trim()),
-        'commission_rate': _commissionRateController.text.trim().isEmpty ? null : double.tryParse(_commissionRateController.text.trim()),
+        'skills': _skillsController.text.trim().isEmpty
+            ? null
+            : _skillsController.text.trim(),
+        'pay_rate': _payRateController.text.trim().isEmpty
+            ? null
+            : double.tryParse(_payRateController.text.trim()),
+        'commission_rate': _commissionRateController.text.trim().isEmpty
+            ? null
+            : double.tryParse(_commissionRateController.text.trim()),
         'profile_photo': _profilePhoto,
         'is_active': _isActive,
       };
 
-      final result = await EmployeeService.updateEmployee(widget.staffId, updateData);
+      final result =
+          await EmployeeService.updateEmployee(widget.staffId, updateData);
 
       if (result['success'] == true && mounted) {
         setState(() {
@@ -372,7 +393,9 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                result['message'] ?? result['error'] ?? 'Failed to deactivate employee',
+                result['message'] ??
+                    result['error'] ??
+                    'Failed to deactivate employee',
                 style: GoogleFonts.manrope(),
               ),
               backgroundColor: Colors.red,
@@ -400,25 +423,22 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
       return Container(
         width: 110,
         height: 110,
-        decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: const Color(0xFF5BBCFF), width: 2)),
-        child: ClipOval(child: Image.memory(_newPhotoBytes!, fit: BoxFit.cover)),
+        decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: const Color(0xFF5BBCFF), width: 2)),
+        child:
+            ClipOval(child: Image.memory(_newPhotoBytes!, fit: BoxFit.cover)),
       );
     }
     if (_profilePhoto != null && _profilePhoto!.trim().isNotEmpty) {
       String clean = _profilePhoto!.trim();
-      if (!clean.startsWith('http://') && !clean.startsWith('https://') && !clean.startsWith('data:image')) {
-        if (clean.startsWith('/')) {
-          clean = 'http://localhost$clean';
-        } else if (clean.startsWith('uploads/')) {
-          clean = 'http://localhost/barber_api/$clean';
-        }
-      }
-
       if (clean.startsWith('http://') || clean.startsWith('https://')) {
         return Container(
           width: 110,
           height: 110,
-          decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: const Color(0xFF5BBCFF), width: 2)),
+          decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: const Color(0xFF5BBCFF), width: 2)),
           child: ClipOval(
             child: Image.network(
               clean,
@@ -430,11 +450,14 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
       }
       try {
         final base64Data = clean.contains(',') ? clean.split(',').last : clean;
-        final bytes = base64Decode(base64Data.replaceAll('\n', '').replaceAll('\r', '').trim());
+        final bytes = base64Decode(
+            base64Data.replaceAll('\n', '').replaceAll('\r', '').trim());
         return Container(
           width: 110,
           height: 110,
-          decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: const Color(0xFF5BBCFF), width: 2)),
+          decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: const Color(0xFF5BBCFF), width: 2)),
           child: ClipOval(child: Image.memory(bytes, fit: BoxFit.cover)),
         );
       } catch (_) {}
@@ -460,7 +483,8 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
       ),
       child: Center(
         child: Text(
-          (_nameController.text.isNotEmpty ? _nameController.text[0] : 'B').toUpperCase(),
+          (_nameController.text.isNotEmpty ? _nameController.text[0] : 'B')
+              .toUpperCase(),
           style: GoogleFonts.manrope(
             fontSize: 44,
             fontWeight: FontWeight.bold,
@@ -541,9 +565,11 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
                                     color: const Color(0xFF5BBCFF),
-                                    border: Border.all(color: Colors.white, width: 2),
+                                    border: Border.all(
+                                        color: Colors.white, width: 2),
                                   ),
-                                  child: const Icon(Icons.camera_alt, size: 18, color: Colors.white),
+                                  child: const Icon(Icons.camera_alt,
+                                      size: 18, color: Colors.white),
                                 ),
                               ),
                             ),
@@ -559,10 +585,13 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                       decoration: InputDecoration(
                         labelText: 'Full Name *',
                         prefixIcon: const Icon(Icons.person_outline),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12)),
                       ),
                       style: GoogleFonts.manrope(),
-                      validator: (v) => v == null || v.trim().isEmpty ? 'Please enter name' : null,
+                      validator: (v) => v == null || v.trim().isEmpty
+                          ? 'Please enter name'
+                          : null,
                     ),
                     const SizedBox(height: 16),
 
@@ -573,10 +602,13 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                       decoration: InputDecoration(
                         labelText: 'Role / Title *',
                         prefixIcon: const Icon(Icons.badge_outlined),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12)),
                       ),
                       style: GoogleFonts.manrope(),
-                      validator: (v) => v == null || v.trim().isEmpty ? 'Please enter role' : null,
+                      validator: (v) => v == null || v.trim().isEmpty
+                          ? 'Please enter role'
+                          : null,
                     ),
                     const SizedBox(height: 16),
 
@@ -587,7 +619,8 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                       decoration: InputDecoration(
                         labelText: 'Phone',
                         prefixIcon: const Icon(Icons.phone_outlined),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12)),
                       ),
                       style: GoogleFonts.manrope(),
                     ),
@@ -600,7 +633,8 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                       decoration: InputDecoration(
                         labelText: 'Email',
                         prefixIcon: const Icon(Icons.email_outlined),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12)),
                       ),
                       style: GoogleFonts.manrope(),
                     ),
@@ -613,7 +647,8 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                       decoration: InputDecoration(
                         labelText: 'Skills & Specialties',
                         prefixIcon: const Icon(Icons.content_cut),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12)),
                       ),
                       maxLines: 2,
                       style: GoogleFonts.manrope(),
@@ -630,7 +665,8 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                             decoration: InputDecoration(
                               labelText: 'Pay Rate (\$)',
                               prefixIcon: const Icon(Icons.attach_money),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                              border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12)),
                             ),
                             keyboardType: TextInputType.number,
                             style: GoogleFonts.manrope(),
@@ -644,7 +680,8 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                             decoration: InputDecoration(
                               labelText: 'Commission (0-1.0)',
                               prefixIcon: const Icon(Icons.percent),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                              border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12)),
                             ),
                             keyboardType: TextInputType.number,
                             style: GoogleFonts.manrope(),
@@ -664,7 +701,9 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                         _isActive
                             ? 'Barber is active and available for customer bookings'
                             : 'Barber is inactive / hidden from booking schedules',
-                        style: GoogleFonts.manrope(fontSize: 12, color: _isActive ? Colors.green : Colors.red),
+                        style: GoogleFonts.manrope(
+                            fontSize: 12,
+                            color: _isActive ? Colors.green : Colors.red),
                       ),
                       value: _isActive,
                       activeColor: const Color(0xFF5BBCFF),
@@ -682,18 +721,23 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                           onPressed: _isSaving ? null : _saveEmployee,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF5BBCFF),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12)),
                             elevation: 0,
                           ),
                           child: _isSaving
                               ? const SizedBox(
                                   width: 20,
                                   height: 20,
-                                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                  child: CircularProgressIndicator(
+                                      color: Colors.white, strokeWidth: 2),
                                 )
                               : Text(
                                   'Save Changes',
-                                  style: GoogleFonts.manrope(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                                  style: GoogleFonts.manrope(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white),
                                 ),
                         ),
                       ),

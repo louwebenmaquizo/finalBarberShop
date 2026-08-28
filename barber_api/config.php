@@ -1,4 +1,14 @@
 <?php
+// This PHP/MySQL backend is retained only as migration reference.
+// The Flutter application now uses Supabase exclusively.
+header('Content-Type: application/json');
+http_response_code(410);
+echo json_encode([
+    'success' => false,
+    'error' => 'Legacy API disabled. Use the Supabase backend.'
+]);
+exit();
+
 // Database Configuration
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');

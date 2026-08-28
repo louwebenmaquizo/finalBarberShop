@@ -1,45 +1,124 @@
-import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../config/api_config.dart';
+import 'supabase_service_helpers.dart';
 
-/// AuthSessionService
-/// Handles persistent user session across browser refreshes and app launches
+/// Adapts Supabase Auth's persisted session to the legacy user-map contract.
+///
+/// `supabase_flutter` persists and refreshes the access token itself. Profile
+/// data is always reloaded under RLS and is never treated as an
+/// authentication credential.
 class AuthSessionService {
-  static const String _sessionKey = 'barber_user_session';
+  AuthSessionService._();
 
-  /// Save logged in user session
-  static Future<void> saveSession(Map<String, dynamic> userData) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_sessionKey, jsonEncode(userData));
-    } catch (e) {
-      print('Error saving session: $e');
-    }
-  }
+  // Kept for compatibility with existing callers. Supabase persists the
+  // authenticated session; profile rows are reloaded by [getSession].
+  static Future<void> saveSession(Map<String, dynamic> userData) =>
+      Future<void>.value();
 
-  /// Get active user session (returns null if not logged in)
   static Future<Map<String, dynamic>?> getSession() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final str = prefs.getString(_sessionKey);
-      if (str != null && str.isNotEmpty) {
-        final decoded = jsonDecode(str);
-        if (decoded is Map<String, dynamic>) {
-          return decoded;
-        }
-      }
-    } catch (e) {
-      print('Error reading session: $e');
+    final authUser = SupabaseConfig.client.auth.currentUser;
+    if (authUser == null) {
+      return null;
     }
-    return null;
+
+    try {
+      final profileData = await SupabaseConfig.client
+          .from(SupabaseConfig.profilesTable)
+          .select()
+          .eq('id', authUser.id)
+          .maybeSingle();
+      final profile = SupabaseServiceHelpers.asMap(profileData);
+
+      if (profile.isEmpty) {
+        await SupabaseConfig.client.auth.signOut();
+        return null;
+      }
+
+      final isActive = SupabaseServiceHelpers.asBool(
+        profile['is_active'],
+        false,
+      );
+      if (!isActive) {
+        await SupabaseConfig.client.auth.signOut();
+        return null;
+      }
+
+      final role = profile['role']?.toString().toLowerCase();
+      if (role == null || role.isEmpty) {
+        await SupabaseConfig.client.auth.signOut();
+        return null;
+      }
+
+      final session = <String, dynamic>{
+        'user_id': authUser.id,
+        'username': profile['username'] ?? _usernameFromEmail(authUser.email),
+        'email': authUser.email,
+        'phone': authUser.phone,
+        'role': role,
+        'is_active': isActive,
+      };
+
+      if (role == 'customer') {
+        final customerData = await SupabaseConfig.client
+            .from(SupabaseConfig.customersTable)
+            .select()
+            .eq('user_id', authUser.id)
+            .maybeSingle();
+        final customer = SupabaseServiceHelpers.asMap(customerData);
+        if (customer.isEmpty) {
+          await SupabaseConfig.client.auth.signOut();
+          return null;
+        }
+        final photo = await SupabaseStorageService.resolveReference(
+          bucket: SupabaseConfig.customerAvatarsBucket,
+          value: customer['profile_picture'],
+          isPublic: false,
+        );
+        session.addAll(customer);
+        session['customer_id'] = customer['customer_id'] ?? customer['id'];
+        session['user_id'] = authUser.id;
+        if (photo != null) {
+          session['profile_picture'] = photo;
+          session['profile_photo'] = photo;
+        }
+        session['role'] = 'customer';
+      } else if (role == 'barber' || role == 'staff') {
+        final staffData = await SupabaseConfig.client
+            .from(SupabaseConfig.staffTable)
+            .select()
+            .eq('user_id', authUser.id)
+            .maybeSingle();
+        final staff = SupabaseServiceHelpers.asMap(staffData);
+        if (staff.isEmpty) {
+          await SupabaseConfig.client.auth.signOut();
+          return null;
+        }
+        final photo = await SupabaseStorageService.resolveReference(
+          bucket: SupabaseConfig.staffAvatarsBucket,
+          value: staff['profile_photo'],
+          isPublic: true,
+        );
+        final staffRole = staff['role'];
+        session.addAll(staff);
+        session['staff_id'] = staff['staff_id'] ?? staff['id'];
+        session['user_id'] = authUser.id;
+        session['staff_role'] = staffRole;
+        session['role'] = role;
+        if (photo != null) session['profile_photo'] = photo;
+      }
+
+      return session;
+    } catch (_) {
+      await SupabaseConfig.client.auth.signOut();
+      return null;
+    }
   }
 
-  /// Clear session on Logout
   static Future<void> clearSession() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_sessionKey);
-    } catch (e) {
-      print('Error clearing session: $e');
-    }
+    await SupabaseConfig.client.auth.signOut();
+  }
+
+  static String _usernameFromEmail(String? email) {
+    if (email == null || email.isEmpty) return 'User';
+    return email.split('@').first;
   }
 }

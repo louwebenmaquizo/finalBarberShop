@@ -34,7 +34,8 @@ class OnboardingScreen extends StatelessWidget {
             Expanded(
               flex: 4,
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 24.0, vertical: 20.0),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -50,7 +51,7 @@ class OnboardingScreen extends StatelessWidget {
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 12),
-                    
+
                     // Subtitle
                     Text(
                       'Schedule your next haircut within a few seconds. Easily reserve and manage your appointments.',
@@ -65,7 +66,7 @@ class OnboardingScreen extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                     const Flexible(child: SizedBox(height: 20)),
-                    
+
                     // Log in button with color #5BBCFFB2
                     SizedBox(
                       width: double.infinity,
@@ -80,7 +81,8 @@ class OnboardingScreen extends StatelessWidget {
                           );
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xB25BBCFF), // #5BBCFFB2 with alpha
+                          backgroundColor:
+                              const Color(0xB25BBCFF), // #5BBCFFB2 with alpha
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -97,7 +99,7 @@ class OnboardingScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    
+
                     // Register button with color #FBC0E6
                     SizedBox(
                       width: double.infinity,

@@ -18,28 +18,8 @@
 
   <title>Liem Barber Shop</title>
   <link rel="manifest" href="manifest.json">
-  <script src="flutter.js" defer></script>
 </head>
 <body style="margin: 0; padding: 0; background-color: #ffffff;">
-  <script>
-    window.addEventListener('load', function(ev) {
-      if (typeof _flutter !== 'undefined' && _flutter.loader) {
-        _flutter.loader.loadEntrypoint({
-          onEntrypointLoaded: function(engineInitializer) {
-            engineInitializer.initializeEngine({
-              renderer: 'html'
-            }).then(function(appRunner) {
-              appRunner.runApp();
-            });
-          }
-        });
-      } else {
-        var script = document.createElement('script');
-        script.src = 'main.dart.js';
-        script.type = 'application/javascript';
-        document.body.appendChild(script);
-      }
-    });
-  </script>
+  <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

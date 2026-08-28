@@ -20,10 +20,12 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _roleController = TextEditingController(text: 'Master Barber');
+  final TextEditingController _roleController =
+      TextEditingController(text: 'Master Barber');
   final TextEditingController _skillsController = TextEditingController();
   final TextEditingController _payRateController = TextEditingController();
-  final TextEditingController _commissionRateController = TextEditingController();
+  final TextEditingController _commissionRateController =
+      TextEditingController();
 
   // Barber Account Credentials
   final TextEditingController _usernameController = TextEditingController();
@@ -88,7 +90,9 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error selecting image: $e'), backgroundColor: Colors.red),
+          SnackBar(
+              content: Text('Error selecting image: $e'),
+              backgroundColor: Colors.red),
         );
       }
     }
@@ -105,7 +109,9 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
     final username = _usernameController.text.trim();
 
     // Client-side Duplicate Checks
-    if (_existingEmployees.any((e) => (e['name'] ?? '').toString().trim().toLowerCase() == name.toLowerCase())) {
+    if (_existingEmployees.any((e) =>
+        (e['name'] ?? '').toString().trim().toLowerCase() ==
+        name.toLowerCase())) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('A barber/employee named "$name" already exists.'),
@@ -115,27 +121,37 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
       return;
     }
 
-    if (phone.isNotEmpty && _existingEmployees.any((e) => (e['phone'] ?? '').toString().trim() == phone)) {
+    if (phone.isNotEmpty &&
+        _existingEmployees
+            .any((e) => (e['phone'] ?? '').toString().trim() == phone)) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Phone number "$phone" is already assigned to another barber.'),
+          content: Text(
+              'Phone number "$phone" is already assigned to another barber.'),
           backgroundColor: Colors.orange[800],
         ),
       );
       return;
     }
 
-    if (email.isNotEmpty && _existingEmployees.any((e) => (e['email'] ?? '').toString().trim().toLowerCase() == email.toLowerCase())) {
+    if (email.isNotEmpty &&
+        _existingEmployees.any((e) =>
+            (e['email'] ?? '').toString().trim().toLowerCase() ==
+            email.toLowerCase())) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Email "$email" is already registered to another barber.'),
+          content:
+              Text('Email "$email" is already registered to another barber.'),
           backgroundColor: Colors.orange[800],
         ),
       );
       return;
     }
 
-    if (username.isNotEmpty && _existingEmployees.any((e) => (e['username'] ?? '').toString().trim().toLowerCase() == username.toLowerCase())) {
+    if (username.isNotEmpty &&
+        _existingEmployees.any((e) =>
+            (e['username'] ?? '').toString().trim().toLowerCase() ==
+            username.toLowerCase())) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Username "$username" is already in use.'),
@@ -155,12 +171,20 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
         'phone': phone.isEmpty ? null : phone,
         'email': email.isEmpty ? null : email,
         'role': _roleController.text.trim(),
-        'skills': _skillsController.text.trim().isEmpty ? null : _skillsController.text.trim(),
-        'pay_rate': _payRateController.text.trim().isEmpty ? null : double.tryParse(_payRateController.text.trim()),
-        'commission_rate': _commissionRateController.text.trim().isEmpty ? null : double.tryParse(_commissionRateController.text.trim()),
+        'skills': _skillsController.text.trim().isEmpty
+            ? null
+            : _skillsController.text.trim(),
+        'pay_rate': _payRateController.text.trim().isEmpty
+            ? null
+            : double.tryParse(_payRateController.text.trim()),
+        'commission_rate': _commissionRateController.text.trim().isEmpty
+            ? null
+            : double.tryParse(_commissionRateController.text.trim()),
         'profile_photo': _base64Image,
         'username': username.isEmpty ? null : username,
-        'password': _passwordController.text.trim().isEmpty ? null : _passwordController.text.trim(),
+        'password': _passwordController.text.trim().isEmpty
+            ? null
+            : _passwordController.text.trim(),
         'is_active': _isActive,
       };
 
@@ -170,9 +194,7 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              _usernameController.text.isNotEmpty
-                  ? 'Barber "$name" added with login account!'
-                  : 'Barber added successfully',
+              result['message']?.toString() ?? 'Barber added successfully',
               style: GoogleFonts.manrope(),
             ),
             backgroundColor: Colors.green,
@@ -223,7 +245,9 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
                     shape: BoxShape.circle,
                     color: const Color(0x1A5BBCFF),
                     border: Border.all(
-                      color: _imageBytes != null ? Colors.green : const Color(0xFF5BBCFF),
+                      color: _imageBytes != null
+                          ? Colors.green
+                          : const Color(0xFF5BBCFF),
                       width: 2.5,
                     ),
                     boxShadow: [
@@ -269,7 +293,9 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: _imageBytes != null ? Colors.green : const Color(0xFF5BBCFF),
+                      color: _imageBytes != null
+                          ? Colors.green
+                          : const Color(0xFF5BBCFF),
                       shape: BoxShape.circle,
                       border: Border.all(color: Colors.white, width: 2),
                     ),
@@ -291,16 +317,22 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
             children: [
               ElevatedButton.icon(
                 onPressed: () => _pickImage(ImageSource.gallery),
-                icon: const Icon(Icons.photo_library, size: 16, color: Colors.white),
+                icon: const Icon(Icons.photo_library,
+                    size: 16, color: Colors.white),
                 label: Text(
                   _imageBytes != null ? 'Change Photo' : 'Upload from Gallery',
-                  style: GoogleFonts.manrope(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white),
+                  style: GoogleFonts.manrope(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white),
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF5BBCFF),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
                   elevation: 0,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 ),
               ),
               if (_imageBytes != null) ...[
@@ -312,15 +344,21 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
                       _base64Image = null;
                     });
                   },
-                  icon: const Icon(Icons.delete_outline, size: 16, color: Colors.red),
+                  icon: const Icon(Icons.delete_outline,
+                      size: 16, color: Colors.red),
                   label: Text(
                     'Remove',
-                    style: GoogleFonts.manrope(fontSize: 13, color: Colors.red, fontWeight: FontWeight.bold),
+                    style: GoogleFonts.manrope(
+                        fontSize: 13,
+                        color: Colors.red,
+                        fontWeight: FontWeight.bold),
                   ),
                   style: OutlinedButton.styleFrom(
                     side: const BorderSide(color: Colors.red),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   ),
                 ),
               ],
@@ -381,7 +419,9 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
               const SizedBox(height: 24),
 
               // Basic Info Section
-              Text('Barber Information', style: GoogleFonts.manrope(fontSize: 16, fontWeight: FontWeight.bold)),
+              Text('Barber Information',
+                  style: GoogleFonts.manrope(
+                      fontSize: 16, fontWeight: FontWeight.bold)),
               const SizedBox(height: 12),
 
               // Name Field
@@ -390,7 +430,8 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
                 decoration: InputDecoration(
                   labelText: 'Full Name *',
                   prefixIcon: const Icon(Icons.person_outline),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12)),
                 ),
                 style: GoogleFonts.manrope(),
                 validator: (value) {
@@ -408,7 +449,8 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
                 decoration: InputDecoration(
                   labelText: 'Role / Position *',
                   prefixIcon: const Icon(Icons.badge_outlined),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12)),
                   hintText: 'e.g. Master Barber, Senior Stylist',
                 ),
                 style: GoogleFonts.manrope(),
@@ -427,7 +469,8 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
                 decoration: InputDecoration(
                   labelText: 'Phone Number',
                   prefixIcon: const Icon(Icons.phone_outlined),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12)),
                 ),
                 keyboardType: TextInputType.phone,
                 style: GoogleFonts.manrope(),
@@ -440,7 +483,8 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
                 decoration: InputDecoration(
                   labelText: 'Email Address',
                   prefixIcon: const Icon(Icons.email_outlined),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12)),
                 ),
                 keyboardType: TextInputType.emailAddress,
                 style: GoogleFonts.manrope(),
@@ -453,7 +497,8 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
                 decoration: InputDecoration(
                   labelText: 'Skills & Specialties',
                   prefixIcon: const Icon(Icons.content_cut),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12)),
                   hintText: 'e.g. Fade, Beard Trim, Hot Towel Shave',
                 ),
                 maxLines: 2,
@@ -470,7 +515,8 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
                       decoration: InputDecoration(
                         labelText: 'Hourly Pay (\$)',
                         prefixIcon: const Icon(Icons.attach_money),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12)),
                       ),
                       keyboardType: TextInputType.number,
                       style: GoogleFonts.manrope(),
@@ -483,7 +529,8 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
                       decoration: InputDecoration(
                         labelText: 'Commission (0-1.0)',
                         prefixIcon: const Icon(Icons.percent),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12)),
                       ),
                       keyboardType: TextInputType.number,
                       style: GoogleFonts.manrope(),
@@ -506,7 +553,8 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.account_circle, color: Color(0xFF1E88E5), size: 22),
+                        const Icon(Icons.account_circle,
+                            color: Color(0xFF1E88E5), size: 22),
                         const SizedBox(width: 8),
                         Text(
                           'Barber Portal Login Account',
@@ -521,7 +569,8 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
                     const SizedBox(height: 6),
                     Text(
                       'Create login credentials so this barber can log in and view their daily customer appointments.',
-                      style: GoogleFonts.manrope(fontSize: 12, color: Colors.grey[600]),
+                      style: GoogleFonts.manrope(
+                          fontSize: 12, color: Colors.grey[600]),
                     ),
                     const SizedBox(height: 16),
 
@@ -531,7 +580,8 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
                       decoration: InputDecoration(
                         labelText: 'Barber Username',
                         prefixIcon: const Icon(Icons.person),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12)),
                         filled: true,
                         fillColor: Colors.white,
                         hintText: 'e.g. marcus_barber',
@@ -548,10 +598,14 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
                         labelText: 'Barber Password',
                         prefixIcon: const Icon(Icons.lock_outline),
                         suffixIcon: IconButton(
-                          icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
-                          onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                          icon: Icon(_obscurePassword
+                              ? Icons.visibility_off
+                              : Icons.visibility),
+                          onPressed: () => setState(
+                              () => _obscurePassword = !_obscurePassword),
                         ),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12)),
                         filled: true,
                         fillColor: Colors.white,
                         hintText: 'e.g. barber123',
@@ -570,8 +624,11 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
                   style: GoogleFonts.manrope(fontWeight: FontWeight.bold),
                 ),
                 subtitle: Text(
-                  _isActive ? 'Barber is active and available for customer bookings' : 'Barber is inactive',
-                  style: GoogleFonts.manrope(fontSize: 12, color: Colors.grey[600]),
+                  _isActive
+                      ? 'Barber is active and available for customer bookings'
+                      : 'Barber is inactive',
+                  style: GoogleFonts.manrope(
+                      fontSize: 12, color: Colors.grey[600]),
                 ),
                 value: _isActive,
                 activeColor: const Color(0xFF5BBCFF),
@@ -587,7 +644,8 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
                   onPressed: _isSaving ? null : _saveEmployee,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF5BBCFF),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
                     elevation: 0,
                   ),
                   child: _isSaving

@@ -20,10 +20,11 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
   // Controllers
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
-  final TextEditingController _durationController = TextEditingController(text: '30');
+  final TextEditingController _durationController =
+      TextEditingController(text: '30');
   final TextEditingController _priceController = TextEditingController();
   final TextEditingController _costController = TextEditingController();
-  
+
   String? _selectedCategoryId;
   bool _isActive = true;
   List<Map<String, dynamic>> _categories = [];
@@ -75,7 +76,6 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
         });
       }
     } catch (e) {
-      print('Error loading categories: $e');
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -105,7 +105,9 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error picking image: $e'), backgroundColor: Colors.red),
+          SnackBar(
+              content: Text('Error picking image: $e'),
+              backgroundColor: Colors.red),
         );
       }
     }
@@ -119,10 +121,13 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
     final serviceName = _nameController.text.trim();
 
     // Check duplicate service name
-    if (_existingServices.any((s) => (s['name'] ?? '').toString().trim().toLowerCase() == serviceName.toLowerCase())) {
+    if (_existingServices.any((s) =>
+        (s['name'] ?? '').toString().trim().toLowerCase() ==
+        serviceName.toLowerCase())) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('A service named "$serviceName" already exists in the catalog.'),
+          content: Text(
+              'A service named "$serviceName" already exists in the catalog.'),
           backgroundColor: Colors.orange[800],
         ),
       );
@@ -156,7 +161,8 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
       if (result['success'] == true && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Service "${_nameController.text.trim()}" added successfully'),
+            content: Text(
+                'Service "${_nameController.text.trim()}" added successfully'),
             backgroundColor: Colors.green,
           ),
         );
@@ -211,7 +217,9 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
               color: Colors.grey[50],
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: _imageBytes != null ? const Color(0xFF5BBCFF) : Colors.grey[300]!,
+                color: _imageBytes != null
+                    ? const Color(0xFF5BBCFF)
+                    : Colors.grey[300]!,
                 width: _imageBytes != null ? 2 : 1,
               ),
             ),
@@ -233,18 +241,23 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
                         child: Row(
                           children: [
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 4),
                               decoration: BoxDecoration(
                                 color: Colors.black.withOpacity(0.65),
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: Row(
                                 children: [
-                                  const Icon(Icons.edit, size: 14, color: Colors.white),
+                                  const Icon(Icons.edit,
+                                      size: 14, color: Colors.white),
                                   const SizedBox(width: 4),
                                   Text(
                                     'Change',
-                                    style: GoogleFonts.manrope(fontSize: 11, color: Colors.white, fontWeight: FontWeight.bold),
+                                    style: GoogleFonts.manrope(
+                                        fontSize: 11,
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold),
                                   ),
                                 ],
                               ),
@@ -263,7 +276,8 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
                                   color: Colors.red,
                                   shape: BoxShape.circle,
                                 ),
-                                child: const Icon(Icons.close, size: 14, color: Colors.white),
+                                child: const Icon(Icons.close,
+                                    size: 14, color: Colors.white),
                               ),
                             ),
                           ],
@@ -298,7 +312,8 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
                       const SizedBox(height: 2),
                       Text(
                         'Tap to choose a photo from your gallery',
-                        style: GoogleFonts.manrope(fontSize: 12, color: Colors.grey[500]),
+                        style: GoogleFonts.manrope(
+                            fontSize: 12, color: Colors.grey[500]),
                       ),
                     ],
                   ),
@@ -347,7 +362,8 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
                       decoration: InputDecoration(
                         labelText: 'Service Name *',
                         labelStyle: GoogleFonts.manrope(),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12)),
                         filled: true,
                         fillColor: Colors.grey[50],
                         prefixIcon: const Icon(Icons.content_cut),
@@ -369,7 +385,8 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
                       decoration: InputDecoration(
                         labelText: 'Category',
                         labelStyle: GoogleFonts.manrope(),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12)),
                         filled: true,
                         fillColor: Colors.grey[50],
                         prefixIcon: const Icon(Icons.category_outlined),
@@ -401,7 +418,8 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
                       decoration: InputDecoration(
                         labelText: 'Duration (minutes) *',
                         labelStyle: GoogleFonts.manrope(),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12)),
                         filled: true,
                         fillColor: Colors.grey[50],
                         prefixIcon: const Icon(Icons.timer_outlined),
@@ -427,14 +445,16 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
                       decoration: InputDecoration(
                         labelText: 'Price (\$) *',
                         labelStyle: GoogleFonts.manrope(),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12)),
                         filled: true,
                         fillColor: Colors.grey[50],
                         prefixIcon: const Icon(Icons.attach_money),
                         hintText: 'e.g. 35.00',
                       ),
                       style: GoogleFonts.manrope(),
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
                           return 'Please enter price';
@@ -454,14 +474,16 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
                       decoration: InputDecoration(
                         labelText: 'Cost (optional)',
                         labelStyle: GoogleFonts.manrope(),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12)),
                         filled: true,
                         fillColor: Colors.grey[50],
                         prefixIcon: const Icon(Icons.money_off_outlined),
                         hintText: 'e.g. 10.00',
                       ),
                       style: GoogleFonts.manrope(),
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
                     ),
                     const SizedBox(height: 20),
 
@@ -471,7 +493,8 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
                       decoration: InputDecoration(
                         labelText: 'Description',
                         labelStyle: GoogleFonts.manrope(),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12)),
                         filled: true,
                         fillColor: Colors.grey[50],
                         prefixIcon: const Icon(Icons.description_outlined),
@@ -515,14 +538,16 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
                         onPressed: _isSaving ? null : _saveService,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF5BBCFF),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
                           elevation: 0,
                         ),
                         child: _isSaving
                             ? const SizedBox(
                                 width: 20,
                                 height: 20,
-                                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                child: CircularProgressIndicator(
+                                    color: Colors.white, strokeWidth: 2),
                               )
                             : Text(
                                 'Save Service',

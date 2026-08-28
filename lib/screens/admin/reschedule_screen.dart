@@ -43,8 +43,18 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
         if (dateStr.contains(',')) {
           // Format: "Jan 15, 2024"
           final months = {
-            'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6,
-            'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12
+            'Jan': 1,
+            'Feb': 2,
+            'Mar': 3,
+            'Apr': 4,
+            'May': 5,
+            'Jun': 6,
+            'Jul': 7,
+            'Aug': 8,
+            'Sep': 9,
+            'Oct': 10,
+            'Nov': 11,
+            'Dec': 12
           };
           final parts = dateStr.split(' ');
           if (parts.length >= 3) {
@@ -64,9 +74,7 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
             );
           }
         }
-      } catch (e) {
-        print('Error parsing date: $e');
-      }
+      } catch (_) {}
     }
 
     // Try to parse existing time
@@ -75,7 +83,8 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
       try {
         // Assuming format like "2:30 PM" or "14:30"
         if (timeStr.contains('AM') || timeStr.contains('PM')) {
-          final parts = timeStr.replaceAll(' AM', '').replaceAll(' PM', '').split(':');
+          final parts =
+              timeStr.replaceAll(' AM', '').replaceAll(' PM', '').split(':');
           if (parts.length == 2) {
             var hour = int.parse(parts[0]);
             final minute = int.parse(parts[1]);
@@ -92,9 +101,7 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
             );
           }
         }
-      } catch (e) {
-        print('Error parsing time: $e');
-      }
+      } catch (_) {}
     }
 
     // Set existing staff if available
@@ -111,27 +118,25 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
 
     try {
       final barbers = await EmployeeService.getAllEmployees();
-      print('Total barbers loaded: ${barbers.length}');
-      
+
       // Filter only active barbers with role = "barber" - handle different is_active formats
       final activeBarbers = barbers.where((b) {
         // First check role - must be "barber" (case-insensitive)
         final role = (b['role'] ?? '').toString().toLowerCase();
         if (role != 'barber') return false;
-        
+
         // Then check is_active
         final isActive = b['is_active'];
         // Handle boolean, int (1/0), or string ("1"/"0")
         if (isActive == null) return true; // Default to active if null
         if (isActive is bool) return isActive;
         if (isActive is int) return isActive == 1;
-        if (isActive is String) return isActive == '1' || isActive.toLowerCase() == 'true';
+        if (isActive is String)
+          return isActive == '1' || isActive.toLowerCase() == 'true';
         return true; // Default to active if unclear
       }).toList();
-      
-      print('Active barbers after filter: ${activeBarbers.length}');
+
       if (activeBarbers.isEmpty && barbers.isNotEmpty) {
-        print('Warning: All barbers filtered out. Showing all barbers instead.');
         // If all barbers are filtered out, show all of them
         setState(() {
           _barbers = barbers;
@@ -143,7 +148,7 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
           _isLoadingBarbers = false;
         });
       }
-      
+
       // Set selected staff if booking has staff_name
       final staffName = widget.booking['staff_name'] ?? '';
       if (staffName.isNotEmpty && _barbers.isNotEmpty) {
@@ -155,12 +160,9 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
           if (matchingBarber.isNotEmpty) {
             _selectedStaffId = matchingBarber['staff_id'];
           }
-        } catch (e) {
-          print('Error matching staff: $e');
-        }
+        } catch (_) {}
       }
-    } catch (e) {
-      print('Error loading barbers: $e');
+    } catch (_) {
       setState(() {
         _isLoadingBarbers = false;
         _barbers = [];
@@ -172,7 +174,7 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
     try {
       final now = DateTime.now();
       final firstDate = DateTime(now.year, now.month, now.day);
-      
+
       // Ensure initial date is not before first date
       DateTime initialDate;
       if (_selectedDate != null && !_selectedDate!.isBefore(firstDate)) {
@@ -180,7 +182,7 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
       } else {
         initialDate = firstDate;
       }
-      
+
       final DateTime? picked = await showDatePicker(
         context: context,
         initialDate: initialDate,
@@ -205,7 +207,6 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
         });
       }
     } catch (e) {
-      print('Error showing date picker: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -242,7 +243,6 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
         });
       }
     } catch (e) {
-      print('Error showing time picker: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -256,8 +256,20 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
   }
 
   String _formatDate(DateTime date) {
-    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
+    ];
     return '${months[date.month - 1]} ${date.day}, ${date.year}';
   }
 
@@ -278,7 +290,9 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
   }
 
   Future<void> _showConfirmationDialog() async {
-    if (_selectedDate == null || _selectedTime == null || _selectedStaffId == null) {
+    if (_selectedDate == null ||
+        _selectedTime == null ||
+        _selectedStaffId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -347,7 +361,8 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
                     const SizedBox(height: 8),
                     _buildConfirmationRow('Time', _formatTime(_selectedTime!)),
                     const SizedBox(height: 8),
-                    _buildConfirmationRow('Barber', selectedBarber['name'] ?? 'Unknown'),
+                    _buildConfirmationRow(
+                        'Barber', selectedBarber['name'] ?? 'Unknown'),
                   ],
                 ),
               ),
@@ -448,20 +463,12 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
       final date = _formatDateForAPI(_selectedDate!);
       final time = _formatTimeForAPI(_selectedTime!);
 
-      print('Rescheduling appointment:');
-      print('  Appointment ID: $appointmentId');
-      print('  Date: $date (from ${_selectedDate})');
-      print('  Time: $time (from ${_selectedTime})');
-      print('  Staff ID: $_selectedStaffId');
-
       final result = await BookingService.rescheduleBooking(
         appointmentId,
         date,
         time,
         _selectedStaffId!,
       );
-      
-      print('Reschedule result: $result');
 
       if (mounted) {
         setState(() {
@@ -483,7 +490,9 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                result['message'] ?? result['error'] ?? 'Failed to reschedule booking',
+                result['message'] ??
+                    result['error'] ??
+                    'Failed to reschedule booking',
                 style: GoogleFonts.manrope(),
               ),
               backgroundColor: Colors.red,
@@ -601,7 +610,8 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
                               ),
                             ),
                           ),
-                          Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[600]!),
+                          Icon(Icons.arrow_forward_ios,
+                              size: 16, color: Colors.grey[600]!),
                         ],
                       ),
                     ),
@@ -645,7 +655,8 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
                               ),
                             ),
                           ),
-                          Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[600]!),
+                          Icon(Icons.arrow_forward_ios,
+                              size: 16, color: Colors.grey[600]!),
                         ],
                       ),
                     ),
@@ -724,7 +735,7 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
 
   Widget _buildBarberCard(Map<String, dynamic> barber) {
     final isSelected = barber['staff_id'] == _selectedStaffId;
-    
+
     return GestureDetector(
       onTap: () {
         setState(() {
@@ -817,4 +828,3 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
     );
   }
 }
-

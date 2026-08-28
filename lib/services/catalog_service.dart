@@ -1,280 +1,315 @@
 import '../config/api_config.dart';
-import 'api_service.dart' show ApiServiceExtension;
+import 'supabase_service_helpers.dart';
 
-/// Catalog Service
-/// Contains all functions for catalog/service-related operations
-/// One function per screen/feature
 class CatalogService {
-  // Catalog Screen Functions
-  
-  /// Get all services for the catalog screen (including inactive)
-  /// Returns a list of services with name, description, price, etc.
+  CatalogService._();
+
   static Future<List<Map<String, dynamic>>> getAllServices() async {
     try {
-      // Include inactive services by adding include_inactive parameter
-      final response = await ApiServiceExtension.get('${ApiConfig.baseUrl}/services.php?include_inactive=1');
-      
-      if (response['success'] == true && response['data'] != null) {
-        final services = (response['data'] as List).map((service) {
-          // Convert price to double safely (handle int, double, or String)
-          dynamic priceValue = service['price'];
-          double? price;
-          if (priceValue is int) {
-            price = priceValue.toDouble();
-          } else if (priceValue is double) {
-            price = priceValue;
-          } else if (priceValue is String) {
-            price = double.tryParse(priceValue);
-          } else if (priceValue is num) {
-            price = priceValue.toDouble();
-          }
-          
-          // Convert cost to double safely
-          dynamic costValue = service['cost'];
-          double? cost;
-          if (costValue is int) {
-            cost = costValue.toDouble();
-          } else if (costValue is double) {
-            cost = costValue;
-          } else if (costValue is String) {
-            cost = double.tryParse(costValue);
-          } else if (costValue is num) {
-            cost = costValue.toDouble();
-          }
-          
-          // Preserve the original is_active value from schema (1 = active, 0 = inactive)
-          // Keep as integer to match schema exactly
-          dynamic isActiveValue = service['is_active'];
-          int isActiveInt;
-          if (isActiveValue == null) {
-            isActiveInt = 1; // Default to active (1) if null
-          } else if (isActiveValue is bool) {
-            isActiveInt = isActiveValue ? 1 : 0;
-          } else if (isActiveValue is int) {
-            isActiveInt = isActiveValue; // Keep as-is (1 or 0)
-          } else if (isActiveValue is String) {
-            final lower = isActiveValue.toLowerCase().trim();
-            isActiveInt = (lower == 'true' || lower == '1' || lower == 'yes') ? 1 : 0;
-          } else {
-            isActiveInt = 1; // Default fallback to active
-          }
-          
-          return {
-            'service_id': service['service_id'] ?? '',
-            'name': service['name'] ?? '',
-            'category_id': service['category_id'],
-            'category_name': service['category_name'],
-            'duration_minutes': service['duration_minutes'] ?? 0,
-            'price': price ?? 0.0,
-            'cost': cost,
-            'description': service['description'] ?? '',
-            'image_url': service['image_url'] ?? service['photo'],
-            'is_active': isActiveInt, // Keep as integer (1 or 0) to match schema
-          };
-        }).toList();
-        return services;
+      final data = await SupabaseConfig.client
+          .from(SupabaseConfig.serviceCatalogView)
+          .select()
+          .order('name');
+      final rows = SupabaseServiceHelpers.asMapList(data);
+      return Future.wait(rows.map(_normalizeService));
+    } catch (error) {
+      if (!SupabaseServiceHelpers.isMissingDatabaseObject(error)) return [];
+      try {
+        final data = await SupabaseConfig.client
+            .from(SupabaseConfig.servicesTable)
+            .select()
+            .order('name');
+        return Future.wait(
+          SupabaseServiceHelpers.asMapList(data).map(_normalizeService),
+        );
+      } catch (_) {
+        return [];
       }
-      return [];
-    } catch (e) {
-      print('Error fetching services: $e');
-      return [];
     }
   }
-  
-  /// Search services by name or description
-  /// Used for filtering in the catalog screen
+
+  static Future<Map<String, dynamic>> _normalizeService(
+    Map<String, dynamic> row,
+  ) async {
+    final service = Map<String, dynamic>.from(row);
+    service['service_id'] = service['service_id'] ?? service['id'];
+    service['category_id'] =
+        service['category_id'] ?? service['service_category_id'];
+    service['category_name'] = service['category_name'] ??
+        SupabaseServiceHelpers.asMap(service['service_categories'])['name'];
+    service['duration_minutes'] =
+        SupabaseServiceHelpers.asInt(service['duration_minutes'], 30);
+    service['price'] = SupabaseServiceHelpers.asDouble(service['price']);
+    service['cost'] = service['cost'] == null
+        ? null
+        : SupabaseServiceHelpers.asDouble(service['cost']);
+    service['is_active'] =
+        SupabaseServiceHelpers.asBool(service['is_active']) ? 1 : 0;
+
+    final image = await SupabaseStorageService.resolveReference(
+      bucket: SupabaseConfig.serviceImagesBucket,
+      value: service['image_url'] ?? service['photo'],
+      isPublic: true,
+    );
+    service['image_url'] = image;
+    service['photo'] = image;
+    return service;
+  }
+
   static Future<List<Map<String, dynamic>>> searchServices(String query) async {
-    final allServices = await getAllServices();
-    if (query.isEmpty) {
-      return allServices;
-    }
-    
-    final searchQuery = query.toLowerCase();
-    return allServices.where((service) {
-      final name = (service['name'] ?? '').toLowerCase();
-      final description = (service['description'] ?? '').toLowerCase();
-      final category = (service['category_name'] ?? '').toLowerCase();
-      return name.contains(searchQuery) || 
-             description.contains(searchQuery) || 
-             category.contains(searchQuery);
+    final services = await getAllServices();
+    if (query.trim().isEmpty) return services;
+    final needle = query.toLowerCase();
+    return services.where((service) {
+      return const ['name', 'description', 'category_name'].any(
+        (field) =>
+            (service[field] ?? '').toString().toLowerCase().contains(needle),
+      );
     }).toList();
   }
-  
-  /// Get service details by ID
-  /// For service detail screen (future implementation)
+
   static Future<Map<String, dynamic>?> getServiceById(String serviceId) async {
     try {
-      final response = await ApiServiceExtension.get('${ApiConfig.baseUrl}/services.php?service_id=$serviceId');
-      
-      if (response['success'] == true && response['data'] != null) {
-        final service = response['data'] as Map<String, dynamic>;
-        
-        // Convert price to double safely (handle int, double, or String)
-        dynamic priceValue = service['price'];
-        double? price;
-        if (priceValue is int) {
-          price = priceValue.toDouble();
-        } else if (priceValue is double) {
-          price = priceValue;
-        } else if (priceValue is String) {
-          price = double.tryParse(priceValue);
-        } else if (priceValue is num) {
-          price = priceValue.toDouble();
-        }
-        
-        // Convert cost to double safely
-        dynamic costValue = service['cost'];
-        double? cost;
-        if (costValue is int) {
-          cost = costValue.toDouble();
-        } else if (costValue is double) {
-          cost = costValue;
-        } else if (costValue is String) {
-          cost = double.tryParse(costValue);
-        } else if (costValue is num) {
-          cost = costValue.toDouble();
-        }
-        
-        return {
-          'service_id': service['service_id'] ?? '',
-          'name': service['name'] ?? '',
-          'category_id': service['category_id'],
-          'category_name': service['category_name'],
-          'duration_minutes': service['duration_minutes'] ?? 0,
-          'price': price ?? 0.0,
-          'cost': cost,
-          'description': service['description'] ?? '',
-          'image_url': service['image_url'] ?? service['photo'],
-          'is_active': service['is_active'] ?? true,
-        };
+      final data = await SupabaseConfig.client
+          .from(SupabaseConfig.serviceCatalogView)
+          .select()
+          .eq('service_id', serviceId)
+          .maybeSingle();
+      final row = SupabaseServiceHelpers.asMap(data);
+      return row.isEmpty ? null : _normalizeService(row);
+    } catch (error) {
+      if (!SupabaseServiceHelpers.isMissingDatabaseObject(error)) return null;
+      try {
+        final data = await SupabaseConfig.client
+            .from(SupabaseConfig.servicesTable)
+            .select()
+            .eq('id', serviceId)
+            .maybeSingle();
+        final row = SupabaseServiceHelpers.asMap(data);
+        return row.isEmpty ? null : _normalizeService(row);
+      } catch (_) {
+        return null;
       }
-      return null;
-    } catch (e) {
-      print('Error fetching service by ID: $e');
-      return null;
     }
   }
-  
-  /// Create new service
-  /// For add service functionality (future implementation)
-  static Future<Map<String, dynamic>> createService(Map<String, dynamic> serviceData) async {
+
+  static Future<Map<String, dynamic>> createService(
+    Map<String, dynamic> serviceData,
+  ) async {
     try {
-      final response = await ApiServiceExtension.post(
-        '${ApiConfig.baseUrl}/services.php',
-        serviceData,
-      );
-      
-      return response;
-    } catch (e) {
-      print('Error creating service: $e');
-      return {'success': false, 'message': e.toString()};
+      final rawImage = serviceData['image_url'] ?? serviceData['photo'];
+      final insert = _serviceMutationFields(serviceData)..remove('image_url');
+      final inserted = await SupabaseConfig.client
+          .from(SupabaseConfig.servicesTable)
+          .insert(insert)
+          .select()
+          .single();
+      final row = SupabaseServiceHelpers.asMap(inserted);
+      final serviceId = (row['id'] ?? '').toString();
+      String? imageReference;
+      String? warning;
+
+      if (SupabaseStorageService.isDataImage(rawImage)) {
+        try {
+          imageReference = await SupabaseStorageService.uploadDataImage(
+            bucket: SupabaseConfig.serviceImagesBucket,
+            ownerId: serviceId,
+            dataUri: rawImage.toString(),
+          );
+          if (imageReference != null) {
+            await SupabaseConfig.client
+                .from(SupabaseConfig.servicesTable)
+                .update({'image_url': imageReference}).eq('id', serviceId);
+          }
+        } catch (error) {
+          warning = 'Service was created, but its image could not be uploaded: '
+              '${SupabaseServiceHelpers.errorMessage(error)}';
+        }
+      } else if (rawImage != null && rawImage.toString().isNotEmpty) {
+        imageReference = rawImage.toString();
+        await SupabaseConfig.client
+            .from(SupabaseConfig.servicesTable)
+            .update({'image_url': imageReference}).eq('id', serviceId);
+      }
+
+      return {
+        'success': true,
+        'message': warning ?? 'Service created successfully',
+        'data': {
+          ...row,
+          'service_id': serviceId,
+          'image_url': imageReference,
+        },
+      };
+    } catch (error) {
+      return SupabaseServiceHelpers.failure(error);
     }
   }
-  
-  /// Update service
-  /// For edit service functionality (future implementation)
-  static Future<Map<String, dynamic>> updateService(String serviceId, Map<String, dynamic> serviceData) async {
+
+  static Future<Map<String, dynamic>> updateService(
+    String serviceId,
+    Map<String, dynamic> serviceData,
+  ) async {
     try {
-      serviceData['service_id'] = serviceId;
-      final response = await ApiServiceExtension.put(
-        '${ApiConfig.baseUrl}/services.php',
-        serviceData,
-      );
-      
-      return response;
-    } catch (e) {
-      print('Error updating service: $e');
-      return {'success': false, 'message': e.toString()};
+      final update = _serviceMutationFields(serviceData);
+      final rawImage = update['image_url'];
+      if (SupabaseStorageService.isDataImage(rawImage)) {
+        update['image_url'] = await SupabaseStorageService.uploadDataImage(
+          bucket: SupabaseConfig.serviceImagesBucket,
+          ownerId: serviceId,
+          dataUri: rawImage.toString(),
+        );
+      } else if (rawImage == '') {
+        update['image_url'] = null;
+      }
+
+      final data = await SupabaseConfig.client
+          .from(SupabaseConfig.servicesTable)
+          .update(update)
+          .eq('id', serviceId)
+          .select()
+          .single();
+      final row = SupabaseServiceHelpers.asMap(data);
+      return {
+        'success': true,
+        'message': 'Service updated successfully',
+        'data': {...row, 'service_id': row['id'] ?? serviceId},
+      };
+    } catch (error) {
+      return SupabaseServiceHelpers.failure(error);
     }
   }
-  
-  /// Delete service (soft delete - sets is_active to FALSE)
-  /// For delete service functionality (future implementation)
+
+  static Map<String, dynamic> _serviceMutationFields(
+    Map<String, dynamic> source,
+  ) {
+    final result = <String, dynamic>{};
+    for (final field in const [
+      'name',
+      'category_id',
+      'duration_minutes',
+      'price',
+      'cost',
+      'description',
+      'image_url',
+      'is_active',
+    ]) {
+      if (source.containsKey(field)) result[field] = source[field];
+    }
+    return result;
+  }
+
   static Future<Map<String, dynamic>> deleteService(String serviceId) async {
     try {
-      final response = await ApiServiceExtension.delete(
-        '${ApiConfig.baseUrl}/services.php',
-        {'service_id': serviceId},
-      );
-      
-      return response;
-    } catch (e) {
-      print('Error deleting service: $e');
-      return {'success': false, 'message': e.toString()};
+      final data = await SupabaseConfig.client
+          .from(SupabaseConfig.servicesTable)
+          .update({'is_active': false})
+          .eq('id', serviceId)
+          .select()
+          .single();
+      return {
+        'success': true,
+        'message': 'Service deactivated successfully',
+        'data': data,
+      };
+    } catch (error) {
+      return SupabaseServiceHelpers.failure(error);
     }
   }
-  
-  /// Get all service categories
-  /// Used for category dropdown and filtering
+
   static Future<List<Map<String, dynamic>>> getAllCategories() async {
     try {
-      final response = await ApiServiceExtension.get(ApiConfig.categoriesUrl);
-      
-      if (response['success'] == true && response['data'] != null) {
-        final categories = (response['data'] as List).map((category) {
+      final data = await SupabaseConfig.client
+          .from(SupabaseConfig.categoryCatalogView)
+          .select()
+          .order('name');
+      return SupabaseServiceHelpers.asMapList(data).map((row) {
+        return {
+          'category_id': row['category_id'] ?? row['id'] ?? '',
+          'name': row['name'] ?? '',
+          'description': row['description'],
+          'service_count': SupabaseServiceHelpers.asInt(row['service_count']),
+        };
+      }).toList();
+    } catch (error) {
+      if (!SupabaseServiceHelpers.isMissingDatabaseObject(error)) return [];
+      try {
+        final data = await SupabaseConfig.client
+            .from(SupabaseConfig.categoriesTable)
+            .select()
+            .order('name');
+        return SupabaseServiceHelpers.asMapList(data).map((row) {
           return {
-            'category_id': category['category_id'] ?? '',
-            'name': category['name'] ?? '',
-            'description': category['description'],
-            'service_count': category['service_count'] ?? 0,
+            'category_id': row['id'] ?? '',
+            'name': row['name'] ?? '',
+            'description': row['description'],
+            'service_count': 0,
           };
         }).toList();
-        return categories;
+      } catch (_) {
+        return [];
       }
-      return [];
-    } catch (e) {
-      print('Error fetching categories: $e');
-      return [];
     }
   }
 
-  /// Create a new service category
-  static Future<Map<String, dynamic>> createCategory(String name, String? description) async {
+  static Future<Map<String, dynamic>> createCategory(
+    String name,
+    String? description,
+  ) async {
     try {
-      final response = await ApiServiceExtension.post(
-        ApiConfig.categoriesUrl,
-        {
-          'name': name,
-          'description': description,
-        },
-      );
-      return response;
-    } catch (e) {
-      print('Error creating category: $e');
-      return {'success': false, 'message': e.toString()};
+      final data = await SupabaseConfig.client
+          .from(SupabaseConfig.categoriesTable)
+          .insert({'name': name.trim(), 'description': description})
+          .select()
+          .single();
+      final row = SupabaseServiceHelpers.asMap(data);
+      return {
+        'success': true,
+        'message': 'Category created successfully',
+        'data': {...row, 'category_id': row['id']},
+      };
+    } catch (error) {
+      return SupabaseServiceHelpers.failure(error);
     }
   }
 
-  /// Update existing service category
-  static Future<Map<String, dynamic>> updateCategory(String categoryId, String name, String? description) async {
+  static Future<Map<String, dynamic>> updateCategory(
+    String categoryId,
+    String name,
+    String? description,
+  ) async {
     try {
-      final response = await ApiServiceExtension.put(
-        ApiConfig.categoriesUrl,
-        {
-          'category_id': categoryId,
-          'name': name,
-          'description': description,
-        },
-      );
-      return response;
-    } catch (e) {
-      print('Error updating category: $e');
-      return {'success': false, 'message': e.toString()};
+      final data = await SupabaseConfig.client
+          .from(SupabaseConfig.categoriesTable)
+          .update({'name': name.trim(), 'description': description})
+          .eq('id', categoryId)
+          .select()
+          .single();
+      final row = SupabaseServiceHelpers.asMap(data);
+      return {
+        'success': true,
+        'message': 'Category updated successfully',
+        'data': {...row, 'category_id': row['id'] ?? categoryId},
+      };
+    } catch (error) {
+      return SupabaseServiceHelpers.failure(error);
     }
   }
 
-  /// Delete a service category
-  static Future<Map<String, dynamic>> deleteCategory(String categoryId) async {
+  static Future<Map<String, dynamic>> deleteCategory(
+    String categoryId,
+  ) async {
     try {
-      final response = await ApiServiceExtension.delete(
-        ApiConfig.categoriesUrl,
-        {'category_id': categoryId},
-      );
-      return response;
-    } catch (e) {
-      print('Error deleting category: $e');
-      return {'success': false, 'message': e.toString()};
+      await SupabaseConfig.client
+          .from(SupabaseConfig.categoriesTable)
+          .delete()
+          .eq('id', categoryId);
+      return {
+        'success': true,
+        'message': 'Category deleted successfully',
+      };
+    } catch (error) {
+      return SupabaseServiceHelpers.failure(error);
     }
   }
 }
-

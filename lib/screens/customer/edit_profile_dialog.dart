@@ -3,8 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
-import '../../config/api_config.dart';
-import '../../services/api_service.dart' show ApiServiceExtension;
+import '../../services/api_service.dart';
 import '../../services/auth_session_service.dart';
 
 void showEditProfileDialog(
@@ -31,7 +30,8 @@ class _EditProfileDialogContent extends StatefulWidget {
   });
 
   @override
-  State<_EditProfileDialogContent> createState() => _EditProfileDialogContentState();
+  State<_EditProfileDialogContent> createState() =>
+      _EditProfileDialogContentState();
 }
 
 class _EditProfileDialogContentState extends State<_EditProfileDialogContent> {
@@ -59,7 +59,8 @@ class _EditProfileDialogContentState extends State<_EditProfileDialogContent> {
       text: widget.userData?['email'] ?? '',
     );
     _gender = widget.userData?['gender'] ?? 'Male';
-    _existingPhoto = widget.userData?['profile_picture'] ?? widget.userData?['profile_photo'];
+    _existingPhoto = widget.userData?['profile_picture'] ??
+        widget.userData?['profile_photo'];
   }
 
   @override
@@ -91,7 +92,9 @@ class _EditProfileDialogContentState extends State<_EditProfileDialogContent> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error selecting image: $e'), backgroundColor: Colors.red),
+          SnackBar(
+              content: Text('Error selecting image: $e'),
+              backgroundColor: Colors.red),
         );
       }
     }
@@ -127,18 +130,18 @@ class _EditProfileDialogContentState extends State<_EditProfileDialogContent> {
         payload['profile_picture'] = _base64Image ?? '';
       }
 
-      final response = await ApiServiceExtension.put(
-        '${ApiConfig.baseUrl}/customers.php',
+      final response = await ApiService.updateCustomerProfile(
+        customerId.toString(),
         payload,
       );
 
-      if (response['success'] == true && mounted) {
+      if (response != null && mounted) {
         final updatedData = Map<String, dynamic>.from(widget.userData ?? {});
         updatedData['full_name'] = name;
         updatedData['phone'] = phone;
         updatedData['gender'] = _gender;
         if (_hasChangedPhoto) {
-          final serverPhoto = response['data']?['profile_picture'];
+          final serverPhoto = response['profile_picture'];
           updatedData['profile_picture'] = serverPhoto ?? _base64Image;
           updatedData['profile_photo'] = updatedData['profile_picture'];
         }
@@ -147,7 +150,8 @@ class _EditProfileDialogContentState extends State<_EditProfileDialogContent> {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Profile updated successfully!', style: GoogleFonts.manrope()),
+            content: Text('Profile updated successfully!',
+                style: GoogleFonts.manrope()),
             backgroundColor: Colors.green,
           ),
         );
@@ -155,7 +159,7 @@ class _EditProfileDialogContentState extends State<_EditProfileDialogContent> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(response['message'] ?? 'Failed to update profile'),
+              content: const Text('Failed to update profile'),
               backgroundColor: Colors.red,
             ),
           );
@@ -164,7 +168,9 @@ class _EditProfileDialogContentState extends State<_EditProfileDialogContent> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error updating profile: $e'), backgroundColor: Colors.red),
+          SnackBar(
+              content: Text('Error updating profile: $e'),
+              backgroundColor: Colors.red),
         );
       }
     } finally {
@@ -184,16 +190,10 @@ class _EditProfileDialogContentState extends State<_EditProfileDialogContent> {
       );
     }
 
-    if (_existingPhoto != null && _existingPhoto!.trim().isNotEmpty && !_hasChangedPhoto) {
+    if (_existingPhoto != null &&
+        _existingPhoto!.trim().isNotEmpty &&
+        !_hasChangedPhoto) {
       String clean = _existingPhoto!.trim();
-      if (!clean.startsWith('http://') && !clean.startsWith('https://') && !clean.startsWith('data:image')) {
-        if (clean.startsWith('/')) {
-          clean = 'http://localhost$clean';
-        } else if (clean.startsWith('uploads/')) {
-          clean = 'http://localhost/barber_api/$clean';
-        }
-      }
-
       if (clean.startsWith('http://') || clean.startsWith('https://')) {
         return ClipOval(
           child: Image.network(
@@ -207,7 +207,8 @@ class _EditProfileDialogContentState extends State<_EditProfileDialogContent> {
       }
       try {
         final base64Data = clean.contains(',') ? clean.split(',').last : clean;
-        final bytes = base64Decode(base64Data.replaceAll('\n', '').replaceAll('\r', '').trim());
+        final bytes = base64Decode(
+            base64Data.replaceAll('\n', '').replaceAll('\r', '').trim());
         return ClipOval(
           child: Image.memory(bytes, width: 90, height: 90, fit: BoxFit.cover),
         );
@@ -277,7 +278,8 @@ class _EditProfileDialogContentState extends State<_EditProfileDialogContent> {
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               color: const Color(0x1A5BBCFF),
-                              border: Border.all(color: const Color(0xFF5BBCFF), width: 2),
+                              border: Border.all(
+                                  color: const Color(0xFF5BBCFF), width: 2),
                             ),
                             child: _buildAvatarPreview(),
                           ),
@@ -306,15 +308,25 @@ class _EditProfileDialogContentState extends State<_EditProfileDialogContent> {
                       children: [
                         TextButton.icon(
                           onPressed: () => _pickImage(ImageSource.gallery),
-                          icon: const Icon(Icons.photo_library, size: 14, color: Color(0xFF1E88E5)),
+                          icon: const Icon(Icons.photo_library,
+                              size: 14, color: Color(0xFF1E88E5)),
                           label: Text(
-                            (_newImageBytes != null || (_existingPhoto != null && _existingPhoto!.isNotEmpty && !_hasChangedPhoto))
+                            (_newImageBytes != null ||
+                                    (_existingPhoto != null &&
+                                        _existingPhoto!.isNotEmpty &&
+                                        !_hasChangedPhoto))
                                 ? 'Change Photo'
                                 : 'Upload Photo',
-                            style: GoogleFonts.manrope(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF1E88E5)),
+                            style: GoogleFonts.manrope(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF1E88E5)),
                           ),
                         ),
-                        if (_newImageBytes != null || (_existingPhoto != null && _existingPhoto!.isNotEmpty && !_hasChangedPhoto)) ...[
+                        if (_newImageBytes != null ||
+                            (_existingPhoto != null &&
+                                _existingPhoto!.isNotEmpty &&
+                                !_hasChangedPhoto)) ...[
                           const SizedBox(width: 4),
                           TextButton.icon(
                             onPressed: () {
@@ -325,8 +337,13 @@ class _EditProfileDialogContentState extends State<_EditProfileDialogContent> {
                                 _hasChangedPhoto = true;
                               });
                             },
-                            icon: const Icon(Icons.delete_outline, size: 14, color: Colors.red),
-                            label: Text('Remove', style: GoogleFonts.manrope(fontSize: 12, color: Colors.red, fontWeight: FontWeight.bold)),
+                            icon: const Icon(Icons.delete_outline,
+                                size: 14, color: Colors.red),
+                            label: Text('Remove',
+                                style: GoogleFonts.manrope(
+                                    fontSize: 12,
+                                    color: Colors.red,
+                                    fontWeight: FontWeight.bold)),
                           ),
                         ],
                       ],
@@ -341,8 +358,10 @@ class _EditProfileDialogContentState extends State<_EditProfileDialogContent> {
                 controller: _nameController,
                 decoration: InputDecoration(
                   labelText: 'Full Name',
-                  prefixIcon: const Icon(Icons.person_outline, color: Colors.grey),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  prefixIcon:
+                      const Icon(Icons.person_outline, color: Colors.grey),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12)),
                   filled: true,
                   fillColor: Colors.grey[50],
                 ),
@@ -356,8 +375,10 @@ class _EditProfileDialogContentState extends State<_EditProfileDialogContent> {
                 readOnly: true,
                 decoration: InputDecoration(
                   labelText: 'Email Address',
-                  prefixIcon: const Icon(Icons.email_outlined, color: Colors.grey),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  prefixIcon:
+                      const Icon(Icons.email_outlined, color: Colors.grey),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12)),
                   filled: true,
                   fillColor: Colors.grey[100],
                 ),
@@ -370,8 +391,10 @@ class _EditProfileDialogContentState extends State<_EditProfileDialogContent> {
                 controller: _phoneController,
                 decoration: InputDecoration(
                   labelText: 'Phone Number',
-                  prefixIcon: const Icon(Icons.phone_outlined, color: Colors.grey),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  prefixIcon:
+                      const Icon(Icons.phone_outlined, color: Colors.grey),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12)),
                   filled: true,
                   fillColor: Colors.grey[50],
                 ),
@@ -385,12 +408,14 @@ class _EditProfileDialogContentState extends State<_EditProfileDialogContent> {
                 decoration: InputDecoration(
                   labelText: 'Gender',
                   prefixIcon: const Icon(Icons.transgender, color: Colors.grey),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12)),
                   filled: true,
                   fillColor: Colors.grey[50],
                 ),
                 items: ['Male', 'Female', 'Other']
-                    .map((g) => DropdownMenuItem(value: g, child: Text(g, style: GoogleFonts.manrope())))
+                    .map((g) => DropdownMenuItem(
+                        value: g, child: Text(g, style: GoogleFonts.manrope())))
                     .toList(),
                 onChanged: (val) => setState(() => _gender = val),
               ),
@@ -404,14 +429,20 @@ class _EditProfileDialogContentState extends State<_EditProfileDialogContent> {
                   onPressed: _isLoading ? null : _saveProfile,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF5BBCFF),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
                     elevation: 0,
                   ),
                   child: _isLoading
-                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                              color: Colors.white, strokeWidth: 2))
                       : Text(
                           'Save Changes',
-                          style: GoogleFonts.manrope(fontWeight: FontWeight.bold, color: Colors.white),
+                          style: GoogleFonts.manrope(
+                              fontWeight: FontWeight.bold, color: Colors.white),
                         ),
                 ),
               ),

@@ -39,11 +39,10 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      final username = _nameOrPhoneController.text.trim();
+      final email = _nameOrPhoneController.text.trim();
       final password = _passwordController.text;
 
-      // Authenticate user via API (PHP backend handles MySQL connection)
-      final response = await ApiService.login(username, password);
+      final response = await ApiService.login(email, password);
 
       if (response['success'] == true && mounted) {
         final user = response['user'] as Map<String, dynamic>?;
@@ -89,7 +88,8 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       } else {
         if (mounted) {
-          final errorMessage = response['message'] ?? 'Invalid username or password';
+          final errorMessage =
+              response['message'] ?? 'Invalid username or password';
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(errorMessage),
@@ -120,7 +120,8 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      resizeToAvoidBottomInset: false, // Prevent screen from resizing when keyboard opens
+      resizeToAvoidBottomInset:
+          false, // Prevent screen from resizing when keyboard opens
       body: SafeArea(
         child: Column(
           children: [
@@ -145,12 +146,13 @@ class _LoginScreenState extends State<LoginScreen> {
                             color: Colors.grey[300],
                             borderRadius: BorderRadius.circular(60),
                           ),
-                          child: const Icon(Icons.image, size: 64, color: Colors.grey),
+                          child: const Icon(Icons.image,
+                              size: 64, color: Colors.grey),
                         );
                       },
                     ),
                     const SizedBox(height: 32),
-                    
+
                     // "Welcome back." text
                     Text(
                       'Welcome back.',
@@ -165,7 +167,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
             ),
-            
+
             // Form section
             Expanded(
               flex: 5,
@@ -181,13 +183,18 @@ class _LoginScreenState extends State<LoginScreen> {
                       TextFormField(
                         controller: _nameOrPhoneController,
                         validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter your username';
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Please enter your email';
+                          }
+                          if (!value.contains('@')) {
+                            return 'Please enter a valid email';
                           }
                           return null;
                         },
+                        keyboardType: TextInputType.emailAddress,
+                        autofillHints: const [AutofillHints.email],
                         decoration: InputDecoration(
-                          labelText: 'Name or Phone',
+                          labelText: 'Email Address',
                           labelStyle: GoogleFonts.manrope(
                             color: Colors.grey[600],
                           ),
@@ -201,7 +208,8 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Colors.blue, width: 2),
+                            borderSide:
+                                const BorderSide(color: Colors.blue, width: 2),
                           ),
                           filled: true,
                           fillColor: Colors.grey[50],
@@ -213,11 +221,12 @@ class _LoginScreenState extends State<LoginScreen> {
                         style: GoogleFonts.manrope(),
                       ),
                       const SizedBox(height: 24),
-                      
+
                       // "Enter your password" text field with eye button
                       TextFormField(
                         controller: _passwordController,
                         obscureText: _obscurePassword,
+                        autofillHints: const [AutofillHints.password],
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return 'Please enter your password';
@@ -239,7 +248,8 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Colors.blue, width: 2),
+                            borderSide:
+                                const BorderSide(color: Colors.blue, width: 2),
                           ),
                           filled: true,
                           fillColor: Colors.grey[50],
@@ -249,7 +259,9 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                           suffixIcon: IconButton(
                             icon: Icon(
-                              _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                              _obscurePassword
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
                               color: Colors.grey[600],
                             ),
                             onPressed: () {
@@ -262,7 +274,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         style: GoogleFonts.manrope(),
                       ),
                       const SizedBox(height: 16),
-                      
+
                       // "Forgot password?" text
                       Align(
                         alignment: Alignment.centerRight,
@@ -281,7 +293,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                       const SizedBox(height: 32),
-                      
+
                       // "Log in" button with blue color
                       SizedBox(
                         width: double.infinity,
@@ -289,7 +301,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: ElevatedButton(
                           onPressed: _isLoading ? null : _handleLogin,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xB25BBCFF), // #5BBCFFB2 with alpha
+                            backgroundColor:
+                                const Color(0xB25BBCFF), // #5BBCFFB2 with alpha
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
@@ -301,7 +314,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                   width: 20,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white),
                                   ),
                                 )
                               : Text(
@@ -315,7 +329,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                       const SizedBox(height: 24),
-                      
+
                       // "Don't have an account? Register now" at the bottom
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,

@@ -8,7 +8,7 @@ import '../../services/employee_service.dart';
 class CustomerBookingScreen extends StatefulWidget {
   final Map<String, dynamic>? userData;
   final Map<String, dynamic>? preSelectedService;
-  
+
   const CustomerBookingScreen({
     super.key,
     this.userData,
@@ -25,7 +25,7 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
   bool _isLoading = true;
   bool _isSubmitting = false;
   String? _customerId;
-  
+
   // Selected values
   String? _selectedServiceId;
   String? _selectedStaffId;
@@ -50,25 +50,26 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
     try {
       // Load customer_id first
       await _loadCustomerId();
-      
+
       // Load services and staff in parallel
       final results = await Future.wait([
         CatalogService.getAllServices(),
         EmployeeService.getAllEmployees(),
       ]);
-      
+
       final services = results[0] as List<dynamic>;
       final employees = results[1] as List<dynamic>;
-      
+
       // Filter services to only active ones
       final activeServices = services.where((s) {
         final isActive = s['is_active'];
         if (isActive is bool) return isActive;
         if (isActive is int) return isActive == 1;
-        if (isActive is String) return isActive == '1' || isActive.toLowerCase() == 'true';
+        if (isActive is String)
+          return isActive == '1' || isActive.toLowerCase() == 'true';
         return true; // Default to active if unclear
       }).toList();
-      
+
       // Filter staff to only active barbers (exclude purely administrative roles)
       final barbers = employees.where((e) {
         final isActive = e['is_active'];
@@ -80,19 +81,19 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
         } else if (isActive is String) {
           active = isActive == '1' || isActive.toLowerCase() == 'true';
         }
-        
+
         final role = (e['role'] ?? '').toString().toLowerCase().trim();
-        final isNonBarber = role == 'admin' || role == 'administrator' || role == 'cashier';
+        final isNonBarber =
+            role == 'admin' || role == 'administrator' || role == 'cashier';
         return active && !isNonBarber;
       }).toList();
-      
+
       setState(() {
         _services = activeServices;
         _staff = barbers;
         _isLoading = false;
       });
     } catch (e) {
-      print('Error loading booking data: $e');
       setState(() {
         _isLoading = false;
       });
@@ -109,7 +110,7 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
 
   Future<void> _loadCustomerId() async {
     if (widget.userData == null) return;
-    
+
     // Check if customer_id is already present in userData
     final directId = widget.userData!['customer_id'];
     if (directId != null && directId.toString().isNotEmpty) {
@@ -120,15 +121,15 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
       }
       return;
     }
-    
+
     try {
       final email = widget.userData!['email'] ?? '';
       final phone = widget.userData!['phone'] ?? '';
-      
+
       if (email.isEmpty && phone.isEmpty) return;
-      
+
       final customers = await ApiService.getCustomers();
-      
+
       // Find customer by email or phone
       for (var c in customers) {
         final cEmail = (c['email'] ?? '').toString().toLowerCase();
@@ -143,16 +144,14 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
           break;
         }
       }
-    } catch (e) {
-      print('Error loading customer ID: $e');
-    }
+    } catch (_) {}
   }
 
   Future<void> _selectDate() async {
     final now = DateTime.now();
     final firstDate = DateTime(now.year, now.month, now.day);
     final lastDate = now.add(const Duration(days: 90));
-    
+
     try {
       final DateTime? picked = await showDatePicker(
         context: context,
@@ -178,9 +177,7 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
           _selectedDate = picked;
         });
       }
-    } catch (e) {
-      print('Error showing date picker: $e');
-    }
+    } catch (_) {}
   }
 
   Future<void> _selectTime() async {
@@ -207,14 +204,14 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
           _selectedTime = picked;
         });
       }
-    } catch (e) {
-      print('Error showing time picker: $e');
-    }
+    } catch (_) {}
   }
 
   Future<void> _submitBooking() async {
-    if (_selectedServiceId == null || _selectedStaffId == null || 
-        _selectedDate == null || _selectedTime == null) {
+    if (_selectedServiceId == null ||
+        _selectedStaffId == null ||
+        _selectedDate == null ||
+        _selectedTime == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -300,15 +297,15 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
           break;
         }
       }
-      
+
       if (selectedService == null) {
         throw Exception('Service not found');
       }
-      
+
       // Parse duration_minutes - handle int, double, or String
       dynamic durationValue = selectedService['duration_minutes'] ?? 30;
       int durationMinutes = 30; // Default
-      
+
       if (durationValue is int) {
         durationMinutes = durationValue;
       } else if (durationValue is double) {
@@ -318,14 +315,14 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
       } else if (durationValue is num) {
         durationMinutes = durationValue.toInt();
       }
-      
-      print('Service duration: $durationMinutes minutes');
-      
+
       // Format date and time
-      final dateStr = '${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}';
-      final timeStr = '${_selectedTime!.hour.toString().padLeft(2, '0')}:${_selectedTime!.minute.toString().padLeft(2, '0')}:00';
+      final dateStr =
+          '${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}';
+      final timeStr =
+          '${_selectedTime!.hour.toString().padLeft(2, '0')}:${_selectedTime!.minute.toString().padLeft(2, '0')}:00';
       final startTime = '$dateStr $timeStr';
-      
+
       // Calculate end_time
       final startDateTime = DateTime(
         _selectedDate!.year,
@@ -335,8 +332,9 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
         _selectedTime!.minute,
       );
       final endDateTime = startDateTime.add(Duration(minutes: durationMinutes));
-      final endTime = '${endDateTime.year}-${endDateTime.month.toString().padLeft(2, '0')}-${endDateTime.day.toString().padLeft(2, '0')} ${endDateTime.hour.toString().padLeft(2, '0')}:${endDateTime.minute.toString().padLeft(2, '0')}:00';
-      
+      final endTime =
+          '${endDateTime.year}-${endDateTime.month.toString().padLeft(2, '0')}-${endDateTime.day.toString().padLeft(2, '0')} ${endDateTime.hour.toString().padLeft(2, '0')}:${endDateTime.minute.toString().padLeft(2, '0')}:00';
+
       // Create appointment
       final appointmentData = {
         'customer_id': _customerId,
@@ -345,11 +343,9 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
         'start_time': startTime,
         'end_time': endTime,
       };
-      
-      print('Creating appointment with data: $appointmentData');
-      
+
       final result = await ApiService.createAppointment(appointmentData);
-      
+
       if (result != null && result['appointment_id'] != null) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -367,7 +363,6 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
         throw Exception('Failed to create appointment');
       }
     } catch (e) {
-      print('Error creating appointment: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -418,15 +413,14 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
   String _getServiceName() {
     try {
       if (_selectedServiceId == null) return 'Unknown';
-      
+
       for (var service in _services) {
         if (service['service_id'] == _selectedServiceId) {
           return service['name'] ?? 'Unknown';
         }
       }
       return 'Unknown';
-    } catch (e) {
-      print('Error getting service name: $e');
+    } catch (_) {
       return 'Unknown';
     }
   }
@@ -434,23 +428,32 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
   String _getBarberName() {
     try {
       if (_selectedStaffId == null) return 'Unknown';
-      
+
       for (var barber in _staff) {
         if (barber['staff_id'] == _selectedStaffId) {
           return barber['name'] ?? 'Unknown';
         }
       }
       return 'Unknown';
-    } catch (e) {
-      print('Error getting barber name: $e');
+    } catch (_) {
       return 'Unknown';
     }
   }
 
   String _formatDate(DateTime date) {
     final months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
     ];
     return '${months[date.month - 1]} ${date.day}, ${date.year}';
   }
@@ -581,7 +584,8 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
                                 value: staff['staff_id'] as String?,
                                 child: Row(
                                   children: [
-                                    _buildSmallAvatar(staff['profile_photo'], staff['name'] ?? 'B'),
+                                    _buildSmallAvatar(staff['profile_photo'],
+                                        staff['name'] ?? 'B'),
                                     const SizedBox(width: 10),
                                     Text(
                                       '${staff['name'] ?? 'Barber'} (${staff['role'] ?? 'Stylist'})',
@@ -698,7 +702,8 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
                               width: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                valueColor:
+                                    AlwaysStoppedAnimation<Color>(Colors.white),
                               ),
                             )
                           : Text(
@@ -720,14 +725,6 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
   Widget _buildSmallAvatar(String? photo, String name) {
     if (photo != null && photo.trim().isNotEmpty) {
       String clean = photo.trim();
-      if (!clean.startsWith('http://') && !clean.startsWith('https://') && !clean.startsWith('data:image')) {
-        if (clean.startsWith('/')) {
-          clean = 'http://localhost$clean';
-        } else if (clean.startsWith('uploads/')) {
-          clean = 'http://localhost/barber_api/$clean';
-        }
-      }
-
       if (clean.startsWith('http://') || clean.startsWith('https://')) {
         return Container(
           width: 28,
@@ -744,7 +741,8 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
       }
       try {
         final base64Data = clean.contains(',') ? clean.split(',').last : clean;
-        final bytes = base64Decode(base64Data.replaceAll('\n', '').replaceAll('\r', '').trim());
+        final bytes = base64Decode(
+            base64Data.replaceAll('\n', '').replaceAll('\r', '').trim());
         return Container(
           width: 28,
           height: 28,
@@ -777,4 +775,3 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
     );
   }
 }
-

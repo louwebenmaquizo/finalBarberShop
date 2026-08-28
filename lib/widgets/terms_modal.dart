@@ -34,7 +34,7 @@ class _TermsModalContent extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          
+
           // Header
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -98,7 +98,7 @@ class _TermsModalContent extends StatelessWidget {
               ),
             ),
           ),
-          
+
           // Close button
           Padding(
             padding: const EdgeInsets.all(20),

@@ -1,13 +1,20 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import 'config/api_config.dart';
 import 'services/auth_session_service.dart';
 import 'screens/onboarding.dart';
 import 'screens/admin/admin_home_screen.dart';
 import 'screens/barber/barber_home_screen.dart';
+import 'screens/auth/password_recovery_screen.dart';
 import 'screens/customer/customer_navigation_screen.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await SupabaseConfig.initialize();
   GoogleFonts.config.allowRuntimeFetching = true;
   runApp(const MyApp());
 }
@@ -42,11 +49,29 @@ class AuthGate extends StatefulWidget {
 class _AuthGateState extends State<AuthGate> {
   bool _isChecking = true;
   Widget _targetScreen = const OnboardingScreen();
+  StreamSubscription<AuthState>? _authSubscription;
 
   @override
   void initState() {
     super.initState();
+    _authSubscription = Supabase.instance.client.auth.onAuthStateChange.listen(
+      (state) {
+        if (!mounted) return;
+        if (state.event == AuthChangeEvent.passwordRecovery) {
+          setState(() {
+            _targetScreen = const PasswordRecoveryScreen();
+            _isChecking = false;
+          });
+        }
+      },
+    );
     _checkActiveSession();
+  }
+
+  @override
+  void dispose() {
+    _authSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> _checkActiveSession() async {
@@ -62,8 +87,8 @@ class _AuthGateState extends State<AuthGate> {
           _targetScreen = CustomerNavigationScreen(userData: session);
         }
       }
-    } catch (e) {
-      print('Session check error: $e');
+    } catch (error) {
+      debugPrint('Session check failed: $error');
     } finally {
       if (mounted) {
         setState(() {
@@ -89,10 +114,12 @@ class _AuthGateState extends State<AuthGate> {
                   color: Color(0xFF5BBCFF),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.content_cut, size: 36, color: Colors.white),
+                child: const Icon(Icons.content_cut,
+                    size: 36, color: Colors.white),
               ),
               const SizedBox(height: 20),
-              const CircularProgressIndicator(color: Color(0xFF5BBCFF), strokeWidth: 2.5),
+              const CircularProgressIndicator(
+                  color: Color(0xFF5BBCFF), strokeWidth: 2.5),
             ],
           ),
         ),

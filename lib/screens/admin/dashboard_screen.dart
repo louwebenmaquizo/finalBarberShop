@@ -66,9 +66,11 @@ class _DashboardScreenState extends State<DashboardScreen>
       DateTime? nextDt;
       for (var a in appointments) {
         final status = (a['status'] ?? '').toString().toLowerCase();
-        if (['canceled', 'cancelled', 'no-show', 'declined'].contains(status)) continue;
+        if (['canceled', 'cancelled', 'no-show', 'declined'].contains(status))
+          continue;
         try {
-          final dt = DateTime.parse(a['start_time'] ?? a['appointment_date'] ?? '');
+          final dt =
+              DateTime.parse(a['start_time'] ?? a['appointment_date'] ?? '');
           if (dt.isAfter(now) && (nextDt == null || dt.isBefore(nextDt))) {
             nextDt = dt;
             next = a;
@@ -77,7 +79,8 @@ class _DashboardScreenState extends State<DashboardScreen>
       }
       if (next != null && nextDt != null) {
         return {
-          'customer_name': next['customer_name'] ?? next['full_name'] ?? 'Unknown',
+          'customer_name':
+              next['customer_name'] ?? next['full_name'] ?? 'Unknown',
           'date': _fmtDate(nextDt),
           'time': _fmtTime(nextDt),
           'service': next['service_name'] ?? 'N/A',
@@ -89,7 +92,20 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 
   String _fmtDate(DateTime d) {
-    const m = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const m = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
+    ];
     return '${m[d.month - 1]} ${d.day}, ${d.year}';
   }
 
@@ -112,7 +128,8 @@ class _DashboardScreenState extends State<DashboardScreen>
           children: [
             Icon(Icons.wifi_off_rounded, size: 64, color: Colors.grey[400]),
             const SizedBox(height: 16),
-            Text('Failed to load dashboard', style: GoogleFonts.manrope(color: Colors.grey[600])),
+            Text('Failed to load dashboard',
+                style: GoogleFonts.manrope(color: Colors.grey[600])),
             const SizedBox(height: 16),
             ElevatedButton.icon(
               onPressed: _loadDashboardData,
@@ -162,8 +179,14 @@ class _DashboardScreenState extends State<DashboardScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Dashboard', style: GoogleFonts.manrope(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.black87)),
-              Text('Overview & Analytics', style: GoogleFonts.manrope(fontSize: 13, color: Colors.grey[500])),
+              Text('Dashboard',
+                  style: GoogleFonts.manrope(
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87)),
+              Text('Overview & Analytics',
+                  style: GoogleFonts.manrope(
+                      fontSize: 13, color: Colors.grey[500])),
             ],
           ),
         ),
@@ -177,9 +200,14 @@ class _DashboardScreenState extends State<DashboardScreen>
             ),
             child: Row(
               children: [
-                Icon(Icons.pending_actions, size: 16, color: Colors.orange.shade700),
+                Icon(Icons.pending_actions,
+                    size: 16, color: Colors.orange.shade700),
                 const SizedBox(width: 6),
-                Text('$pending Pending', style: GoogleFonts.manrope(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.orange.shade700)),
+                Text('$pending Pending',
+                    style: GoogleFonts.manrope(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.orange.shade700)),
               ],
             ),
           ),
@@ -203,21 +231,31 @@ class _DashboardScreenState extends State<DashboardScreen>
       crossAxisSpacing: 12,
       childAspectRatio: 1.3,
       children: [
-        _buildStatCard("Today's Bookings", todayBookings.toString(), blueColor, Icons.calendar_today),
-        _buildStatCard('Total Bookings', totalBookings.toString(), pinkColor, Icons.book_online),
-        _buildStatCard('Total Barbers', totalBarbers.toString(), pinkColor, Icons.content_cut),
-        _buildStatCard('Revenue Today', '\$${revenueToday.toStringAsFixed(2)}', blueColor, Icons.attach_money),
+        _buildStatCard("Today's Bookings", todayBookings.toString(), blueColor,
+            Icons.calendar_today),
+        _buildStatCard('Total Bookings', totalBookings.toString(), pinkColor,
+            Icons.book_online),
+        _buildStatCard('Total Barbers', totalBarbers.toString(), pinkColor,
+            Icons.content_cut),
+        _buildStatCard('Revenue Today', '\$${revenueToday.toStringAsFixed(2)}',
+            blueColor, Icons.attach_money),
       ],
     );
   }
 
-  Widget _buildStatCard(String title, String value, Color color, IconData icon) {
+  Widget _buildStatCard(
+      String title, String value, Color color, IconData icon) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: color,
         borderRadius: BorderRadius.circular(18),
-        boxShadow: [BoxShadow(color: color.withOpacity(0.35), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+              color: color.withOpacity(0.35),
+              blurRadius: 10,
+              offset: const Offset(0, 4))
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -227,7 +265,9 @@ class _DashboardScreenState extends State<DashboardScreen>
             children: [
               Container(
                 padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(color: Colors.white.withOpacity(0.35), borderRadius: BorderRadius.circular(8)),
+                decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.35),
+                    borderRadius: BorderRadius.circular(8)),
                 child: Icon(icon, size: 16, color: Colors.black87),
               ),
             ],
@@ -235,8 +275,16 @@ class _DashboardScreenState extends State<DashboardScreen>
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(value, style: GoogleFonts.manrope(fontSize: 30, fontWeight: FontWeight.bold, color: Colors.black87)),
-              Text(title, style: GoogleFonts.manrope(fontSize: 12, color: Colors.black.withOpacity(0.6), fontWeight: FontWeight.w500)),
+              Text(value,
+                  style: GoogleFonts.manrope(
+                      fontSize: 30,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87)),
+              Text(title,
+                  style: GoogleFonts.manrope(
+                      fontSize: 12,
+                      color: Colors.black.withOpacity(0.6),
+                      fontWeight: FontWeight.w500)),
             ],
           ),
         ],
@@ -245,7 +293,8 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 
   Widget _buildAnalyticsSection() {
-    final analytics = _dashboardData?['analytics'] as Map<String, dynamic>? ?? {};
+    final analytics =
+        _dashboardData?['analytics'] as Map<String, dynamic>? ?? {};
     final rawDays = analytics['days'] as List<dynamic>? ?? [];
     final rawVals = analytics['values'] as List<dynamic>? ?? [];
     final days = rawDays.map((e) => e.toString()).toList();
@@ -256,19 +305,35 @@ class _DashboardScreenState extends State<DashboardScreen>
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
-        boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+              color: Colors.grey.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 4))
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Text('Analytics', style: GoogleFonts.manrope(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
+              Text('Analytics',
+                  style: GoogleFonts.manrope(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87)),
               const Spacer(),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(color: blueColor.withOpacity(0.2), borderRadius: BorderRadius.circular(20)),
-                child: Text('Last 7 days', style: GoogleFonts.manrope(fontSize: 11, fontWeight: FontWeight.w600, color: darkBlue)),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                    color: blueColor.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(20)),
+                child: Text('Last 7 days',
+                    style: GoogleFonts.manrope(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: darkBlue)),
               ),
             ],
           ),
@@ -297,9 +362,21 @@ class _DashboardScreenState extends State<DashboardScreen>
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildWeekStat('This Week', vals.fold(0, (a, b) => a + b).toString(), Icons.calendar_view_week),
-                _buildWeekStat('Avg/Day', (vals.fold(0, (a, b) => a + b) / math.max(vals.length, 1)).toStringAsFixed(1), Icons.show_chart),
-                _buildWeekStat('Peak Day', days.isNotEmpty && vals.isNotEmpty ? days[vals.indexOf(vals.reduce(math.max))] : '-', Icons.trending_up),
+                _buildWeekStat(
+                    'This Week',
+                    vals.fold(0, (a, b) => a + b).toString(),
+                    Icons.calendar_view_week),
+                _buildWeekStat(
+                    'Avg/Day',
+                    (vals.fold(0, (a, b) => a + b) / math.max(vals.length, 1))
+                        .toStringAsFixed(1),
+                    Icons.show_chart),
+                _buildWeekStat(
+                    'Peak Day',
+                    days.isNotEmpty && vals.isNotEmpty
+                        ? days[vals.indexOf(vals.reduce(math.max))]
+                        : '-',
+                    Icons.trending_up),
               ],
             ),
           ],
@@ -311,9 +388,14 @@ class _DashboardScreenState extends State<DashboardScreen>
   Widget _buildLegend(Color color, String label) {
     return Row(
       children: [
-        Container(width: 12, height: 12, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(3))),
+        Container(
+            width: 12,
+            height: 12,
+            decoration: BoxDecoration(
+                color: color, borderRadius: BorderRadius.circular(3))),
         const SizedBox(width: 4),
-        Text(label, style: GoogleFonts.manrope(fontSize: 11, color: Colors.grey[600])),
+        Text(label,
+            style: GoogleFonts.manrope(fontSize: 11, color: Colors.grey[600])),
       ],
     );
   }
@@ -323,8 +405,13 @@ class _DashboardScreenState extends State<DashboardScreen>
       children: [
         Icon(icon, size: 18, color: darkBlue),
         const SizedBox(height: 4),
-        Text(value, style: GoogleFonts.manrope(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
-        Text(label, style: GoogleFonts.manrope(fontSize: 11, color: Colors.grey[500])),
+        Text(value,
+            style: GoogleFonts.manrope(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87)),
+        Text(label,
+            style: GoogleFonts.manrope(fontSize: 11, color: Colors.grey[500])),
       ],
     );
   }
@@ -333,7 +420,11 @@ class _DashboardScreenState extends State<DashboardScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Next Client', style: GoogleFonts.manrope(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
+        Text('Next Client',
+            style: GoogleFonts.manrope(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87)),
         const SizedBox(height: 12),
         FutureBuilder<Map<String, dynamic>?>(
           future: _getNextClient(),
@@ -341,8 +432,13 @@ class _DashboardScreenState extends State<DashboardScreen>
             if (snap.connectionState == ConnectionState.waiting) {
               return Container(
                 height: 120,
-                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18),
-                  boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 10)]),
+                decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(18),
+                    boxShadow: [
+                      BoxShadow(
+                          color: Colors.grey.withOpacity(0.1), blurRadius: 10)
+                    ]),
                 child: const Center(child: CircularProgressIndicator()),
               );
             }
@@ -350,23 +446,43 @@ class _DashboardScreenState extends State<DashboardScreen>
             if (nc == null || nc.isEmpty) {
               return Container(
                 padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18),
-                  boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 10)]),
+                decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(18),
+                    boxShadow: [
+                      BoxShadow(
+                          color: Colors.grey.withOpacity(0.1), blurRadius: 10)
+                    ]),
                 child: Row(
                   children: [
-                    Container(padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(12)),
-                      child: Icon(Icons.calendar_today_outlined, color: Colors.grey[400], size: 28)),
+                    Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                            color: Colors.grey[100],
+                            borderRadius: BorderRadius.circular(12)),
+                        child: Icon(Icons.calendar_today_outlined,
+                            color: Colors.grey[400], size: 28)),
                     const SizedBox(width: 16),
-                    Text('No upcoming appointments', style: GoogleFonts.manrope(color: Colors.grey[500], fontSize: 15)),
+                    Text('No upcoming appointments',
+                        style: GoogleFonts.manrope(
+                            color: Colors.grey[500], fontSize: 15)),
                   ],
                 ),
               );
             }
             return Container(
               decoration: BoxDecoration(
-                gradient: LinearGradient(colors: [const Color(0xFF1E88E5), const Color(0xFF42A5F5)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                gradient: LinearGradient(
+                    colors: [const Color(0xFF1E88E5), const Color(0xFF42A5F5)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight),
                 borderRadius: BorderRadius.circular(18),
-                boxShadow: [BoxShadow(color: const Color(0xFF1E88E5).withOpacity(0.3), blurRadius: 14, offset: const Offset(0, 6))],
+                boxShadow: [
+                  BoxShadow(
+                      color: const Color(0xFF1E88E5).withOpacity(0.3),
+                      blurRadius: 14,
+                      offset: const Offset(0, 6))
+                ],
               ),
               child: Padding(
                 padding: const EdgeInsets.all(20),
@@ -375,13 +491,31 @@ class _DashboardScreenState extends State<DashboardScreen>
                   children: [
                     Row(
                       children: [
-                        Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(12)),
-                          child: const Icon(Icons.person, color: Colors.white, size: 22)),
+                        Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(12)),
+                            child: const Icon(Icons.person,
+                                color: Colors.white, size: 22)),
                         const SizedBox(width: 12),
-                        Expanded(child: Text(nc['customer_name'] ?? 'Unknown', style: GoogleFonts.manrope(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white))),
-                        Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(20)),
-                          child: Text(nc['status'] ?? 'Booked', style: GoogleFonts.manrope(fontSize: 11, color: Colors.white, fontWeight: FontWeight.w600))),
+                        Expanded(
+                            child: Text(nc['customer_name'] ?? 'Unknown',
+                                style: GoogleFonts.manrope(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white))),
+                        Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(20)),
+                            child: Text(nc['status'] ?? 'Booked',
+                                style: GoogleFonts.manrope(
+                                    fontSize: 11,
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600))),
                       ],
                     ),
                     const SizedBox(height: 16),
@@ -389,10 +523,13 @@ class _DashboardScreenState extends State<DashboardScreen>
                       spacing: 20,
                       runSpacing: 8,
                       children: [
-                        _buildInfoChip(Icons.calendar_today, nc['date'] ?? 'N/A'),
+                        _buildInfoChip(
+                            Icons.calendar_today, nc['date'] ?? 'N/A'),
                         _buildInfoChip(Icons.access_time, nc['time'] ?? 'N/A'),
-                        if (nc['service'] != null && nc['service'] != 'N/A') _buildInfoChip(Icons.content_cut, nc['service']),
-                        if (nc['employee'] != null && nc['employee'] != 'N/A') _buildInfoChip(Icons.person_outline, nc['employee']),
+                        if (nc['service'] != null && nc['service'] != 'N/A')
+                          _buildInfoChip(Icons.content_cut, nc['service']),
+                        if (nc['employee'] != null && nc['employee'] != 'N/A')
+                          _buildInfoChip(Icons.person_outline, nc['employee']),
                       ],
                     ),
                   ],
@@ -411,29 +548,44 @@ class _DashboardScreenState extends State<DashboardScreen>
       children: [
         Icon(icon, size: 14, color: Colors.white.withOpacity(0.8)),
         const SizedBox(width: 5),
-        Text(label, style: GoogleFonts.manrope(fontSize: 13, color: Colors.white.withOpacity(0.9))),
+        Text(label,
+            style: GoogleFonts.manrope(
+                fontSize: 13, color: Colors.white.withOpacity(0.9))),
       ],
     );
   }
 
   Widget _buildRecentBookingsSection() {
-    final bookings = (_dashboardData?['recent_bookings'] as List<dynamic>?)?.cast<Map<String, dynamic>>() ?? [];
+    final bookings = (_dashboardData?['recent_bookings'] as List<dynamic>?)
+            ?.cast<Map<String, dynamic>>() ??
+        [];
 
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
-        boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+              color: Colors.grey.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 4))
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Text('Recent Bookings', style: GoogleFonts.manrope(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
+              Text('Recent Bookings',
+                  style: GoogleFonts.manrope(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87)),
               const Spacer(),
-              Text('${bookings.length} records', style: GoogleFonts.manrope(fontSize: 12, color: Colors.grey[500])),
+              Text('${bookings.length} records',
+                  style: GoogleFonts.manrope(
+                      fontSize: 12, color: Colors.grey[500])),
             ],
           ),
           const SizedBox(height: 16),
@@ -441,7 +593,8 @@ class _DashboardScreenState extends State<DashboardScreen>
             Center(
               child: Padding(
                 padding: const EdgeInsets.all(20),
-                child: Text('No bookings yet', style: GoogleFonts.manrope(color: Colors.grey[400])),
+                child: Text('No bookings yet',
+                    style: GoogleFonts.manrope(color: Colors.grey[400])),
               ),
             )
           else
@@ -454,11 +607,16 @@ class _DashboardScreenState extends State<DashboardScreen>
   Widget _buildBookingRow(Map<String, dynamic> booking) {
     final status = (booking['status'] ?? 'booked').toString().toLowerCase();
     Color statusColor;
-    if (status == 'completed') statusColor = Colors.green;
-    else if (status == 'pending') statusColor = Colors.orange;
-    else if (status == 'canceled' || status == 'cancelled') statusColor = Colors.red;
-    else if (status == 'booked') statusColor = darkBlue;
-    else statusColor = Colors.grey;
+    if (status == 'completed')
+      statusColor = Colors.green;
+    else if (status == 'pending')
+      statusColor = Colors.orange;
+    else if (status == 'canceled' || status == 'cancelled')
+      statusColor = Colors.red;
+    else if (status == 'booked')
+      statusColor = darkBlue;
+    else
+      statusColor = Colors.grey;
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12),
@@ -471,9 +629,17 @@ class _DashboardScreenState extends State<DashboardScreen>
           Container(
             width: 42,
             height: 42,
-            decoration: BoxDecoration(color: blueColor.withOpacity(0.15), borderRadius: BorderRadius.circular(10)),
-            child: Center(child: Text(booking['time']?.toString().split(' ').first ?? '--',
-              style: GoogleFonts.manrope(fontSize: 11, fontWeight: FontWeight.bold, color: darkBlue), textAlign: TextAlign.center)),
+            decoration: BoxDecoration(
+                color: blueColor.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(10)),
+            child: Center(
+                child: Text(
+                    booking['time']?.toString().split(' ').first ?? '--',
+                    style: GoogleFonts.manrope(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: darkBlue),
+                    textAlign: TextAlign.center)),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -482,28 +648,55 @@ class _DashboardScreenState extends State<DashboardScreen>
               children: [
                 Row(
                   children: [
-                    Expanded(child: Text(booking['customer'] ?? 'Unknown',
-                      style: GoogleFonts.manrope(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black87), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                    Expanded(
+                        child: Text(booking['customer'] ?? 'Unknown',
+                            style: GoogleFonts.manrope(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black87),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis)),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(color: statusColor.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                          color: statusColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(20)),
                       child: Text(status[0].toUpperCase() + status.substring(1),
-                        style: GoogleFonts.manrope(fontSize: 10, fontWeight: FontWeight.bold, color: statusColor)),
+                          style: GoogleFonts.manrope(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: statusColor)),
                     ),
                   ],
                 ),
                 const SizedBox(height: 3),
-                Text(booking['service'] ?? 'N/A', style: GoogleFonts.manrope(fontSize: 12, color: Colors.grey[600]), maxLines: 1, overflow: TextOverflow.ellipsis),
+                Text(booking['service'] ?? 'N/A',
+                    style: GoogleFonts.manrope(
+                        fontSize: 12, color: Colors.grey[600]),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 3),
                 Row(
                   children: [
                     Icon(Icons.access_time, size: 11, color: Colors.grey[400]),
                     const SizedBox(width: 3),
-                    Flexible(child: Text(booking['schedule'] ?? '', style: GoogleFonts.manrope(fontSize: 11, color: Colors.grey[500]), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                    Flexible(
+                        child: Text(booking['schedule'] ?? '',
+                            style: GoogleFonts.manrope(
+                                fontSize: 11, color: Colors.grey[500]),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis)),
                     const SizedBox(width: 8),
-                    Icon(Icons.person_outline, size: 11, color: Colors.grey[400]),
+                    Icon(Icons.person_outline,
+                        size: 11, color: Colors.grey[400]),
                     const SizedBox(width: 3),
-                    Flexible(child: Text(booking['employee'] ?? '', style: GoogleFonts.manrope(fontSize: 11, color: Colors.grey[500]), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                    Flexible(
+                        child: Text(booking['employee'] ?? '',
+                            style: GoogleFonts.manrope(
+                                fontSize: 11, color: Colors.grey[500]),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis)),
                   ],
                 ),
               ],
@@ -515,14 +708,20 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 
   Widget _buildTopBarbersSection() {
-    final barbers = (_dashboardData?['top_barbers'] as List<dynamic>?)?.cast<Map<String, dynamic>>() ?? [];
+    final barbers = (_dashboardData?['top_barbers'] as List<dynamic>?)
+            ?.cast<Map<String, dynamic>>() ??
+        [];
 
     if (barbers.isEmpty) return const SizedBox.shrink();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Top Barbers', style: GoogleFonts.manrope(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
+        Text('Top Barbers',
+            style: GoogleFonts.manrope(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87)),
         const SizedBox(height: 12),
         SizedBox(
           height: 170,
@@ -544,9 +743,17 @@ class _DashboardScreenState extends State<DashboardScreen>
       width: 130,
       margin: const EdgeInsets.only(right: 14),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(colors: [Color(0xFF1E88E5), Color(0xFF42A5F5)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+        gradient: const LinearGradient(
+            colors: [Color(0xFF1E88E5), Color(0xFF42A5F5)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight),
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: const Color(0xFF1E88E5).withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+              color: const Color(0xFF1E88E5).withOpacity(0.3),
+              blurRadius: 10,
+              offset: const Offset(0, 4))
+        ],
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
@@ -561,9 +768,17 @@ class _DashboardScreenState extends State<DashboardScreen>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(barber['name'] ?? 'Unknown', style: GoogleFonts.manrope(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
-                        maxLines: 1, overflow: TextOverflow.ellipsis),
-                      Text('$appointments jobs', style: GoogleFonts.manrope(fontSize: 10, color: Colors.white.withOpacity(0.8))),
+                      Text(barber['name'] ?? 'Unknown',
+                          style: GoogleFonts.manrope(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis),
+                      Text('$appointments jobs',
+                          style: GoogleFonts.manrope(
+                              fontSize: 10,
+                              color: Colors.white.withOpacity(0.8))),
                     ],
                   ),
                 ),
@@ -578,20 +793,16 @@ class _DashboardScreenState extends State<DashboardScreen>
   Widget _buildBarberPhoto(String photo) {
     if (photo.isNotEmpty) {
       String clean = photo.trim();
-      if (!clean.startsWith('http') && !clean.startsWith('data:image')) {
-        if (clean.startsWith('/')) {
-          clean = 'http://localhost$clean';
-        } else if (clean.startsWith('uploads/')) {
-          clean = 'http://localhost/barber_api/$clean';
-        }
-      }
       if (clean.startsWith('http')) {
-        return Image.network(clean, fit: BoxFit.cover, width: double.infinity,
-          errorBuilder: (_, __, ___) => _barberPhotoFallback());
+        return Image.network(clean,
+            fit: BoxFit.cover,
+            width: double.infinity,
+            errorBuilder: (_, __, ___) => _barberPhotoFallback());
       }
       try {
         final b64 = clean.contains(',') ? clean.split(',').last : clean;
-        final bytes = base64Decode(b64.replaceAll('\n', '').replaceAll('\r', ''));
+        final bytes =
+            base64Decode(b64.replaceAll('\n', '').replaceAll('\r', ''));
         return Image.memory(bytes, fit: BoxFit.cover, width: double.infinity);
       } catch (_) {}
     }
@@ -601,7 +812,8 @@ class _DashboardScreenState extends State<DashboardScreen>
   Widget _barberPhotoFallback() {
     return Container(
       color: Colors.white.withOpacity(0.15),
-      child: const Center(child: Icon(Icons.person, size: 40, color: Colors.white)),
+      child: const Center(
+          child: Icon(Icons.person, size: 40, color: Colors.white)),
     );
   }
 }
@@ -626,7 +838,8 @@ class BarGraphPainter extends CustomPainter {
       ..color = Colors.grey.shade200
       ..strokeWidth = 1;
 
-    final textStyle = TextStyle(fontSize: 10, color: Colors.grey[500], fontFamily: 'Manrope');
+    final textStyle =
+        TextStyle(fontSize: 10, color: Colors.grey[500], fontFamily: 'Manrope');
 
     final graphH = size.height - 24.0;
     const gridLines = 5;
@@ -636,8 +849,12 @@ class BarGraphPainter extends CustomPainter {
     for (int i = 0; i < gridLines; i++) {
       final y = stepY * i;
       canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
-      final val = ((gridLines - 1 - i) * effectiveMax / (gridLines - 1)).round();
-      final tp = TextPainter(text: TextSpan(text: val.toString(), style: textStyle), textDirection: TextDirection.ltr)..layout();
+      final val =
+          ((gridLines - 1 - i) * effectiveMax / (gridLines - 1)).round();
+      final tp = TextPainter(
+          text: TextSpan(text: val.toString(), style: textStyle),
+          textDirection: TextDirection.ltr)
+        ..layout();
       tp.paint(canvas, Offset(-30, y - tp.height / 2));
     }
 
@@ -654,7 +871,9 @@ class BarGraphPainter extends CustomPainter {
       final barTop = graphH - barH;
 
       final barColor = i % 2 == 0 ? blueColor : pinkColor;
-      final paint = Paint()..color = barColor..style = PaintingStyle.fill;
+      final paint = Paint()
+        ..color = barColor
+        ..style = PaintingStyle.fill;
 
       final rect = RRect.fromRectAndRadius(
         Rect.fromLTWH(x - barW / 2, barTop, barW, barH),
@@ -665,14 +884,24 @@ class BarGraphPainter extends CustomPainter {
       // Value label on top of bar
       if (data[i] > 0) {
         final valTp = TextPainter(
-          text: TextSpan(text: data[i].toString(), style: TextStyle(fontSize: 9, color: Colors.grey[600], fontFamily: 'Manrope', fontWeight: FontWeight.bold)),
+          text: TextSpan(
+              text: data[i].toString(),
+              style: TextStyle(
+                  fontSize: 9,
+                  color: Colors.grey[600],
+                  fontFamily: 'Manrope',
+                  fontWeight: FontWeight.bold)),
           textDirection: TextDirection.ltr,
         )..layout();
-        valTp.paint(canvas, Offset(x - valTp.width / 2, barTop - valTp.height - 2));
+        valTp.paint(
+            canvas, Offset(x - valTp.width / 2, barTop - valTp.height - 2));
       }
 
       // X label
-      final labelTp = TextPainter(text: TextSpan(text: labels[i], style: textStyle), textDirection: TextDirection.ltr)..layout();
+      final labelTp = TextPainter(
+          text: TextSpan(text: labels[i], style: textStyle),
+          textDirection: TextDirection.ltr)
+        ..layout();
       labelTp.paint(canvas, Offset(x - labelTp.width / 2, size.height - 16));
     }
   }

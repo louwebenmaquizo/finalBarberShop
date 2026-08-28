@@ -8,11 +8,13 @@ import 'customer_settings_screen.dart';
 class CustomerNavigationScreen extends StatefulWidget {
   final Map<String, dynamic>? userData;
   final int initialIndex;
-  
-  const CustomerNavigationScreen({super.key, this.userData, this.initialIndex = 0});
+
+  const CustomerNavigationScreen(
+      {super.key, this.userData, this.initialIndex = 0});
 
   @override
-  State<CustomerNavigationScreen> createState() => _CustomerNavigationScreenState();
+  State<CustomerNavigationScreen> createState() =>
+      _CustomerNavigationScreenState();
 }
 
 class _CustomerNavigationScreenState extends State<CustomerNavigationScreen> {
@@ -23,13 +25,6 @@ class _CustomerNavigationScreenState extends State<CustomerNavigationScreen> {
   void initState() {
     super.initState();
     _currentIndex = widget.initialIndex;
-  }
-
-  void _switchTab(int index) {
-    setState(() {
-      _currentIndex = index;
-      _refreshCounter++;
-    });
   }
 
   @override
@@ -114,4 +109,3 @@ class _CustomerNavigationScreenState extends State<CustomerNavigationScreen> {
     );
   }
 }
-

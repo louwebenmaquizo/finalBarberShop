@@ -12,7 +12,7 @@ import 'customer_appointments_screen.dart';
 
 class CustomerSettingsScreen extends StatefulWidget {
   final Map<String, dynamic>? userData;
-  
+
   const CustomerSettingsScreen({super.key, this.userData});
 
   @override
@@ -30,10 +30,12 @@ class _CustomerSettingsScreenState extends State<CustomerSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final displayName = _userData['full_name'] ?? _userData['username'] ?? 'Customer';
+    final displayName =
+        _userData['full_name'] ?? _userData['username'] ?? 'Customer';
     final email = _userData['email'] ?? 'No email';
     final phone = _userData['phone'] ?? '';
-    final profilePhoto = _userData['profile_picture'] ?? _userData['profile_photo'];
+    final profilePhoto =
+        _userData['profile_picture'] ?? _userData['profile_photo'];
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
@@ -103,7 +105,8 @@ class _CustomerSettingsScreenState extends State<CustomerSettingsScreen> {
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.edit_outlined, color: Color(0xFF1E88E5)),
+                  icon:
+                      const Icon(Icons.edit_outlined, color: Color(0xFF1E88E5)),
                   onPressed: () {
                     showEditProfileDialog(
                       context,
@@ -165,7 +168,8 @@ class _CustomerSettingsScreenState extends State<CustomerSettingsScreen> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => CustomerAppointmentsScreen(userData: _userData),
+                      builder: (context) =>
+                          CustomerAppointmentsScreen(userData: _userData),
                     ),
                   );
                 },
@@ -307,7 +311,8 @@ class _CustomerSettingsScreenState extends State<CustomerSettingsScreen> {
       context: context,
       builder: (BuildContext dialogContext) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: Text(
             'Log Out',
             style: GoogleFonts.manrope(
@@ -346,7 +351,8 @@ class _CustomerSettingsScreenState extends State<CustomerSettingsScreen> {
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
                 elevation: 0,
               ),
               child: Text(
@@ -367,14 +373,6 @@ class _CustomerSettingsScreenState extends State<CustomerSettingsScreen> {
     const double size = 60.0;
     if (photo != null && photo.trim().isNotEmpty) {
       String clean = photo.trim();
-      if (!clean.startsWith('http://') && !clean.startsWith('https://') && !clean.startsWith('data:image')) {
-        if (clean.startsWith('/')) {
-          clean = 'http://localhost$clean';
-        } else if (clean.startsWith('uploads/')) {
-          clean = 'http://localhost/barber_api/$clean';
-        }
-      }
-
       if (clean.startsWith('http://') || clean.startsWith('https://')) {
         return Container(
           width: size,
@@ -387,14 +385,16 @@ class _CustomerSettingsScreenState extends State<CustomerSettingsScreen> {
             child: Image.network(
               clean,
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => _buildFallbackSettingsAvatar(name, size),
+              errorBuilder: (_, __, ___) =>
+                  _buildFallbackSettingsAvatar(name, size),
             ),
           ),
         );
       }
       try {
         final base64Data = clean.contains(',') ? clean.split(',').last : clean;
-        final bytes = base64Decode(base64Data.replaceAll('\n', '').replaceAll('\r', '').trim());
+        final bytes = base64Decode(
+            base64Data.replaceAll('\n', '').replaceAll('\r', '').trim());
         return Container(
           width: size,
           height: size,
@@ -412,7 +412,8 @@ class _CustomerSettingsScreenState extends State<CustomerSettingsScreen> {
   }
 
   Widget _buildFallbackSettingsAvatar(String name, double size) {
-    final initial = (name.trim().isNotEmpty ? name.trim()[0] : 'C').toUpperCase();
+    final initial =
+        (name.trim().isNotEmpty ? name.trim()[0] : 'C').toUpperCase();
     return Container(
       width: size,
       height: size,

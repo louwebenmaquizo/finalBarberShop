@@ -1,47 +1,53 @@
-import '../config/api_config.dart';
-import 'api_service.dart' show ApiServiceExtension;
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-/// Transaction Service
-/// Contains all functions for transaction/payment-related operations
+import '../config/api_config.dart';
+import 'supabase_service_helpers.dart';
+
 class TransactionService {
-  /// Create a new transaction when an appointment is completed
-  /// Required: appointment_id, customer_id, amount, payment_method, staff_id
-  /// Optional: tip_amount, tax_amount
+  TransactionService._();
+
   static Future<Map<String, dynamic>> createTransaction({
     required String appointmentId,
     required String customerId,
     required double amount,
-    required String paymentMethod, // 'cash', 'card', 'mobile'
+    required String paymentMethod,
     required String staffId,
     double tipAmount = 0.0,
     double taxAmount = 0.0,
   }) async {
     try {
-      final transactionData = {
-        'appointment_id': appointmentId,
-        'customer_id': customerId,
-        'amount': amount.toStringAsFixed(2),
-        'payment_method': paymentMethod,
-        'staff_id': staffId,
-        'tip_amount': tipAmount.toStringAsFixed(2),
-        'tax_amount': taxAmount.toStringAsFixed(2),
-        'status': 'completed',
-      };
-
-      final response = await ApiServiceExtension.post(
-        ApiConfig.transactionsUrl,
-        transactionData,
+      final data = await SupabaseConfig.client.rpc(
+        SupabaseConfig.completeAppointmentRpc,
+        params: {
+          'p_appointment_id': appointmentId,
+          'p_amount': amount,
+          'p_payment_method': paymentMethod,
+          'p_tip_amount': tipAmount,
+          'p_tax_amount': taxAmount,
+        },
       );
-
-      return response;
-    } catch (e) {
-      print('Error creating transaction: $e');
-      return {'success': false, 'message': e.toString()};
+      return {
+        'success': true,
+        'message': 'Payment recorded and appointment completed.',
+        'data': SupabaseServiceHelpers.asMap(data),
+      };
+    } on PostgrestException catch (error) {
+      if (error.code == '23505') {
+        final existing = await getTransactionByAppointmentId(appointmentId);
+        if (existing != null) {
+          return {
+            'success': true,
+            'message': 'This appointment was already completed.',
+            'data': existing,
+          };
+        }
+      }
+      return SupabaseServiceHelpers.failure(error);
+    } catch (error) {
+      return SupabaseServiceHelpers.failure(error);
     }
   }
 
-  /// Get all transactions
-  /// Optional filters: customer_id, staff_id, date range
   static Future<List<Map<String, dynamic>>> getAllTransactions({
     String? customerId,
     String? staffId,
@@ -49,101 +55,89 @@ class TransactionService {
     String? endDate,
   }) async {
     try {
-      String url = ApiConfig.transactionsUrl;
-      final queryParams = <String>[];
+      dynamic query = SupabaseConfig.client
+          .from(SupabaseConfig.transactionDetailsView)
+          .select();
+      if (customerId != null && customerId.isNotEmpty) {
+        query = query.eq('customer_id', customerId);
+      }
+      if (staffId != null && staffId.isNotEmpty) {
+        query = query.eq('staff_id', staffId);
+      }
+      final start = startDate == null ? null : DateTime.tryParse(startDate);
+      if (start != null) {
+        query = query.gte(
+          'created_at',
+          DateTime(start.year, start.month, start.day)
+              .toUtc()
+              .toIso8601String(),
+        );
+      }
+      final end = endDate == null ? null : DateTime.tryParse(endDate);
+      if (end != null) {
+        query = query.lt(
+          'created_at',
+          DateTime(end.year, end.month, end.day)
+              .add(const Duration(days: 1))
+              .toUtc()
+              .toIso8601String(),
+        );
+      }
 
-      if (customerId != null) {
-        queryParams.add('customer_id=$customerId');
-      }
-      if (staffId != null) {
-        queryParams.add('staff_id=$staffId');
-      }
-      if (startDate != null) {
-        queryParams.add('start_date=$startDate');
-      }
-      if (endDate != null) {
-        queryParams.add('end_date=$endDate');
-      }
-
-      if (queryParams.isNotEmpty) {
-        url += '?${queryParams.join('&')}';
-      }
-
-      final response = await ApiServiceExtension.get(url);
-
-      if (response['success'] == true && response['data'] != null) {
-        final transactions = (response['data'] as List).map((transaction) {
-          return {
-            'transaction_id': transaction['transaction_id'] ?? '',
-            'appointment_id': transaction['appointment_id'] ?? '',
-            'customer_id': transaction['customer_id'] ?? '',
-            'customer_name': transaction['customer_name'] ?? '',
-            'amount': transaction['amount'] ?? 0.0,
-            'payment_method': transaction['payment_method'] ?? '',
-            'tip_amount': transaction['tip_amount'] ?? 0.0,
-            'tax_amount': transaction['tax_amount'] ?? 0.0,
-            'staff_id': transaction['staff_id'] ?? '',
-            'staff_name': transaction['staff_name'] ?? '',
-            'status': transaction['status'] ?? 'completed',
-            'created_at': transaction['created_at'] ?? '',
-          };
-        }).toList();
-        return transactions;
-      }
-      return [];
-    } catch (e) {
-      print('Error fetching transactions: $e');
-      return [];
+      final data = await query.order('created_at', ascending: false);
+      return SupabaseServiceHelpers.asMapList(data)
+          .map(_normalizeTransaction)
+          .toList();
+    } catch (_) {
+      return <Map<String, dynamic>>[];
     }
   }
 
-  /// Get transaction by appointment ID
-  static Future<Map<String, dynamic>?> getTransactionByAppointmentId(String appointmentId) async {
+  static Future<Map<String, dynamic>?> getTransactionByAppointmentId(
+    String appointmentId,
+  ) async {
     try {
-      final response = await ApiServiceExtension.get(
-        '${ApiConfig.transactionsUrl}?appointment_id=$appointmentId',
-      );
-
-      if (response['success'] == true && response['data'] != null) {
-        final transaction = response['data'] as Map<String, dynamic>;
-        return transaction;
-      }
-      return null;
-    } catch (e) {
-      print('Error fetching transaction by appointment ID: $e');
+      final data = await SupabaseConfig.client
+          .from(SupabaseConfig.transactionDetailsView)
+          .select()
+          .eq('appointment_id', appointmentId)
+          .maybeSingle();
+      final transaction = SupabaseServiceHelpers.asMap(data);
+      return transaction.isEmpty ? null : _normalizeTransaction(transaction);
+    } catch (_) {
       return null;
     }
   }
 
-  /// Get today's revenue
-  /// Used for dashboard statistics
   static Future<double> getTodayRevenue() async {
-    try {
-      final today = DateTime.now().toIso8601String().split('T')[0];
-      final transactions = await getAllTransactions(
-        startDate: today,
-        endDate: today,
-      );
+    final today = DateTime.now();
+    final date = '${today.year}-${today.month.toString().padLeft(2, '0')}-'
+        '${today.day.toString().padLeft(2, '0')}';
+    final transactions = await getAllTransactions(
+      startDate: date,
+      endDate: date,
+    );
+    return transactions
+        .where((transaction) => transaction['status'] == 'completed')
+        .fold<double>(
+          0,
+          (total, transaction) =>
+              total + SupabaseServiceHelpers.asDouble(transaction['amount']),
+        );
+  }
 
-      double totalRevenue = 0.0;
-      for (var transaction in transactions) {
-        if (transaction['status'] == 'completed') {
-          final amount = transaction['amount'];
-          if (amount is double) {
-            totalRevenue += amount;
-          } else if (amount is String) {
-            totalRevenue += double.tryParse(amount) ?? 0.0;
-          } else if (amount is int) {
-            totalRevenue += amount.toDouble();
-          }
-        }
-      }
-
-      return totalRevenue;
-    } catch (e) {
-      print('Error calculating today revenue: $e');
-      return 0.0;
-    }
+  static Map<String, dynamic> _normalizeTransaction(
+    Map<String, dynamic> row,
+  ) {
+    final transaction = Map<String, dynamic>.from(row);
+    transaction['transaction_id'] =
+        transaction['transaction_id'] ?? transaction['id'];
+    transaction['amount'] =
+        SupabaseServiceHelpers.asDouble(transaction['amount']);
+    transaction['tip_amount'] =
+        SupabaseServiceHelpers.asDouble(transaction['tip_amount']);
+    transaction['tax_amount'] =
+        SupabaseServiceHelpers.asDouble(transaction['tax_amount']);
+    return transaction;
   }
 }
-

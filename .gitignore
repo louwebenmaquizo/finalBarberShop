@@ -10,6 +10,17 @@
 .svn/
 migrate_working_dir/
 
+# Local environment and service credentials
+.env
+.env.*
+!.env.example
+supabase*.json
+!supabase.example.json
+
+# Local CLI caches
+.npm-cache/
+supabase/.temp/
+
 # IntelliJ related
 *.iml
 *.ipr

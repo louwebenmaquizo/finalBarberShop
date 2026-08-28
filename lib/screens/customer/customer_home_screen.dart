@@ -10,7 +10,7 @@ import 'customer_navigation_screen.dart';
 
 class CustomerHomeScreen extends StatefulWidget {
   final Map<String, dynamic>? userData;
-  
+
   const CustomerHomeScreen({super.key, this.userData});
 
   @override
@@ -41,8 +41,9 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
       final email = widget.userData!['email'] ?? '';
       final phone = widget.userData!['phone'] ?? '';
       final directId = widget.userData!['customer_id'];
-      final photo = widget.userData!['profile_picture'] ?? widget.userData!['profile_photo'];
-      
+      final photo = widget.userData!['profile_picture'] ??
+          widget.userData!['profile_photo'];
+
       setState(() {
         if (directId != null && directId.toString().isNotEmpty) {
           _customerId = directId.toString();
@@ -50,17 +51,17 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
         if (photo != null && photo.toString().isNotEmpty) {
           _customerPhoto = photo.toString();
         }
-        _customerName = widget.userData!['full_name'] ?? 
-                       widget.userData!['username'] ?? 
-                       (email.isNotEmpty ? email.split('@')[0] : 'Customer');
+        _customerName = widget.userData!['full_name'] ??
+            widget.userData!['username'] ??
+            (email.isNotEmpty ? email.split('@')[0] : 'Customer');
         _customerPhone = phone;
       });
-      
+
       // Look up customer by email or phone to get latest profile_picture if needed
       try {
         final customers = await ApiService.getCustomers();
         Map<String, dynamic>? customer;
-        
+
         for (var c in customers) {
           final cEmail = (c['email'] ?? '').toString().toLowerCase();
           final cPhone = (c['phone'] ?? '').toString();
@@ -72,7 +73,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
             break;
           }
         }
-        
+
         if (customer != null && customer['customer_id'] != null) {
           if (mounted) {
             setState(() {
@@ -83,15 +84,14 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
               if (customer['full_name'] != null) {
                 _customerName = customer['full_name'].toString();
               }
-              if (customer['profile_picture'] != null && customer['profile_picture'].toString().isNotEmpty) {
+              if (customer['profile_picture'] != null &&
+                  customer['profile_picture'].toString().isNotEmpty) {
                 _customerPhoto = customer['profile_picture'].toString();
               }
             });
           }
         }
-      } catch (e) {
-        print('Error loading customer data: $e');
-      }
+      } catch (_) {}
     }
   }
 
@@ -105,20 +105,22 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
       if (_customerId == null && widget.userData != null) {
         await _loadCustomerData();
       }
-      
+
       // Get appointments filtered by customer_id and upcoming only (no past appointments)
       final appointments = await ApiService.getAppointments(
         customerId: _customerId,
         upcomingOnly: true, // Only get upcoming appointments from today onwards
       );
-      
+
       // Additional frontend filter to ensure no past appointments slip through
       final now = DateTime.now();
       final today = DateTime(now.year, now.month, now.day);
       final upcomingAppointments = appointments.where((apt) {
         try {
           final status = (apt['status'] ?? '').toString().toLowerCase();
-          if (status == 'canceled' || status == 'cancelled' || status == 'completed') {
+          if (status == 'canceled' ||
+              status == 'cancelled' ||
+              status == 'completed') {
             return false;
           }
           if (apt['start_time'] != null) {
@@ -140,22 +142,20 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                   }
                 }
               }
-              
+
               if (appointmentDate != null) {
-                final apptDay = DateTime(appointmentDate.year, appointmentDate.month, appointmentDate.day);
+                final apptDay = DateTime(appointmentDate.year,
+                    appointmentDate.month, appointmentDate.day);
                 return !apptDay.isBefore(today);
               }
-            } catch (e) {
-              print('Error parsing start_time: $e');
-            }
+            } catch (_) {}
           }
           return false;
-        } catch (e) {
-          print('Error filtering appointment: $e');
+        } catch (_) {
           return false;
         }
       }).toList();
-      
+
       if (mounted) {
         setState(() {
           _appointments = upcomingAppointments;
@@ -244,7 +244,9 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                       // Top Row: Avatar & Actions
                       Row(
                         children: [
-                          _buildCustomerProfileAvatar(_customerPhoto, _customerName, size: 56),
+                          _buildCustomerProfileAvatar(
+                              _customerPhoto, _customerName,
+                              size: 56),
                           const Spacer(),
                           // Notification Icon
                           Container(
@@ -256,8 +258,10 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                               border: Border.all(color: Colors.grey[200]!),
                             ),
                             child: IconButton(
-                              icon: const Icon(Icons.notifications_outlined, size: 20, color: Colors.black87),
-                              onPressed: () => showNotificationsModal(context, isAdmin: false),
+                              icon: const Icon(Icons.notifications_outlined,
+                                  size: 20, color: Colors.black87),
+                              onPressed: () => showNotificationsModal(context,
+                                  isAdmin: false),
                             ),
                           ),
                           const SizedBox(width: 10),
@@ -271,12 +275,14 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                               border: Border.all(color: Colors.grey[200]!),
                             ),
                             child: IconButton(
-                              icon: const Icon(Icons.search, size: 20, color: Colors.black87),
+                              icon: const Icon(Icons.search,
+                                  size: 20, color: Colors.black87),
                               onPressed: () {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => CustomerCatalogScreen(userData: widget.userData),
+                                    builder: (context) => CustomerCatalogScreen(
+                                        userData: widget.userData),
                                   ),
                                 );
                               },
@@ -288,7 +294,9 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
 
                       // Greetings & Customer Name
                       Text(
-                        _customerName.isNotEmpty ? _customerName : 'Hello, Welcome!',
+                        _customerName.isNotEmpty
+                            ? _customerName
+                            : 'Hello, Welcome!',
                         style: GoogleFonts.manrope(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -299,7 +307,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                       if (_customerPhone.isNotEmpty)
                         Row(
                           children: [
-                            Icon(Icons.phone, size: 15, color: Colors.grey[600]),
+                            Icon(Icons.phone,
+                                size: 15, color: Colors.grey[600]),
                             const SizedBox(width: 6),
                             Text(
                               _customerPhone,
@@ -343,7 +352,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                       else
                         Container(
                           width: double.infinity,
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 20, vertical: 18),
                           decoration: BoxDecoration(
                             gradient: const LinearGradient(
                               begin: Alignment.topLeft,
@@ -356,7 +366,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xB25BBCFF).withOpacity(0.25),
+                                color:
+                                    const Color(0xB25BBCFF).withOpacity(0.25),
                                 blurRadius: 10,
                                 offset: const Offset(0, 4),
                               ),
@@ -364,7 +375,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                           ),
                           child: Row(
                             children: [
-                              const Icon(Icons.event_available, color: Colors.white, size: 28),
+                              const Icon(Icons.event_available,
+                                  color: Colors.white, size: 28),
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Column(
@@ -418,7 +430,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                           const SizedBox(width: 8),
                           if (_services.isNotEmpty)
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 2),
                               decoration: BoxDecoration(
                                 color: const Color(0x1A5BBCFF),
                                 borderRadius: BorderRadius.circular(12),
@@ -439,7 +452,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => CustomerCatalogScreen(userData: widget.userData),
+                              builder: (context) => CustomerCatalogScreen(
+                                  userData: widget.userData),
                             ),
                           );
                         },
@@ -482,7 +496,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                     child: GridView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 2,
                         mainAxisSpacing: 14,
                         crossAxisSpacing: 14,
@@ -509,10 +524,13 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     final timeStr = appointment['time'] ?? '';
     final serviceName = appointment['service_name'] ?? 'Service';
     final description = appointment['description'] ?? '';
-    final category = appointment['category_name'] ?? appointment['category'] ?? '';
-    final price = appointment['price'] ?? appointment['service_price'] ?? '0.00';
-    final serviceImage = appointment['service_image'] ?? appointment['image_url'];
-    
+    final category =
+        appointment['category_name'] ?? appointment['category'] ?? '';
+    final price =
+        appointment['price'] ?? appointment['service_price'] ?? '0.00';
+    final serviceImage =
+        appointment['service_image'] ?? appointment['image_url'];
+
     return Stack(
       children: [
         // Main gradient container
@@ -533,7 +551,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Service Image (Left side)
-              _buildAppointmentServiceImage(serviceImage, width: 70, height: 70),
+              _buildAppointmentServiceImage(serviceImage,
+                  width: 70, height: 70),
               const SizedBox(width: 12),
               // Right side: Service name, Description, Category, Time and Price
               Expanded(
@@ -570,7 +589,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                       children: [
                         if (category.isNotEmpty)
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
                               color: Colors.white.withOpacity(0.2),
                               borderRadius: BorderRadius.circular(8),
@@ -584,10 +604,14 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                               ),
                             ),
                           ),
-                        if ((appointment['status'] ?? '').toString().toLowerCase() == 'pending') ...[
+                        if ((appointment['status'] ?? '')
+                                .toString()
+                                .toLowerCase() ==
+                            'pending') ...[
                           const SizedBox(width: 6),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
                               color: Colors.orange[800],
                               borderRadius: BorderRadius.circular(8),
@@ -694,9 +718,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
               }
             }
           }
-        } catch (e) {
-          print('Error parsing start_time for date label: $e');
-        }
+        } catch (_) {}
       }
       if (appointmentDate == null && appointment['date'] != null) {
         try {
@@ -704,8 +726,18 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
           final dateParts = dateStr.replaceAll(',', '').split(' ');
           if (dateParts.length == 3) {
             final monthMap = {
-              'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6,
-              'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12
+              'Jan': 1,
+              'Feb': 2,
+              'Mar': 3,
+              'Apr': 4,
+              'May': 5,
+              'Jun': 6,
+              'Jul': 7,
+              'Aug': 8,
+              'Sep': 9,
+              'Oct': 10,
+              'Nov': 11,
+              'Dec': 12
             };
             final month = monthMap[dateParts[0]];
             final day = int.tryParse(dateParts[1]);
@@ -714,9 +746,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
               appointmentDate = DateTime(year, month, day);
             }
           }
-        } catch (e) {
-          print('Error parsing formatted date for date label: $e');
-        }
+        } catch (_) {}
       }
       if (appointmentDate == null) return '';
       final now = DateTime.now();
@@ -730,8 +760,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
       if (difference == 0) return 'Today';
       if (difference == 1) return 'Tomorrow';
       return difference > 1 ? '$difference days left' : '';
-    } catch (e) {
-      print('Error getting appointment date label: $e');
+    } catch (_) {
       return '';
     }
   }
@@ -748,7 +777,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     final description = service['description'] ?? '';
     final categoryName = service['category_name'] ?? '';
     final durationMinutes = service['duration_minutes'] ?? 30;
-    
+
     final priceValue = service['price'];
     double price = 0.0;
     if (priceValue is int) {
@@ -760,7 +789,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     } else if (priceValue is num) {
       price = priceValue.toDouble();
     }
-    
+
     final rating = 4.9;
 
     return Container(
@@ -786,14 +815,16 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
           // Service Image with Overlays
           Stack(
             children: [
-              _buildCustomerServiceImage(service['image_url'] ?? service['photo']),
+              _buildCustomerServiceImage(
+                  service['image_url'] ?? service['photo']),
               // Category Pill
               if (categoryName.isNotEmpty)
                 Positioned(
                   top: 8,
                   left: 8,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                     decoration: BoxDecoration(
                       color: Colors.black.withOpacity(0.65),
                       borderRadius: BorderRadius.circular(16),
@@ -814,7 +845,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                 top: 8,
                 right: 8,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.92),
                     borderRadius: BorderRadius.circular(10),
@@ -844,7 +876,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
               ),
             ],
           ),
-          
+
           // Card Details
           Expanded(
             child: Padding(
@@ -889,7 +921,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                         ),
                     ],
                   ),
-                  
+
                   // Price and Book Button Row
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -929,7 +961,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF5BBCFF),
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 0),
                           minimumSize: const Size(60, 26),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
@@ -963,7 +996,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
         height: imgHeight,
         width: double.infinity,
         color: const Color(0x1A5BBCFF),
-        child: const Icon(Icons.content_cut, size: 36, color: Color(0xFF5BBCFF)),
+        child:
+            const Icon(Icons.content_cut, size: 36, color: Color(0xFF5BBCFF)),
       );
     }
 
@@ -978,14 +1012,16 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
           height: imgHeight,
           width: double.infinity,
           color: const Color(0x1A5BBCFF),
-          child: const Icon(Icons.content_cut, size: 36, color: Color(0xFF5BBCFF)),
+          child:
+              const Icon(Icons.content_cut, size: 36, color: Color(0xFF5BBCFF)),
         ),
       );
     }
 
     try {
       final base64Data = clean.contains(',') ? clean.split(',').last : clean;
-      final bytes = base64Decode(base64Data.replaceAll('\n', '').replaceAll('\r', '').trim());
+      final bytes = base64Decode(
+          base64Data.replaceAll('\n', '').replaceAll('\r', '').trim());
       return Image.memory(
         bytes,
         height: imgHeight,
@@ -995,7 +1031,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
           height: imgHeight,
           width: double.infinity,
           color: const Color(0x1A5BBCFF),
-          child: const Icon(Icons.content_cut, size: 36, color: Color(0xFF5BBCFF)),
+          child:
+              const Icon(Icons.content_cut, size: 36, color: Color(0xFF5BBCFF)),
         ),
       );
     } catch (_) {
@@ -1003,23 +1040,17 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
         height: imgHeight,
         width: double.infinity,
         color: const Color(0x1A5BBCFF),
-        child: const Icon(Icons.content_cut, size: 36, color: Color(0xFF5BBCFF)),
+        child:
+            const Icon(Icons.content_cut, size: 36, color: Color(0xFF5BBCFF)),
       );
     }
   }
 
-  Widget _buildAppointmentServiceImage(String? photo, {double width = 70, double height = 70, BorderRadius? borderRadius}) {
+  Widget _buildAppointmentServiceImage(String? photo,
+      {double width = 70, double height = 70, BorderRadius? borderRadius}) {
     final radius = borderRadius ?? BorderRadius.circular(8);
     if (photo != null && photo.trim().isNotEmpty) {
       String clean = photo.trim();
-      if (!clean.startsWith('http://') && !clean.startsWith('https://') && !clean.startsWith('data:image')) {
-        if (clean.startsWith('/')) {
-          clean = 'http://localhost$clean';
-        } else if (clean.startsWith('uploads/')) {
-          clean = 'http://localhost/barber_api/$clean';
-        }
-      }
-
       if (clean.startsWith('http://') || clean.startsWith('https://')) {
         return ClipRRect(
           borderRadius: radius,
@@ -1028,13 +1059,15 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
             width: width,
             height: height,
             fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => _buildFallbackServiceImage(width, height, radius),
+            errorBuilder: (_, __, ___) =>
+                _buildFallbackServiceImage(width, height, radius),
           ),
         );
       }
       try {
         final base64Data = clean.contains(',') ? clean.split(',').last : clean;
-        final bytes = base64Decode(base64Data.replaceAll('\n', '').replaceAll('\r', '').trim());
+        final bytes = base64Decode(
+            base64Data.replaceAll('\n', '').replaceAll('\r', '').trim());
         return ClipRRect(
           borderRadius: radius,
           child: Image.memory(
@@ -1042,7 +1075,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
             width: width,
             height: height,
             fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => _buildFallbackServiceImage(width, height, radius),
+            errorBuilder: (_, __, ___) =>
+                _buildFallbackServiceImage(width, height, radius),
           ),
         );
       } catch (_) {}
@@ -1050,7 +1084,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     return _buildFallbackServiceImage(width, height, radius);
   }
 
-  Widget _buildFallbackServiceImage(double width, double height, BorderRadius radius) {
+  Widget _buildFallbackServiceImage(
+      double width, double height, BorderRadius radius) {
     return Container(
       width: width,
       height: height,
@@ -1062,17 +1097,10 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     );
   }
 
-  Widget _buildCustomerProfileAvatar(String? photo, String name, {double size = 56}) {
+  Widget _buildCustomerProfileAvatar(String? photo, String name,
+      {double size = 56}) {
     if (photo != null && photo.trim().isNotEmpty) {
       String clean = photo.trim();
-      if (!clean.startsWith('http://') && !clean.startsWith('https://') && !clean.startsWith('data:image')) {
-        if (clean.startsWith('/')) {
-          clean = 'http://localhost$clean';
-        } else if (clean.startsWith('uploads/')) {
-          clean = 'http://localhost/barber_api/$clean';
-        }
-      }
-
       if (clean.startsWith('http://') || clean.startsWith('https://')) {
         return Container(
           width: size,
@@ -1086,14 +1114,16 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
             child: Image.network(
               clean,
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => _buildCustomerFallbackAvatar(name, size),
+              errorBuilder: (_, __, ___) =>
+                  _buildCustomerFallbackAvatar(name, size),
             ),
           ),
         );
       }
       try {
         final base64Data = clean.contains(',') ? clean.split(',').last : clean;
-        final bytes = base64Decode(base64Data.replaceAll('\n', '').replaceAll('\r', '').trim());
+        final bytes = base64Decode(
+            base64Data.replaceAll('\n', '').replaceAll('\r', '').trim());
         return Container(
           width: size,
           height: size,
@@ -1112,7 +1142,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   }
 
   Widget _buildCustomerFallbackAvatar(String name, double size) {
-    final initial = (name.trim().isNotEmpty ? name.trim()[0] : 'C').toUpperCase();
+    final initial =
+        (name.trim().isNotEmpty ? name.trim()[0] : 'C').toUpperCase();
     return Container(
       width: size,
       height: size,

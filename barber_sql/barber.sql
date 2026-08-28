@@ -1,3 +1,8 @@
+-- LEGACY REFERENCE ONLY. Do not import this file into production.
+-- The active PostgreSQL schema is in supabase/migrations. The sample MySQL
+-- administrator below used a plaintext password and is intentionally not
+-- migrated to Supabase Auth.
+
 CREATE DATABASE IF NOT EXISTS `barber`;
 USE `barber`;
 

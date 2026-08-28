@@ -51,7 +51,7 @@ class _BookingScreenState extends State<BookingScreen> {
         final status = booking['status'] ?? '';
         return status != 'completed';
       }).toList();
-      
+
       setState(() {
         _allBookings = activeBookings;
         _filteredBookings = activeBookings;
@@ -70,13 +70,13 @@ class _BookingScreenState extends State<BookingScreen> {
   void _filterBookings() {
     final query = _searchController.text;
     List<Map<String, dynamic>> filtered;
-    
+
     // First, filter out completed bookings
     final activeBookings = _allBookings.where((booking) {
       final status = booking['status'] ?? '';
       return status != 'completed';
     }).toList();
-    
+
     if (query.isEmpty) {
       filtered = List.from(activeBookings);
     } else {
@@ -87,49 +87,49 @@ class _BookingScreenState extends State<BookingScreen> {
         final staffName = (booking['staff_name'] ?? '').toLowerCase();
         final date = (booking['date'] ?? '').toLowerCase();
         final time = (booking['time'] ?? '').toLowerCase();
-        
-        return customerName.contains(searchQuery) || 
-               serviceName.contains(searchQuery) || 
-               staffName.contains(searchQuery) ||
-               date.contains(searchQuery) ||
-               time.contains(searchQuery);
+
+        return customerName.contains(searchQuery) ||
+            serviceName.contains(searchQuery) ||
+            staffName.contains(searchQuery) ||
+            date.contains(searchQuery) ||
+            time.contains(searchQuery);
       }).toList();
     }
-    
+
     // Apply sorting
     _applySort(filtered);
   }
-  
+
   void _applySort(List<Map<String, dynamic>> bookings) {
     bookings.sort((a, b) {
       // Parse date and time to create DateTime for comparison
       DateTime? dateTimeA = _parseBookingDateTime(a);
       DateTime? dateTimeB = _parseBookingDateTime(b);
-      
+
       // Handle null dates (put them at the end)
       if (dateTimeA == null && dateTimeB == null) return 0;
       if (dateTimeA == null) return 1;
       if (dateTimeB == null) return -1;
-      
+
       // Compare dates
       int comparison = dateTimeA.compareTo(dateTimeB);
-      
+
       // Reverse if descending
       return _sortOrder == 'descending' ? -comparison : comparison;
     });
-    
+
     setState(() {
       _filteredBookings = bookings;
     });
   }
-  
+
   DateTime? _parseBookingDateTime(Map<String, dynamic> booking) {
     try {
       final dateStr = booking['date'] ?? '';
       final timeStr = booking['time'] ?? '';
-      
+
       if (dateStr.isEmpty) return null;
-      
+
       // Try to parse date (format: YYYY-MM-DD or similar)
       DateTime date;
       if (dateStr.contains('-')) {
@@ -148,7 +148,7 @@ class _BookingScreenState extends State<BookingScreen> {
         // Try other formats or return null
         return null;
       }
-      
+
       // Parse time if available (format: HH:MM:SS or HH:MM)
       if (timeStr.isNotEmpty) {
         final timeParts = timeStr.split(':');
@@ -162,10 +162,9 @@ class _BookingScreenState extends State<BookingScreen> {
           );
         }
       }
-      
+
       return date;
-    } catch (e) {
-      print('Error parsing booking date/time: $e');
+    } catch (_) {
       return null;
     }
   }
@@ -228,13 +227,13 @@ class _BookingScreenState extends State<BookingScreen> {
                     child: Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: _sortOrder == 'ascending' 
-                            ? blueColor.withOpacity(0.1) 
+                        color: _sortOrder == 'ascending'
+                            ? blueColor.withOpacity(0.1)
                             : Colors.grey[50],
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: _sortOrder == 'ascending' 
-                              ? blueColor 
+                          color: _sortOrder == 'ascending'
+                              ? blueColor
                               : Colors.grey[300]!,
                           width: _sortOrder == 'ascending' ? 2 : 1,
                         ),
@@ -243,8 +242,8 @@ class _BookingScreenState extends State<BookingScreen> {
                         children: [
                           Icon(
                             Icons.arrow_upward,
-                            color: _sortOrder == 'ascending' 
-                                ? blueColor 
+                            color: _sortOrder == 'ascending'
+                                ? blueColor
                                 : Colors.grey[600],
                           ),
                           const SizedBox(width: 12),
@@ -257,8 +256,8 @@ class _BookingScreenState extends State<BookingScreen> {
                                   style: GoogleFonts.manrope(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w600,
-                                    color: _sortOrder == 'ascending' 
-                                        ? blueColor 
+                                    color: _sortOrder == 'ascending'
+                                        ? blueColor
                                         : Colors.black87,
                                   ),
                                 ),
@@ -299,13 +298,13 @@ class _BookingScreenState extends State<BookingScreen> {
                     child: Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: _sortOrder == 'descending' 
-                            ? blueColor.withOpacity(0.1) 
+                        color: _sortOrder == 'descending'
+                            ? blueColor.withOpacity(0.1)
                             : Colors.grey[50],
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: _sortOrder == 'descending' 
-                              ? blueColor 
+                          color: _sortOrder == 'descending'
+                              ? blueColor
                               : Colors.grey[300]!,
                           width: _sortOrder == 'descending' ? 2 : 1,
                         ),
@@ -314,8 +313,8 @@ class _BookingScreenState extends State<BookingScreen> {
                         children: [
                           Icon(
                             Icons.arrow_downward,
-                            color: _sortOrder == 'descending' 
-                                ? blueColor 
+                            color: _sortOrder == 'descending'
+                                ? blueColor
                                 : Colors.grey[600],
                           ),
                           const SizedBox(width: 12),
@@ -328,8 +327,8 @@ class _BookingScreenState extends State<BookingScreen> {
                                   style: GoogleFonts.manrope(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w600,
-                                    color: _sortOrder == 'descending' 
-                                        ? blueColor 
+                                    color: _sortOrder == 'descending'
+                                        ? blueColor
                                         : Colors.black87,
                                   ),
                                 ),
@@ -424,7 +423,8 @@ class _BookingScreenState extends State<BookingScreen> {
                     TextButton(
                       onPressed: () => _showFilterDialog(),
                       style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -506,7 +506,8 @@ class _BookingScreenState extends State<BookingScreen> {
                                   physics: const NeverScrollableScrollPhysics(),
                                   itemCount: _filteredBookings.length,
                                   itemBuilder: (context, index) {
-                                    return _buildBookingCard(_filteredBookings[index]);
+                                    return _buildBookingCard(
+                                        _filteredBookings[index]);
                                   },
                                 ),
                 ],
@@ -577,7 +578,8 @@ class _BookingScreenState extends State<BookingScreen> {
                 Expanded(
                   child: Column(
                     children: [
-                      const Icon(Icons.calendar_today, color: Colors.white, size: 20),
+                      const Icon(Icons.calendar_today,
+                          color: Colors.white, size: 20),
                       const SizedBox(height: 8),
                       Text(
                         booking['date'] ?? 'N/A',
@@ -594,7 +596,8 @@ class _BookingScreenState extends State<BookingScreen> {
                 Expanded(
                   child: Column(
                     children: [
-                      const Icon(Icons.access_time, color: Colors.white, size: 20),
+                      const Icon(Icons.access_time,
+                          color: Colors.white, size: 20),
                       const SizedBox(height: 8),
                       Text(
                         booking['time'] ?? 'N/A',
@@ -618,7 +621,8 @@ class _BookingScreenState extends State<BookingScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 24, vertical: 12),
                         decoration: BoxDecoration(
                           color: Colors.green.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(8),
@@ -627,7 +631,8 @@ class _BookingScreenState extends State<BookingScreen> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.check_circle, color: Colors.green, size: 20),
+                            const Icon(Icons.check_circle,
+                                color: Colors.green, size: 20),
                             const SizedBox(width: 8),
                             Text(
                               'Completed',
@@ -647,19 +652,22 @@ class _BookingScreenState extends State<BookingScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
                           Expanded(
-                            child: _buildActionButton('Decline', Colors.red, () {
+                            child:
+                                _buildActionButton('Decline', Colors.red, () {
                               _handleDecline(booking);
                             }),
                           ),
                           const SizedBox(width: 8),
                           Expanded(
-                            child: _buildActionButton('Accept', Colors.green, () {
+                            child:
+                                _buildActionButton('Accept', Colors.green, () {
                               _handleAccept(booking);
                             }),
                           ),
                           const SizedBox(width: 8),
                           Expanded(
-                            child: _buildActionButton('Add Note', pinkColor, () {
+                            child:
+                                _buildActionButton('Add Note', pinkColor, () {
                               _handleAddNote(booking);
                             }),
                           ),
@@ -669,19 +677,22 @@ class _BookingScreenState extends State<BookingScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
                           Expanded(
-                            child: _buildActionButton('Reschedule', pinkColor, () {
+                            child:
+                                _buildActionButton('Reschedule', pinkColor, () {
                               _handleReschedule(booking);
                             }),
                           ),
                           const SizedBox(width: 8),
                           Expanded(
-                            child: _buildActionButton('Add Note', pinkColor, () {
+                            child:
+                                _buildActionButton('Add Note', pinkColor, () {
                               _handleAddNote(booking);
                             }),
                           ),
                           const SizedBox(width: 8),
                           Expanded(
-                            child: _buildActionButton('Complete', blueColor, () {
+                            child:
+                                _buildActionButton('Complete', blueColor, () {
                               _handleComplete(booking);
                             }),
                           ),
@@ -726,11 +737,13 @@ class _BookingScreenState extends State<BookingScreen> {
     if (appointmentId == null || appointmentId.toString().isEmpty) return;
 
     try {
-      final result = await BookingService.updateBooking(appointmentId.toString(), {'status': 'booked'});
+      final result = await BookingService.updateBooking(
+          appointmentId.toString(), {'status': 'booked'});
       if (result['success'] == true && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Booking accepted and confirmed!', style: GoogleFonts.manrope()),
+            content: Text('Booking accepted and confirmed!',
+                style: GoogleFonts.manrope()),
             backgroundColor: Colors.green,
           ),
         );
@@ -739,7 +752,9 @@ class _BookingScreenState extends State<BookingScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error accepting booking: $e'), backgroundColor: Colors.red),
+          SnackBar(
+              content: Text('Error accepting booking: $e'),
+              backgroundColor: Colors.red),
         );
       }
     }
@@ -757,7 +772,9 @@ class _BookingScreenState extends State<BookingScreen> {
           children: [
             const Icon(Icons.warning_amber_rounded, color: Colors.red),
             const SizedBox(width: 8),
-            Text('Decline Booking', style: GoogleFonts.manrope(fontWeight: FontWeight.bold, fontSize: 18)),
+            Text('Decline Booking',
+                style: GoogleFonts.manrope(
+                    fontWeight: FontWeight.bold, fontSize: 18)),
           ],
         ),
         content: Text(
@@ -767,17 +784,20 @@ class _BookingScreenState extends State<BookingScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Cancel', style: GoogleFonts.manrope(color: Colors.grey[600])),
+            child: Text('Cancel',
+                style: GoogleFonts.manrope(color: Colors.grey[600])),
           ),
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(context);
               try {
-                final result = await BookingService.updateBooking(appointmentId.toString(), {'status': 'declined'});
+                final result = await BookingService.updateBooking(
+                    appointmentId.toString(), {'status': 'declined'});
                 if (result['success'] == true && mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Booking request declined', style: GoogleFonts.manrope()),
+                      content: Text('Booking request declined',
+                          style: GoogleFonts.manrope()),
                       backgroundColor: Colors.red,
                     ),
                   );
@@ -787,9 +807,12 @@ class _BookingScreenState extends State<BookingScreen> {
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
             ),
-            child: Text('Decline Request', style: GoogleFonts.manrope(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: Text('Decline Request',
+                style: GoogleFonts.manrope(
+                    color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -803,7 +826,7 @@ class _BookingScreenState extends State<BookingScreen> {
         builder: (context) => RescheduleScreen(booking: booking),
       ),
     );
-    
+
     // Reload bookings if reschedule was successful
     if (result == true) {
       _loadBookings();
@@ -824,7 +847,8 @@ class _BookingScreenState extends State<BookingScreen> {
             const SizedBox(width: 8),
             Text(
               'Add Appointment Note',
-              style: GoogleFonts.manrope(fontWeight: FontWeight.bold, fontSize: 18),
+              style: GoogleFonts.manrope(
+                  fontWeight: FontWeight.bold, fontSize: 18),
             ),
           ],
         ),
@@ -841,9 +865,12 @@ class _BookingScreenState extends State<BookingScreen> {
               controller: noteController,
               maxLines: 4,
               decoration: InputDecoration(
-                hintText: 'e.g. Skin fade #1 on sides, scissor cut on top, prefers mint aftershave...',
-                hintStyle: GoogleFonts.manrope(fontSize: 13, color: Colors.grey[400]),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                hintText:
+                    'e.g. Skin fade #1 on sides, scissor cut on top, prefers mint aftershave...',
+                hintStyle:
+                    GoogleFonts.manrope(fontSize: 13, color: Colors.grey[400]),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 filled: true,
                 fillColor: Colors.grey[50],
               ),
@@ -854,7 +881,8 @@ class _BookingScreenState extends State<BookingScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Cancel', style: GoogleFonts.manrope(color: Colors.grey[600])),
+            child: Text('Cancel',
+                style: GoogleFonts.manrope(color: Colors.grey[600])),
           ),
           ElevatedButton(
             onPressed: () {
@@ -864,19 +892,22 @@ class _BookingScreenState extends State<BookingScreen> {
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Note attached to booking!', style: GoogleFonts.manrope()),
+                  content: Text('Note attached to booking!',
+                      style: GoogleFonts.manrope()),
                   backgroundColor: Colors.green,
                 ),
               );
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF5BBCFF),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
               elevation: 0,
             ),
             child: Text(
               'Save Note',
-              style: GoogleFonts.manrope(color: Colors.white, fontWeight: FontWeight.bold),
+              style: GoogleFonts.manrope(
+                  color: Colors.white, fontWeight: FontWeight.bold),
             ),
           ),
         ],
@@ -1022,7 +1053,7 @@ class _BookingScreenState extends State<BookingScreen> {
       }
 
       // Check if required fields are present
-      if (appointmentDetails['customer_id'] == null || 
+      if (appointmentDetails['customer_id'] == null ||
           appointmentDetails['staff_id'] == null ||
           appointmentDetails['service_price'] == null) {
         if (mounted) {
@@ -1053,7 +1084,7 @@ class _BookingScreenState extends State<BookingScreen> {
         // Fetch service price from services table to ensure we use the current price
         double servicePrice = paymentResult['amount'] ?? 0.0;
         final serviceId = appointmentDetails['service_id'] ?? '';
-        
+
         if (serviceId.isNotEmpty) {
           try {
             final service = await CatalogService.getServiceById(serviceId);
@@ -1066,12 +1097,11 @@ class _BookingScreenState extends State<BookingScreen> {
                           ? service['price'].toDouble()
                           : servicePrice));
             }
-          } catch (e) {
-            print('Error fetching service price for transaction: $e');
+          } catch (_) {
             // Use amount from payment dialog as fallback
           }
         }
-        
+
         // Create transaction with service price from services table
         final transactionResult = await TransactionService.createTransaction(
           appointmentId: appointmentDetails['appointment_id'] ?? '',
@@ -1088,7 +1118,9 @@ class _BookingScreenState extends State<BookingScreen> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(
-                  transactionResult['message'] ?? transactionResult['error'] ?? 'Failed to create transaction',
+                  transactionResult['message'] ??
+                      transactionResult['error'] ??
+                      'Failed to create transaction',
                   style: GoogleFonts.manrope(),
                 ),
                 backgroundColor: Colors.red,
@@ -1119,7 +1151,9 @@ class _BookingScreenState extends State<BookingScreen> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(
-                  result['message'] ?? result['error'] ?? 'Failed to complete booking',
+                  result['message'] ??
+                      result['error'] ??
+                      'Failed to complete booking',
                   style: GoogleFonts.manrope(),
                 ),
                 backgroundColor: Colors.red,
@@ -1150,7 +1184,7 @@ class _BookingScreenState extends State<BookingScreen> {
     // Fetch service price from services table using service_id
     double baseAmount = 0.0;
     final serviceId = appointmentDetails['service_id'] ?? '';
-    
+
     if (serviceId.isNotEmpty) {
       try {
         final service = await CatalogService.getServiceById(serviceId);
@@ -1163,8 +1197,7 @@ class _BookingScreenState extends State<BookingScreen> {
                       ? service['price'].toDouble()
                       : 0.0));
         }
-      } catch (e) {
-        print('Error fetching service price: $e');
+      } catch (_) {
         // Fallback to service_price from appointment details if available
         baseAmount = appointmentDetails['service_price'] is double
             ? appointmentDetails['service_price']
@@ -1189,13 +1222,15 @@ class _BookingScreenState extends State<BookingScreen> {
       barrierDismissible: false,
       builder: (context) {
         // Use a mutable variable that will be properly captured in the closure
-        final paymentMethodRef = <String>['cash']; // Use list to allow mutation in closure
-        
+        final paymentMethodRef = <String>[
+          'cash'
+        ]; // Use list to allow mutation in closure
+
         return StatefulBuilder(
           builder: (context, setState) {
             // Get current value from the ref
             String selectedPaymentMethod = paymentMethodRef[0];
-            
+
             return AlertDialog(
               title: Text(
                 'Complete Payment',
@@ -1209,234 +1244,236 @@ class _BookingScreenState extends State<BookingScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
+                    children: [
                       // Service info
                       Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        appointmentDetails['service_name'] ?? 'Service',
-                        style: GoogleFonts.manrope(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 16,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[100],
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              appointmentDetails['service_name'] ?? 'Service',
+                              style: GoogleFonts.manrope(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 16,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Base Amount: \$${baseAmount.toStringAsFixed(2)}',
+                              style: GoogleFonts.manrope(fontSize: 14),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 20),
+
+                      // Payment method
                       Text(
-                        'Base Amount: \$${baseAmount.toStringAsFixed(2)}',
-                        style: GoogleFonts.manrope(fontSize: 14),
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1,
+                        'Payment Method',
+                        style: GoogleFonts.manrope(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      DropdownButtonFormField<String>(
+                        value: selectedPaymentMethod,
+                        decoration: InputDecoration(
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                        ),
+                        items: ['cash', 'card', 'mobile']
+                            .map((method) => DropdownMenuItem(
+                                  value: method,
+                                  child: Text(
+                                    method.toUpperCase(),
+                                    style: GoogleFonts.manrope(),
+                                  ),
+                                ))
+                            .toList(),
+                        onChanged: (value) {
+                          if (value != null) {
+                            setState(() {
+                              paymentMethodRef[0] = value; // Update the ref
+                            });
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Tip amount
+                      Text(
+                        'Tip Amount (Optional)',
+                        style: GoogleFonts.manrope(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: tipController,
+                        keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true),
+                        decoration: InputDecoration(
+                          prefixText: '\$ ',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                        ),
+                        onChanged: (value) {
+                          setState(() {}); // Update total amount display
+                        },
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Tax amount
+                      Text(
+                        'Tax Amount (Optional)',
+                        style: GoogleFonts.manrope(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: taxController,
+                        keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true),
+                        decoration: InputDecoration(
+                          prefixText: '\$ ',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                        ),
+                        onChanged: (value) {
+                          setState(() {}); // Update total amount display
+                        },
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Total amount - updates dynamically
+                      Builder(
+                        builder: (context) {
+                          final currentTip =
+                              double.tryParse(tipController.text) ?? 0.0;
+                          final currentTax =
+                              double.tryParse(taxController.text) ?? 0.0;
+                          final total = baseAmount + currentTip + currentTax;
+
+                          return Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: blueColor.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: blueColor),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Flexible(
+                                  flex: 2,
+                                  child: Text(
+                                    'Total Amount:',
+                                    style: GoogleFonts.manrope(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Flexible(
+                                  flex: 1,
+                                  child: Text(
+                                    '\$${total.toStringAsFixed(2)}',
+                                    style: GoogleFonts.manrope(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 18,
+                                      color: blueColor,
+                                    ),
+                                    textAlign: TextAlign.right,
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 1,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 20),
-                
-                // Payment method
-                Text(
-                  'Payment Method',
-                  style: GoogleFonts.manrope(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                DropdownButtonFormField<String>(
-                  value: selectedPaymentMethod,
-                  decoration: InputDecoration(
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                  ),
-                  items: ['cash', 'card', 'mobile']
-                      .map((method) => DropdownMenuItem(
-                            value: method,
-                            child: Text(
-                              method.toUpperCase(),
-                              style: GoogleFonts.manrope(),
-                            ),
-                          ))
-                      .toList(),
-                  onChanged: (value) {
-                    if (value != null) {
-                      setState(() {
-                        paymentMethodRef[0] = value; // Update the ref
-                      });
-                    }
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    tipController.dispose();
+                    taxController.dispose();
+                    Navigator.pop(context, {'cancelled': true});
                   },
-                ),
-                const SizedBox(height: 20),
-                
-                // Tip amount
-                Text(
-                  'Tip Amount (Optional)',
-                  style: GoogleFonts.manrope(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: tipController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: InputDecoration(
-                    prefixText: '\$ ',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
+                  child: Text(
+                    'Cancel',
+                    style: GoogleFonts.manrope(
+                      color: Colors.grey[600],
                     ),
                   ),
-                  onChanged: (value) {
-                    setState(() {}); // Update total amount display
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    // Get final values from controllers
+                    final finalTip = double.tryParse(tipController.text) ?? 0.0;
+                    final finalTax = double.tryParse(taxController.text) ?? 0.0;
+                    final totalAmount = baseAmount + finalTip + finalTax;
+
+                    // Get the current payment method from the ref
+                    final paymentMethodValue = paymentMethodRef[0].isNotEmpty
+                        ? paymentMethodRef[0]
+                        : 'cash';
+
+                    tipController.dispose();
+                    taxController.dispose();
+                    Navigator.pop(context, {
+                      'cancelled': false,
+                      'amount': baseAmount,
+                      'payment_method': paymentMethodValue,
+                      'tip_amount': finalTip,
+                      'tax_amount': finalTax,
+                      'total_amount': totalAmount,
+                    });
                   },
-                ),
-                const SizedBox(height: 16),
-                
-                // Tax amount
-                Text(
-                  'Tax Amount (Optional)',
-                  style: GoogleFonts.manrope(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: blueColor,
+                    foregroundColor: Colors.white,
                   ),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: taxController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: InputDecoration(
-                    prefixText: '\$ ',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
+                  child: Text(
+                    'Complete Payment',
+                    style: GoogleFonts.manrope(fontWeight: FontWeight.w600),
                   ),
-                  onChanged: (value) {
-                    setState(() {}); // Update total amount display
-                  },
-                ),
-                const SizedBox(height: 20),
-                
-                // Total amount - updates dynamically
-                Builder(
-                  builder: (context) {
-                    final currentTip = double.tryParse(tipController.text) ?? 0.0;
-                    final currentTax = double.tryParse(taxController.text) ?? 0.0;
-                    final total = baseAmount + currentTip + currentTax;
-                    
-                    return Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: blueColor.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: blueColor),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Flexible(
-                            flex: 2,
-                            child: Text(
-                              'Total Amount:',
-                              style: GoogleFonts.manrope(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Flexible(
-                            flex: 1,
-                            child: Text(
-                              '\$${total.toStringAsFixed(2)}',
-                              style: GoogleFonts.manrope(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 18,
-                                color: blueColor,
-                              ),
-                              textAlign: TextAlign.right,
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 1,
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
                 ),
               ],
-            ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                tipController.dispose();
-                taxController.dispose();
-                Navigator.pop(context, {'cancelled': true});
-              },
-              child: Text(
-                'Cancel',
-                style: GoogleFonts.manrope(
-                  color: Colors.grey[600],
-                ),
-              ),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                // Get final values from controllers
-                final finalTip = double.tryParse(tipController.text) ?? 0.0;
-                final finalTax = double.tryParse(taxController.text) ?? 0.0;
-                final totalAmount = baseAmount + finalTip + finalTax;
-                
-                // Get the current payment method from the ref
-                final paymentMethodValue = paymentMethodRef[0].isNotEmpty 
-                    ? paymentMethodRef[0] 
-                    : 'cash';
-                
-                print('Payment method being sent: $paymentMethodValue');
-                
-                tipController.dispose();
-                taxController.dispose();
-                Navigator.pop(context, {
-                  'cancelled': false,
-                  'amount': baseAmount,
-                  'payment_method': paymentMethodValue,
-                  'tip_amount': finalTip,
-                  'tax_amount': finalTax,
-                  'total_amount': totalAmount,
-                });
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: blueColor,
-                foregroundColor: Colors.white,
-              ),
-              child: Text(
-                'Complete Payment',
-                style: GoogleFonts.manrope(fontWeight: FontWeight.w600),
-              ),
-            ),
-          ],
-        );
+            );
           },
         );
       },
@@ -1569,7 +1606,9 @@ class _BookingScreenState extends State<BookingScreen> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(
-                  result['message'] ?? result['error'] ?? 'Failed to delete booking',
+                  result['message'] ??
+                      result['error'] ??
+                      'Failed to delete booking',
                   style: GoogleFonts.manrope(),
                 ),
                 backgroundColor: Colors.red,
@@ -1593,4 +1632,3 @@ class _BookingScreenState extends State<BookingScreen> {
     }
   }
 }
-

@@ -19,8 +19,10 @@ class _CatalogScreenState extends State<CatalogScreen> {
   List<Map<String, dynamic>> _allServices = [];
   bool _isLoading = true;
   String? _errorMessage;
-  String? _statusFilter = 'active'; // 'active' = active only, 'inactive' = inactive only
-  String? _selectedCategoryId; // Selected category filter (null = all categories)
+  String? _statusFilter =
+      'active'; // 'active' = active only, 'inactive' = inactive only
+  String?
+      _selectedCategoryId; // Selected category filter (null = all categories)
   List<Map<String, dynamic>> _categories = [];
 
   @override
@@ -39,9 +41,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
           _categories = categories;
         });
       }
-    } catch (e) {
-      print('Error loading categories: $e');
-    }
+    } catch (_) {}
   }
 
   @override
@@ -74,7 +74,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
 
   void _filterServices() {
     final query = _searchController.text.trim().toLowerCase();
-    
+
     // 1. Filter by active/inactive status
     List<Map<String, dynamic>> statusFiltered = _allServices;
     if (_statusFilter == 'active') {
@@ -82,7 +82,8 @@ class _CatalogScreenState extends State<CatalogScreen> {
         final isActive = service['is_active'];
         if (isActive is int) return isActive == 1;
         if (isActive is bool) return isActive == true;
-        if (isActive is String) return isActive == '1' || isActive.toLowerCase() == 'true';
+        if (isActive is String)
+          return isActive == '1' || isActive.toLowerCase() == 'true';
         return true;
       }).toList();
     } else if (_statusFilter == 'inactive') {
@@ -90,7 +91,8 @@ class _CatalogScreenState extends State<CatalogScreen> {
         final isActive = service['is_active'];
         if (isActive is int) return isActive == 0;
         if (isActive is bool) return isActive == false;
-        if (isActive is String) return isActive == '0' || isActive.toLowerCase() == 'false';
+        if (isActive is String)
+          return isActive == '0' || isActive.toLowerCase() == 'false';
         return false;
       }).toList();
     }
@@ -112,9 +114,13 @@ class _CatalogScreenState extends State<CatalogScreen> {
       setState(() {
         _filteredServices = categoryFiltered.where((service) {
           final name = (service['name'] ?? '').toString().toLowerCase();
-          final description = (service['description'] ?? '').toString().toLowerCase();
-          final categoryName = (service['category_name'] ?? '').toString().toLowerCase();
-          return name.contains(query) || description.contains(query) || categoryName.contains(query);
+          final description =
+              (service['description'] ?? '').toString().toLowerCase();
+          final categoryName =
+              (service['category_name'] ?? '').toString().toLowerCase();
+          return name.contains(query) ||
+              description.contains(query) ||
+              categoryName.contains(query);
         }).toList();
       });
     }
@@ -164,22 +170,30 @@ class _CatalogScreenState extends State<CatalogScreen> {
             children: [
               Text(
                 'Add to Catalog',
-                style: GoogleFonts.manrope(fontSize: 18, fontWeight: FontWeight.bold),
+                style: GoogleFonts.manrope(
+                    fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
               ListTile(
                 leading: Container(
                   padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(color: const Color(0x1A5BBCFF), borderRadius: BorderRadius.circular(8)),
-                  child: const Icon(Icons.content_cut, color: Color(0xFF1E88E5)),
+                  decoration: BoxDecoration(
+                      color: const Color(0x1A5BBCFF),
+                      borderRadius: BorderRadius.circular(8)),
+                  child:
+                      const Icon(Icons.content_cut, color: Color(0xFF1E88E5)),
                 ),
-                title: Text('Add New Service', style: GoogleFonts.manrope(fontWeight: FontWeight.bold)),
-                subtitle: Text('Create a haircut, shave, or styling package', style: GoogleFonts.manrope(fontSize: 12, color: Colors.grey[600])),
+                title: Text('Add New Service',
+                    style: GoogleFonts.manrope(fontWeight: FontWeight.bold)),
+                subtitle: Text('Create a haircut, shave, or styling package',
+                    style: GoogleFonts.manrope(
+                        fontSize: 12, color: Colors.grey[600])),
                 onTap: () async {
                   Navigator.pop(context);
                   final result = await Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const AddServiceScreen()),
+                    MaterialPageRoute(
+                        builder: (context) => const AddServiceScreen()),
                   );
                   if (result == true) {
                     _loadServices();
@@ -190,11 +204,16 @@ class _CatalogScreenState extends State<CatalogScreen> {
               ListTile(
                 leading: Container(
                   padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(color: Colors.purple.withOpacity(0.12), borderRadius: BorderRadius.circular(8)),
+                  decoration: BoxDecoration(
+                      color: Colors.purple.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(8)),
                   child: const Icon(Icons.category, color: Colors.purple),
                 ),
-                title: Text('Add New Category', style: GoogleFonts.manrope(fontWeight: FontWeight.bold)),
-                subtitle: Text('Group services into clean custom categories', style: GoogleFonts.manrope(fontSize: 12, color: Colors.grey[600])),
+                title: Text('Add New Category',
+                    style: GoogleFonts.manrope(fontWeight: FontWeight.bold)),
+                subtitle: Text('Group services into clean custom categories',
+                    style: GoogleFonts.manrope(
+                        fontSize: 12, color: Colors.grey[600])),
                 onTap: () {
                   Navigator.pop(context);
                   _showAddCategory();
@@ -203,11 +222,16 @@ class _CatalogScreenState extends State<CatalogScreen> {
               ListTile(
                 leading: Container(
                   padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(color: Colors.amber.withOpacity(0.12), borderRadius: BorderRadius.circular(8)),
+                  decoration: BoxDecoration(
+                      color: Colors.amber.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(8)),
                   child: Icon(Icons.tune, color: Colors.amber[800]),
                 ),
-                title: Text('Manage Categories', style: GoogleFonts.manrope(fontWeight: FontWeight.bold)),
-                subtitle: Text('Rename, edit, or delete existing categories', style: GoogleFonts.manrope(fontSize: 12, color: Colors.grey[600])),
+                title: Text('Manage Categories',
+                    style: GoogleFonts.manrope(fontWeight: FontWeight.bold)),
+                subtitle: Text('Rename, edit, or delete existing categories',
+                    style: GoogleFonts.manrope(
+                        fontSize: 12, color: Colors.grey[600])),
                 onTap: () {
                   Navigator.pop(context);
                   _showManageCategories();
@@ -241,7 +265,9 @@ class _CatalogScreenState extends State<CatalogScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                 decoration: BoxDecoration(
-                  color: isSelected ? Colors.white.withOpacity(0.3) : Colors.grey[300],
+                  color: isSelected
+                      ? Colors.white.withOpacity(0.3)
+                      : Colors.grey[300],
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
@@ -297,11 +323,15 @@ class _CatalogScreenState extends State<CatalogScreen> {
               avatar: const Icon(Icons.add, size: 16, color: Color(0xFF1E88E5)),
               label: Text(
                 'Add Category',
-                style: GoogleFonts.manrope(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF1E88E5)),
+                style: GoogleFonts.manrope(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF1E88E5)),
               ),
               backgroundColor: const Color(0x1A5BBCFF),
               side: const BorderSide(color: Color(0xFF5BBCFF)),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20)),
               onPressed: _showAddCategory,
             ),
           ),
@@ -326,7 +356,8 @@ class _CatalogScreenState extends State<CatalogScreen> {
         icon: const Icon(Icons.add, color: Colors.white),
         label: Text(
           'Add',
-          style: GoogleFonts.manrope(color: Colors.white, fontWeight: FontWeight.bold),
+          style: GoogleFonts.manrope(
+              color: Colors.white, fontWeight: FontWeight.bold),
         ),
       ),
       body: RefreshIndicator(
@@ -357,10 +388,13 @@ class _CatalogScreenState extends State<CatalogScreen> {
                         controller: _searchController,
                         decoration: InputDecoration(
                           hintText: 'Search services, categories...',
-                          hintStyle: GoogleFonts.manrope(color: Colors.grey[500]),
-                          prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                          hintStyle:
+                              GoogleFonts.manrope(color: Colors.grey[500]),
+                          prefixIcon:
+                              const Icon(Icons.search, color: Colors.grey),
                           border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 12),
                         ),
                         style: GoogleFonts.manrope(),
                       ),
@@ -381,8 +415,11 @@ class _CatalogScreenState extends State<CatalogScreen> {
                               child: Container(
                                 height: 32,
                                 decoration: BoxDecoration(
-                                  color: _statusFilter == 'active' ? Colors.black : Colors.white,
-                                  borderRadius: const BorderRadius.horizontal(left: Radius.circular(9)),
+                                  color: _statusFilter == 'active'
+                                      ? Colors.black
+                                      : Colors.white,
+                                  borderRadius: const BorderRadius.horizontal(
+                                      left: Radius.circular(9)),
                                 ),
                                 alignment: Alignment.center,
                                 child: Text(
@@ -390,7 +427,9 @@ class _CatalogScreenState extends State<CatalogScreen> {
                                   style: GoogleFonts.manrope(
                                     fontSize: 13,
                                     fontWeight: FontWeight.bold,
-                                    color: _statusFilter == 'active' ? Colors.white : Colors.black87,
+                                    color: _statusFilter == 'active'
+                                        ? Colors.white
+                                        : Colors.black87,
                                   ),
                                 ),
                               ),
@@ -402,8 +441,11 @@ class _CatalogScreenState extends State<CatalogScreen> {
                               child: Container(
                                 height: 32,
                                 decoration: BoxDecoration(
-                                  color: _statusFilter == 'inactive' ? Colors.black : Colors.white,
-                                  borderRadius: const BorderRadius.horizontal(right: Radius.circular(9)),
+                                  color: _statusFilter == 'inactive'
+                                      ? Colors.black
+                                      : Colors.white,
+                                  borderRadius: const BorderRadius.horizontal(
+                                      right: Radius.circular(9)),
                                 ),
                                 alignment: Alignment.center,
                                 child: Text(
@@ -411,7 +453,9 @@ class _CatalogScreenState extends State<CatalogScreen> {
                                   style: GoogleFonts.manrope(
                                     fontSize: 13,
                                     fontWeight: FontWeight.bold,
-                                    color: _statusFilter == 'inactive' ? Colors.white : Colors.black87,
+                                    color: _statusFilter == 'inactive'
+                                        ? Colors.white
+                                        : Colors.black87,
                                   ),
                                 ),
                               ),
@@ -427,7 +471,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
                   ],
                 ),
               ),
-              
+
               // All Services Grid
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 4, 20, 80),
@@ -445,9 +489,13 @@ class _CatalogScreenState extends State<CatalogScreen> {
                           padding: const EdgeInsets.all(32.0),
                           child: Column(
                             children: [
-                              Text(_errorMessage!, style: GoogleFonts.manrope(color: Colors.red), textAlign: TextAlign.center),
+                              Text(_errorMessage!,
+                                  style: GoogleFonts.manrope(color: Colors.red),
+                                  textAlign: TextAlign.center),
                               const SizedBox(height: 16),
-                              ElevatedButton(onPressed: _loadServices, child: const Text('Retry')),
+                              ElevatedButton(
+                                  onPressed: _loadServices,
+                                  child: const Text('Retry')),
                             ],
                           ),
                         ),
@@ -458,25 +506,32 @@ class _CatalogScreenState extends State<CatalogScreen> {
                           padding: const EdgeInsets.all(40.0),
                           child: Column(
                             children: [
-                              Icon(Icons.inventory_2_outlined, size: 54, color: Colors.grey[400]),
+                              Icon(Icons.inventory_2_outlined,
+                                  size: 54, color: Colors.grey[400]),
                               const SizedBox(height: 12),
                               Text(
                                 'No Services Found',
-                                style: GoogleFonts.manrope(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey[700]),
+                                style: GoogleFonts.manrope(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.grey[700]),
                               ),
                               const SizedBox(height: 4),
                               Text(
                                 _selectedCategoryId != null
                                     ? 'No services under this category.'
                                     : 'Add a service to get started.',
-                                style: GoogleFonts.manrope(fontSize: 13, color: Colors.grey[500]),
+                                style: GoogleFonts.manrope(
+                                    fontSize: 13, color: Colors.grey[500]),
                               ),
                               const SizedBox(height: 16),
                               ElevatedButton.icon(
                                 onPressed: () async {
                                   final result = await Navigator.push(
                                     context,
-                                    MaterialPageRoute(builder: (context) => const AddServiceScreen()),
+                                    MaterialPageRoute(
+                                        builder: (context) =>
+                                            const AddServiceScreen()),
                                   );
                                   if (result == true) {
                                     _loadServices();
@@ -485,7 +540,8 @@ class _CatalogScreenState extends State<CatalogScreen> {
                                 },
                                 icon: const Icon(Icons.add, size: 18),
                                 label: const Text('Add Service'),
-                                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF5BBCFF)),
+                                style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF5BBCFF)),
                               ),
                             ],
                           ),
@@ -495,7 +551,8 @@ class _CatalogScreenState extends State<CatalogScreen> {
                       GridView.builder(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 2,
                           childAspectRatio: 0.82,
                           crossAxisSpacing: 16,
@@ -518,7 +575,6 @@ class _CatalogScreenState extends State<CatalogScreen> {
 
   Widget _buildServiceItem(Map<String, dynamic> service) {
     final serviceName = service['name'] ?? 'Service';
-    final description = service['description'] ?? '';
     final categoryName = service['category_name'] ?? '';
     final price = double.tryParse((service['price'] ?? 0).toString()) ?? 0.0;
     final photo = service['photo'] ?? service['image_url'];
@@ -611,7 +667,8 @@ class _CatalogScreenState extends State<CatalogScreen> {
                           color: Colors.grey[100],
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.edit_outlined, size: 14, color: Colors.black87),
+                        child: const Icon(Icons.edit_outlined,
+                            size: 14, color: Colors.black87),
                       ),
                     ],
                   ),
@@ -637,7 +694,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
         child: Icon(Icons.content_cut, size: 36, color: Color(0xFF5BBCFF)),
       );
     }
-    
+
     final clean = photo.trim();
     if (clean.startsWith('http://') || clean.startsWith('https://')) {
       return ClipRRect(
@@ -654,7 +711,8 @@ class _CatalogScreenState extends State<CatalogScreen> {
 
     try {
       final base64Data = clean.contains(',') ? clean.split(',').last : clean;
-      final bytes = base64Decode(base64Data.replaceAll('\n', '').replaceAll('\r', '').trim());
+      final bytes = base64Decode(
+          base64Data.replaceAll('\n', '').replaceAll('\r', '').trim());
       return ClipRRect(
         borderRadius: const BorderRadius.vertical(top: Radius.circular(13)),
         child: Image.memory(

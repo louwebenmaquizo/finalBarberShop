@@ -39,7 +39,8 @@ class _AboutAppDialogContent extends StatelessWidget {
                 color: Color(0xFF5BBCFF),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.content_cut, size: 36, color: Colors.white),
+              child:
+                  const Icon(Icons.content_cut, size: 36, color: Colors.white),
             ),
             const SizedBox(height: 16),
             Text(
@@ -75,16 +76,24 @@ class _AboutAppDialogContent extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Developer', style: GoogleFonts.manrope(color: Colors.grey[600], fontSize: 13)),
-                Text('Liem Tech Team', style: GoogleFonts.manrope(fontWeight: FontWeight.bold, fontSize: 13)),
+                Text('Developer',
+                    style: GoogleFonts.manrope(
+                        color: Colors.grey[600], fontSize: 13)),
+                Text('Liem Tech Team',
+                    style: GoogleFonts.manrope(
+                        fontWeight: FontWeight.bold, fontSize: 13)),
               ],
             ),
             const SizedBox(height: 8),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Operating Hours', style: GoogleFonts.manrope(color: Colors.grey[600], fontSize: 13)),
-                Text('9:00 AM - 8:00 PM Daily', style: GoogleFonts.manrope(fontWeight: FontWeight.bold, fontSize: 13)),
+                Text('Operating Hours',
+                    style: GoogleFonts.manrope(
+                        color: Colors.grey[600], fontSize: 13)),
+                Text('9:00 AM - 8:00 PM Daily',
+                    style: GoogleFonts.manrope(
+                        fontWeight: FontWeight.bold, fontSize: 13)),
               ],
             ),
             const SizedBox(height: 24),
@@ -95,10 +104,13 @@ class _AboutAppDialogContent extends StatelessWidget {
                 onPressed: () => Navigator.pop(context),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF5BBCFF),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
                   elevation: 0,
                 ),
-                child: Text('Close', style: GoogleFonts.manrope(fontWeight: FontWeight.bold, color: Colors.white)),
+                child: Text('Close',
+                    style: GoogleFonts.manrope(
+                        fontWeight: FontWeight.bold, color: Colors.white)),
               ),
             ),
           ],

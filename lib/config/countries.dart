@@ -50,7 +50,8 @@ const List<Country> countriesList = [
   Country(name: 'Poland', code: 'PL', dialCode: '+48', flag: '🇵🇱'),
   Country(name: 'Portugal', code: 'PT', dialCode: '+351', flag: '🇵🇹'),
   Country(name: 'Greece', code: 'GR', dialCode: '+30', flag: '🇬🇷'),
-  Country(name: 'United Arab Emirates', code: 'AE', dialCode: '+971', flag: '🇦🇪'),
+  Country(
+      name: 'United Arab Emirates', code: 'AE', dialCode: '+971', flag: '🇦🇪'),
   Country(name: 'Saudi Arabia', code: 'SA', dialCode: '+966', flag: '🇸🇦'),
   Country(name: 'Qatar', code: 'QA', dialCode: '+974', flag: '🇶🇦'),
   Country(name: 'Kuwait', code: 'KW', dialCode: '+965', flag: '🇰🇼'),
@@ -113,7 +114,8 @@ class _CountryPickerBottomSheet extends StatefulWidget {
   });
 
   @override
-  State<_CountryPickerBottomSheet> createState() => _CountryPickerBottomSheetState();
+  State<_CountryPickerBottomSheet> createState() =>
+      _CountryPickerBottomSheetState();
 }
 
 class _CountryPickerBottomSheetState extends State<_CountryPickerBottomSheet> {
@@ -208,16 +210,19 @@ class _CountryPickerBottomSheetState extends State<_CountryPickerBottomSheet> {
                 style: GoogleFonts.manrope(fontSize: 15),
                 decoration: InputDecoration(
                   hintText: 'Search country name or code...',
-                  hintStyle: GoogleFonts.manrope(color: Colors.grey[500], fontSize: 14),
+                  hintStyle: GoogleFonts.manrope(
+                      color: Colors.grey[500], fontSize: 14),
                   prefixIcon: const Icon(Icons.search, color: Colors.grey),
                   suffixIcon: _searchController.text.isNotEmpty
                       ? IconButton(
-                          icon: const Icon(Icons.clear, size: 18, color: Colors.grey),
+                          icon: const Icon(Icons.clear,
+                              size: 18, color: Colors.grey),
                           onPressed: () => _searchController.clear(),
                         )
                       : null,
                   border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 ),
               ),
             ),
@@ -238,7 +243,8 @@ class _CountryPickerBottomSheetState extends State<_CountryPickerBottomSheet> {
                     itemCount: _filteredCountries.length,
                     itemBuilder: (context, index) {
                       final country = _filteredCountries[index];
-                      final isSelected = country.code == widget.selectedCountry.code &&
+                      final isSelected = country.code ==
+                              widget.selectedCountry.code &&
                           country.dialCode == widget.selectedCountry.dialCode;
 
                       return InkWell(
@@ -247,8 +253,11 @@ class _CountryPickerBottomSheetState extends State<_CountryPickerBottomSheet> {
                           Navigator.pop(context);
                         },
                         child: Container(
-                          color: isSelected ? const Color(0x1A5BBCFF) : Colors.transparent,
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                          color: isSelected
+                              ? const Color(0x1A5BBCFF)
+                              : Colors.transparent,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 20, vertical: 14),
                           child: Row(
                             children: [
                               Text(
@@ -261,8 +270,12 @@ class _CountryPickerBottomSheetState extends State<_CountryPickerBottomSheet> {
                                   country.name,
                                   style: GoogleFonts.manrope(
                                     fontSize: 15,
-                                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                                    color: isSelected ? const Color(0xFF1E88E5) : Colors.black87,
+                                    fontWeight: isSelected
+                                        ? FontWeight.bold
+                                        : FontWeight.w500,
+                                    color: isSelected
+                                        ? const Color(0xFF1E88E5)
+                                        : Colors.black87,
                                   ),
                                 ),
                               ),
@@ -271,7 +284,9 @@ class _CountryPickerBottomSheetState extends State<_CountryPickerBottomSheet> {
                                 style: GoogleFonts.manrope(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
-                                  color: isSelected ? const Color(0xFF1E88E5) : Colors.grey[600],
+                                  color: isSelected
+                                      ? const Color(0xFF1E88E5)
+                                      : Colors.grey[600],
                                 ),
                               ),
                               if (isSelected) ...[

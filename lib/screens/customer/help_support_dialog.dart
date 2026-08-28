@@ -54,13 +54,14 @@ class _HelpSupportModalContent extends StatelessWidget {
             ),
           ),
           const Divider(height: 1),
-
           Expanded(
             child: ListView(
               padding: const EdgeInsets.all(20),
               children: [
                 // Quick Contact Cards
-                Text('Contact Us', style: GoogleFonts.manrope(fontSize: 16, fontWeight: FontWeight.bold)),
+                Text('Contact Us',
+                    style: GoogleFonts.manrope(
+                        fontSize: 16, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 12),
                 Row(
                   children: [
@@ -72,7 +73,8 @@ class _HelpSupportModalContent extends StatelessWidget {
                         color: Colors.green,
                         onTap: () {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Calling +63 (02) 8123-4567...')),
+                            const SnackBar(
+                                content: Text('Calling +63 (02) 8123-4567...')),
                           );
                         },
                       ),
@@ -86,7 +88,9 @@ class _HelpSupportModalContent extends StatelessWidget {
                         color: const Color(0xFF1E88E5),
                         onTap: () {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Opening email to support@liembarber.com...')),
+                            const SnackBar(
+                                content: Text(
+                                    'Opening email to support@liembarber.com...')),
                           );
                         },
                       ),
@@ -96,7 +100,9 @@ class _HelpSupportModalContent extends StatelessWidget {
                 const SizedBox(height: 24),
 
                 // FAQs
-                Text('Frequently Asked Questions', style: GoogleFonts.manrope(fontSize: 16, fontWeight: FontWeight.bold)),
+                Text('Frequently Asked Questions',
+                    style: GoogleFonts.manrope(
+                        fontSize: 16, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 12),
                 _buildFaqItem(
                   'How do I book an appointment?',
@@ -144,13 +150,18 @@ class _HelpSupportModalContent extends StatelessWidget {
           children: [
             Container(
               padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(color: color.withOpacity(0.12), shape: BoxShape.circle),
+              decoration: BoxDecoration(
+                  color: color.withOpacity(0.12), shape: BoxShape.circle),
               child: Icon(icon, color: color, size: 20),
             ),
             const SizedBox(height: 12),
-            Text(title, style: GoogleFonts.manrope(fontWeight: FontWeight.bold, fontSize: 14)),
+            Text(title,
+                style: GoogleFonts.manrope(
+                    fontWeight: FontWeight.bold, fontSize: 14)),
             const SizedBox(height: 2),
-            Text(subtitle, style: GoogleFonts.manrope(color: Colors.grey[600], fontSize: 12)),
+            Text(subtitle,
+                style:
+                    GoogleFonts.manrope(color: Colors.grey[600], fontSize: 12)),
           ],
         ),
       ),
@@ -166,11 +177,17 @@ class _HelpSupportModalContent extends StatelessWidget {
         border: Border.all(color: Colors.grey[200]!),
       ),
       child: ExpansionTile(
-        title: Text(question, style: GoogleFonts.manrope(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black87)),
+        title: Text(question,
+            style: GoogleFonts.manrope(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87)),
         childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         expandedCrossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(answer, style: GoogleFonts.manrope(fontSize: 13, color: Colors.grey[700], height: 1.5)),
+          Text(answer,
+              style: GoogleFonts.manrope(
+                  fontSize: 13, color: Colors.grey[700], height: 1.5)),
         ],
       ),
     );

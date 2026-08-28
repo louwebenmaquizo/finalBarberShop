@@ -1,88 +1,60 @@
 import '../config/api_config.dart';
-import 'api_service.dart' show ApiServiceExtension;
+import 'supabase_service_helpers.dart';
 
-/// Dashboard Service
-/// Contains all functions for dashboard-related operations
-/// One function per screen/feature
 class DashboardService {
-  // Dashboard Screen Functions
-  
-  /// Get all dashboard data (stats, analytics, bookings, barbers)
-  /// Used for the main dashboard screen
+  DashboardService._();
+
   static Future<Map<String, dynamic>?> getDashboardData() async {
     try {
-      final response = await ApiServiceExtension.get('${ApiConfig.baseUrl}/dashboard.php');
-      
-      if (response['success'] == true && response['data'] != null) {
-        return response['data'] as Map<String, dynamic>;
-      }
-      return null;
-    } catch (e) {
-      print('Error fetching dashboard data: $e');
+      final raw = await SupabaseConfig.client.rpc(SupabaseConfig.dashboardRpc);
+      final data = SupabaseServiceHelpers.asMap(raw);
+      if (data.isEmpty) return null;
+
+      final barbers = SupabaseServiceHelpers.asMapList(data['top_barbers']);
+      data['top_barbers'] = await Future.wait(barbers.map((barber) async {
+        final photo = await SupabaseStorageService.resolveReference(
+          bucket: SupabaseConfig.staffAvatarsBucket,
+          value: barber['profile_photo'],
+          isPublic: true,
+        );
+        if (photo != null) barber['profile_photo'] = photo;
+        return barber;
+      }));
+      data['recent_bookings'] =
+          SupabaseServiceHelpers.asMapList(data['recent_bookings']);
+      data['monthly_revenue'] =
+          SupabaseServiceHelpers.asMapList(data['monthly_revenue']);
+      return data;
+    } catch (_) {
       return null;
     }
   }
-  
-  /// Get dashboard statistics only
-  /// Returns: today_bookings, total_bookings, total_barbers, revenue_today
+
   static Future<Map<String, dynamic>?> getDashboardStats() async {
-    try {
-      final data = await getDashboardData();
-      return data?['stats'] as Map<String, dynamic>?;
-    } catch (e) {
-      print('Error fetching dashboard stats: $e');
-      return null;
-    }
+    final data = await getDashboardData();
+    final stats = SupabaseServiceHelpers.asMap(data?['stats']);
+    return stats.isEmpty ? null : stats;
   }
-  
-  /// Get analytics data for the graph
-  /// Returns: days array and values array
+
   static Future<Map<String, dynamic>?> getAnalyticsData() async {
-    try {
-      final data = await getDashboardData();
-      return data?['analytics'] as Map<String, dynamic>?;
-    } catch (e) {
-      print('Error fetching analytics data: $e');
-      return null;
-    }
+    final data = await getDashboardData();
+    final analytics = SupabaseServiceHelpers.asMap(data?['analytics']);
+    return analytics.isEmpty ? null : analytics;
   }
-  
-  /// Get next client (upcoming appointment)
-  /// Returns: customer_name, date, time
+
   static Future<Map<String, dynamic>?> getNextClient() async {
-    try {
-      final data = await getDashboardData();
-      return data?['next_client'] as Map<String, dynamic>?;
-    } catch (e) {
-      print('Error fetching next client: $e');
-      return null;
-    }
+    final data = await getDashboardData();
+    final client = SupabaseServiceHelpers.asMap(data?['next_client']);
+    return client.isEmpty ? null : client;
   }
-  
-  /// Get recent bookings (last 8)
-  /// Returns: List of booking objects with time, customer, service, schedule, employee
+
   static Future<List<Map<String, dynamic>>> getRecentBookings() async {
-    try {
-      final data = await getDashboardData();
-      final bookings = data?['recent_bookings'] as List<dynamic>?;
-      return bookings?.cast<Map<String, dynamic>>() ?? [];
-    } catch (e) {
-      print('Error fetching recent bookings: $e');
-      return [];
-    }
+    final data = await getDashboardData();
+    return SupabaseServiceHelpers.asMapList(data?['recent_bookings']);
   }
-  
-  /// Get top-rated barbers (active staff, limited to 4)
-  /// Returns: List of barber objects with name and role
+
   static Future<List<Map<String, dynamic>>> getTopBarbers() async {
-    try {
-      final data = await getDashboardData();
-      final barbers = data?['top_barbers'] as List<dynamic>?;
-      return barbers?.cast<Map<String, dynamic>>() ?? [];
-    } catch (e) {
-      print('Error fetching top barbers: $e');
-      return [];
-    }
+    final data = await getDashboardData();
+    return SupabaseServiceHelpers.asMapList(data?['top_barbers']);
   }
 }
-

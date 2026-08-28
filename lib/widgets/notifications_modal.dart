@@ -15,10 +15,12 @@ class _NotificationsModalContent extends StatefulWidget {
   const _NotificationsModalContent({this.isAdmin = false});
 
   @override
-  State<_NotificationsModalContent> createState() => _NotificationsModalContentState();
+  State<_NotificationsModalContent> createState() =>
+      _NotificationsModalContentState();
 }
 
-class _NotificationsModalContentState extends State<_NotificationsModalContent> {
+class _NotificationsModalContentState
+    extends State<_NotificationsModalContent> {
   late List<Map<String, dynamic>> _notifications;
 
   @override
@@ -29,7 +31,8 @@ class _NotificationsModalContentState extends State<_NotificationsModalContent> 
         {
           'id': 1,
           'title': 'New Appointment Booked',
-          'body': 'Archie Boiser booked "Classic Haircut" with Michael for tomorrow at 2:00 PM.',
+          'body':
+              'Archie Boiser booked "Classic Haircut" with Michael for tomorrow at 2:00 PM.',
           'time': '10 mins ago',
           'icon': Icons.calendar_today,
           'color': const Color(0xFF1E88E5),
@@ -38,7 +41,8 @@ class _NotificationsModalContentState extends State<_NotificationsModalContent> 
         {
           'id': 2,
           'title': 'Inventory Alert',
-          'body': 'Hair Pomade Matte Finish is running low in stock (3 units left).',
+          'body':
+              'Hair Pomade Matte Finish is running low in stock (3 units left).',
           'time': '1 hour ago',
           'icon': Icons.inventory_2_outlined,
           'color': Colors.orange,
@@ -47,7 +51,8 @@ class _NotificationsModalContentState extends State<_NotificationsModalContent> 
         {
           'id': 3,
           'title': 'Daily Summary',
-          'body': 'You completed 14 haircuts today generating ₱4,200 in revenue.',
+          'body':
+              'You completed 14 haircuts today generating ₱4,200 in revenue.',
           'time': 'Yesterday',
           'icon': Icons.insights,
           'color': Colors.green,
@@ -59,7 +64,8 @@ class _NotificationsModalContentState extends State<_NotificationsModalContent> 
         {
           'id': 1,
           'title': 'Appointment Confirmed! ✂️',
-          'body': 'Your appointment with David on Monday, 3:00 PM is confirmed.',
+          'body':
+              'Your appointment with David on Monday, 3:00 PM is confirmed.',
           'time': '15 mins ago',
           'icon': Icons.check_circle_outline,
           'color': Colors.green,
@@ -68,7 +74,8 @@ class _NotificationsModalContentState extends State<_NotificationsModalContent> 
         {
           'id': 2,
           'title': 'Weekend Special 20% OFF! 🎉',
-          'body': 'Book any Beard Grooming or Hair Styling package this weekend and get 20% off.',
+          'body':
+              'Book any Beard Grooming or Hair Styling package this weekend and get 20% off.',
           'time': '3 hours ago',
           'icon': Icons.local_offer_outlined,
           'color': const Color(0xFF1E88E5),
@@ -142,7 +149,8 @@ class _NotificationsModalContentState extends State<_NotificationsModalContent> 
                     const SizedBox(width: 8),
                     if (_notifications.any((n) => !n['read']))
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
                           color: Colors.red,
                           borderRadius: BorderRadius.circular(12),
@@ -190,7 +198,8 @@ class _NotificationsModalContentState extends State<_NotificationsModalContent> 
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.notifications_none, size: 64, color: Colors.grey[300]),
+                        Icon(Icons.notifications_none,
+                            size: 64, color: Colors.grey[300]),
                         const SizedBox(height: 12),
                         Text(
                           'No notifications',
@@ -206,7 +215,8 @@ class _NotificationsModalContentState extends State<_NotificationsModalContent> 
                 : ListView.separated(
                     padding: const EdgeInsets.all(16),
                     itemCount: _notifications.length,
-                    separatorBuilder: (context, index) => const SizedBox(height: 12),
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(height: 12),
                     itemBuilder: (context, index) {
                       final item = _notifications[index];
                       final isRead = item['read'] as bool;
@@ -221,10 +231,14 @@ class _NotificationsModalContentState extends State<_NotificationsModalContent> 
                         child: Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: isRead ? Colors.grey[50] : const Color(0x0F5BBCFF),
+                            color: isRead
+                                ? Colors.grey[50]
+                                : const Color(0x0F5BBCFF),
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
-                              color: isRead ? Colors.grey[200]! : const Color(0x335BBCFF),
+                              color: isRead
+                                  ? Colors.grey[200]!
+                                  : const Color(0x335BBCFF),
                             ),
                           ),
                           child: Row(
@@ -233,7 +247,8 @@ class _NotificationsModalContentState extends State<_NotificationsModalContent> 
                               Container(
                                 padding: const EdgeInsets.all(10),
                                 decoration: BoxDecoration(
-                                  color: (item['color'] as Color).withOpacity(0.12),
+                                  color: (item['color'] as Color)
+                                      .withOpacity(0.12),
                                   shape: BoxShape.circle,
                                 ),
                                 child: Icon(
@@ -248,14 +263,17 @@ class _NotificationsModalContentState extends State<_NotificationsModalContent> 
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
                                       children: [
                                         Expanded(
                                           child: Text(
                                             item['title'] as String,
                                             style: GoogleFonts.manrope(
                                               fontSize: 15,
-                                              fontWeight: isRead ? FontWeight.w600 : FontWeight.bold,
+                                              fontWeight: isRead
+                                                  ? FontWeight.w600
+                                                  : FontWeight.bold,
                                               color: Colors.black87,
                                             ),
                                           ),
@@ -288,7 +306,7 @@ class _NotificationsModalContentState extends State<_NotificationsModalContent> 
                     },
                   ),
           ),
-          
+
           if (_notifications.isNotEmpty)
             Padding(
               padding: const EdgeInsets.all(16),
@@ -296,10 +314,12 @@ class _NotificationsModalContentState extends State<_NotificationsModalContent> 
                 width: double.infinity,
                 child: TextButton.icon(
                   onPressed: _clearAll,
-                  icon: const Icon(Icons.delete_sweep_outlined, size: 18, color: Colors.grey),
+                  icon: const Icon(Icons.delete_sweep_outlined,
+                      size: 18, color: Colors.grey),
                   label: Text(
                     'Clear all notifications',
-                    style: GoogleFonts.manrope(color: Colors.grey[700], fontWeight: FontWeight.w600),
+                    style: GoogleFonts.manrope(
+                        color: Colors.grey[700], fontWeight: FontWeight.w600),
                   ),
                 ),
               ),

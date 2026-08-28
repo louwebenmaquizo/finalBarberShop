@@ -9,7 +9,7 @@ import '../../widgets/notifications_modal.dart';
 
 class AdminHomeScreen extends StatefulWidget {
   final String? username;
-  
+
   const AdminHomeScreen({super.key, this.username});
 
   @override
