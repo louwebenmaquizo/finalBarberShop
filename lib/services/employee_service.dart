@@ -275,6 +275,52 @@ class EmployeeService {
       }
 
       final update = _mutationFields(employeeData, includeImage: false);
+
+      final newPassword = employeeData['password']?.toString().trim();
+      if (newPassword != null && newPassword.isNotEmpty) {
+        final currentStaff = await getEmployeeById(staffId);
+        final existingUserId = currentStaff?['user_id'];
+        final staffEmail = (employeeData['email'] ?? currentStaff?['email'] ?? '')
+            .toString()
+            .trim();
+        final staffName = (employeeData['name'] ?? currentStaff?['name'] ?? 'Barber')
+            .toString()
+            .trim();
+
+        if (existingUserId == null && staffEmail.isNotEmpty) {
+          try {
+            final cleanUsername = staffEmail.contains('@')
+                ? staffEmail.split('@').first
+                : staffName
+                    .toLowerCase()
+                    .replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '_');
+            final authEmail = staffEmail.contains('@')
+                ? staffEmail
+                : '$cleanUsername@liembarber.com';
+
+            final response = await SupabaseConfig.client.functions.invoke(
+              'create-staff',
+              body: {
+                ...update,
+                'name': staffName,
+                'email': authEmail,
+                'password': newPassword,
+                'username': cleanUsername,
+              },
+            );
+            if (response.status >= 200 && response.status < 300) {
+              final payload = SupabaseServiceHelpers.asMap(response.data);
+              final createdStaff =
+                  SupabaseServiceHelpers.asMap(payload['data'] ?? payload);
+              final createdUserId = createdStaff['user_id'];
+              if (createdUserId != null) {
+                update['user_id'] = createdUserId;
+              }
+            }
+          } catch (_) {}
+        }
+      }
+
       final rawPhoto = employeeData['profile_photo'];
       if (SupabaseStorageService.isDataImage(rawPhoto)) {
         update['profile_photo'] = await SupabaseStorageService.uploadDataImage(

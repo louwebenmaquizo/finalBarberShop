@@ -31,11 +31,13 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _roleController = TextEditingController();
   final TextEditingController _skillsController = TextEditingController();
   final TextEditingController _payRateController = TextEditingController();
   final TextEditingController _commissionRateController =
       TextEditingController();
+  bool _obscurePassword = true;
   bool _isActive = true;
   String? _profilePhoto;
   Uint8List? _newPhotoBytes;
@@ -51,6 +53,7 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
     _nameController.dispose();
     _phoneController.dispose();
     _emailController.dispose();
+    _passwordController.dispose();
     _roleController.dispose();
     _skillsController.dispose();
     _payRateController.dispose();
@@ -98,6 +101,13 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
           _nameController.text = employee['name'] ?? '';
           _phoneController.text = employee['phone'] ?? '';
           _emailController.text = employee['email'] ?? '';
+          _passwordController.text = (employee['password'] != null &&
+                  employee['password'].toString().isNotEmpty)
+              ? employee['password'].toString()
+              : (employee['email'] != null &&
+                      employee['email'].toString().isNotEmpty
+                  ? '••••••••'
+                  : '');
           _roleController.text = employee['role'] ?? '';
           _skillsController.text = employee['skills'] ?? '';
           _profilePhoto = employee['profile_photo'];
@@ -198,6 +208,20 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
       }
     } catch (_) {}
 
+    final rawPassword = _passwordController.text.trim();
+    final password = (rawPassword == '••••••••') ? '' : rawPassword;
+    if (password.isNotEmpty && password.length < 8) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content:
+              const Text('Barber password must be at least 8 characters long.'),
+          backgroundColor: Colors.orange[800],
+        ),
+      );
+      return;
+    }
+
     setState(() {
       _isSaving = true;
     });
@@ -207,6 +231,7 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
         'name': name,
         'phone': phone.isEmpty ? null : phone,
         'email': email.isEmpty ? null : email,
+        if (password.isNotEmpty) 'password': password,
         'role': _roleController.text.trim(),
         'skills': _skillsController.text.trim().isEmpty
             ? null
@@ -520,6 +545,9 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
               onPressed: () {
                 setState(() {
                   _isEditing = true;
+                  if (_passwordController.text == '••••••••') {
+                    _passwordController.text = '';
+                  }
                 });
               },
             ),
@@ -636,7 +664,45 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                         border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12)),
                       ),
+                      keyboardType: TextInputType.emailAddress,
                       style: GoogleFonts.manrope(),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Password
+                    TextFormField(
+                      controller: _passwordController,
+                      enabled: _isEditing,
+                      obscureText: _obscurePassword,
+                      decoration: InputDecoration(
+                        labelText: _isEditing
+                            ? 'Password (leave blank to keep current)'
+                            : 'Password',
+                        prefixIcon: const Icon(Icons.lock_outline),
+                        suffixIcon: IconButton(
+                          icon: Icon(_obscurePassword
+                              ? Icons.visibility_off
+                              : Icons.visibility),
+                          onPressed: () => setState(
+                              () => _obscurePassword = !_obscurePassword),
+                        ),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                        hintText: _isEditing
+                            ? 'Enter new password (min. 8 characters)'
+                            : '••••••••',
+                      ),
+                      style: GoogleFonts.manrope(),
+                      validator: (v) {
+                        if (_isEditing &&
+                            v != null &&
+                            v.trim().isNotEmpty &&
+                            v.trim() != '••••••••' &&
+                            v.trim().length < 8) {
+                          return 'Password must be at least 8 characters';
+                        }
+                        return null;
+                      },
                     ),
                     const SizedBox(height: 16),
 
