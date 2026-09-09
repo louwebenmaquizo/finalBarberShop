@@ -463,6 +463,49 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
       final date = _formatDateForAPI(_selectedDate!);
       final time = _formatTimeForAPI(_selectedTime!);
 
+      // Check for overlap conflicts excluding this appointment
+      final intervals = await BookingService.getStaffBookedIntervals(
+        staffId: _selectedStaffId!,
+        date: _selectedDate!,
+        excludeAppointmentId: appointmentId,
+      );
+
+      final startDt = DateTime(
+        _selectedDate!.year,
+        _selectedDate!.month,
+        _selectedDate!.day,
+        _selectedTime!.hour,
+        _selectedTime!.minute,
+      );
+      final duration = 30; // default duration
+      final endDt = startDt.add(Duration(minutes: duration));
+
+      final conflict = BookingService.findConflictingBooking(
+        proposedStart: startDt,
+        proposedEnd: endDt,
+        existingIntervals: intervals,
+      );
+
+      if (conflict != null) {
+        setState(() => _isSubmitting = false);
+        final barberName = _barbers.firstWhere(
+          (b) => b['staff_id'] == _selectedStaffId,
+          orElse: () => {'name': 'Selected Barber'},
+        )['name'];
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Cannot reschedule: $barberName already has a booking from ${conflict['start_formatted']} to ${conflict['end_formatted']}.',
+              style: GoogleFonts.manrope(),
+            ),
+            backgroundColor: Colors.red[800],
+            duration: const Duration(seconds: 4),
+          ),
+        );
+        return;
+      }
+
       final result = await BookingService.rescheduleBooking(
         appointmentId,
         date,

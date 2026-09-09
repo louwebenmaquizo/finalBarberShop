@@ -1,3 +1,4 @@
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/api_config.dart';
 import 'supabase_service_helpers.dart';
 
@@ -15,7 +16,13 @@ class AuthSessionService {
       Future<void>.value();
 
   static Future<Map<String, dynamic>?> getSession() async {
-    final authUser = SupabaseConfig.client.auth.currentUser;
+    User? authUser;
+    try {
+      final userRes = await SupabaseConfig.client.auth.getUser();
+      authUser = userRes.user ?? SupabaseConfig.client.auth.currentUser;
+    } catch (_) {
+      authUser = SupabaseConfig.client.auth.currentUser;
+    }
     if (authUser == null) {
       return null;
     }
@@ -48,13 +55,18 @@ class AuthSessionService {
         return null;
       }
 
+      final meta = authUser.userMetadata ?? {};
+      final photoRef = meta['avatar_url'] ?? meta['profile_picture'] ?? meta['profile_photo'];
       final session = <String, dynamic>{
         'user_id': authUser.id,
-        'username': profile['username'] ?? _usernameFromEmail(authUser.email),
+        'username': profile['username'] ?? meta['username'] ?? _usernameFromEmail(authUser.email),
+        'full_name': meta['full_name'] ?? profile['username'] ?? _usernameFromEmail(authUser.email),
         'email': authUser.email,
-        'phone': authUser.phone,
+        'phone': authUser.phone ?? meta['phone'],
         'role': role,
         'is_active': isActive,
+        'profile_photo': photoRef ?? 'assets/images/admin_fes.jpg',
+        'profile_picture': photoRef ?? 'assets/images/admin_fes.jpg',
       };
 
       if (role == 'customer') {

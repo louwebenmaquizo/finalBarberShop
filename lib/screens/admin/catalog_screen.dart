@@ -619,7 +619,8 @@ class _CatalogScreenState extends State<CatalogScreen> {
                   color: Color(0x0D5BBCFF),
                   borderRadius: BorderRadius.vertical(top: Radius.circular(13)),
                 ),
-                child: _buildCatalogImage(photo),
+                child: _buildCatalogImage(photo,
+                    serviceName: serviceName, categoryName: categoryName),
               ),
             ),
             // Info
@@ -688,14 +689,37 @@ class _CatalogScreenState extends State<CatalogScreen> {
     return '\$${price.toStringAsFixed(2)}';
   }
 
-  Widget _buildCatalogImage(String? photo) {
-    if (photo == null || photo.isEmpty) {
-      return const Center(
-        child: Icon(Icons.content_cut, size: 36, color: Color(0xFF5BBCFF)),
+  static String getDefaultCatalogImage(String? name, [String? category]) {
+    final n = (name ?? '').toLowerCase();
+    final c = (category ?? '').toLowerCase();
+    if (n.contains('classic')) return 'assets/catalog/1.png';
+    if (n.contains('fade') || n.contains('skin')) return 'assets/catalog/2.jpg';
+    if (n.contains('kid') || n.contains('child')) return 'assets/catalog/3.jpg';
+    if (n.contains('styling') || n.contains('style') || c.contains('styling')) return 'assets/catalog/4.png';
+    if ((n.contains('beard') && !n.contains('haircut')) || c.contains('beard')) return 'assets/catalog/5.jpg';
+    if (n.contains('beard') || n.contains('package')) return 'assets/catalog/6.jpg';
+    return 'assets/catalog/1.png';
+  }
+
+  Widget _buildCatalogImage(String? photo, {String? serviceName, String? categoryName}) {
+    String? clean = photo?.trim();
+    if (clean == null || clean.isEmpty) {
+      clean = getDefaultCatalogImage(serviceName, categoryName);
+    }
+
+    if (clean.startsWith('assets/')) {
+      return ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(13)),
+        child: Image.asset(
+          clean,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => const Center(
+            child: Icon(Icons.content_cut, size: 36, color: Color(0xFF5BBCFF)),
+          ),
+        ),
       );
     }
 
-    final clean = photo.trim();
     if (clean.startsWith('http://') || clean.startsWith('https://')) {
       return ClipRRect(
         borderRadius: const BorderRadius.vertical(top: Radius.circular(13)),

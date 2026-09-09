@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../services/api_service.dart';
+import '../../services/booking_service.dart';
 import '../../services/catalog_service.dart';
 import '../../services/employee_service.dart';
 
@@ -32,10 +33,39 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
   DateTime? _selectedDate;
   TimeOfDay? _selectedTime;
 
+  // Booked intervals & conflict state for selected barber + date
+  List<Map<String, dynamic>> _bookedIntervals = [];
+  bool _isLoadingIntervals = false;
+  Map<String, dynamic>? _conflictingInterval;
+
+  // Standard business hour slots (8:00 AM to 6:00 PM)
+  static final List<TimeOfDay> _standardTimeSlots = [
+    const TimeOfDay(hour: 8, minute: 0),
+    const TimeOfDay(hour: 8, minute: 30),
+    const TimeOfDay(hour: 9, minute: 0),
+    const TimeOfDay(hour: 9, minute: 30),
+    const TimeOfDay(hour: 10, minute: 0),
+    const TimeOfDay(hour: 10, minute: 30),
+    const TimeOfDay(hour: 11, minute: 0),
+    const TimeOfDay(hour: 11, minute: 30),
+    const TimeOfDay(hour: 12, minute: 0),
+    const TimeOfDay(hour: 12, minute: 30),
+    const TimeOfDay(hour: 13, minute: 0),
+    const TimeOfDay(hour: 13, minute: 30),
+    const TimeOfDay(hour: 14, minute: 0),
+    const TimeOfDay(hour: 14, minute: 30),
+    const TimeOfDay(hour: 15, minute: 0),
+    const TimeOfDay(hour: 15, minute: 30),
+    const TimeOfDay(hour: 16, minute: 0),
+    const TimeOfDay(hour: 16, minute: 30),
+    const TimeOfDay(hour: 17, minute: 0),
+    const TimeOfDay(hour: 17, minute: 30),
+    const TimeOfDay(hour: 18, minute: 0),
+  ];
+
   @override
   void initState() {
     super.initState();
-    // Pre-select service if provided
     if (widget.preSelectedService != null) {
       _selectedServiceId = widget.preSelectedService!['service_id'];
     }
@@ -48,10 +78,8 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
     });
 
     try {
-      // Load customer_id first
       await _loadCustomerId();
 
-      // Load services and staff in parallel
       final results = await Future.wait([
         CatalogService.getAllServices(),
         EmployeeService.getAllEmployees(),
@@ -60,17 +88,16 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
       final services = results[0] as List<dynamic>;
       final employees = results[1] as List<dynamic>;
 
-      // Filter services to only active ones
       final activeServices = services.where((s) {
         final isActive = s['is_active'];
         if (isActive is bool) return isActive;
         if (isActive is int) return isActive == 1;
-        if (isActive is String)
+        if (isActive is String) {
           return isActive == '1' || isActive.toLowerCase() == 'true';
-        return true; // Default to active if unclear
+        }
+        return true;
       }).toList();
 
-      // Filter staff to only active barbers (exclude purely administrative roles)
       final barbers = employees.where((e) {
         final isActive = e['is_active'];
         bool active = false;
@@ -111,7 +138,6 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
   Future<void> _loadCustomerId() async {
     if (widget.userData == null) return;
 
-    // Check if customer_id is already present in userData
     final directId = widget.userData!['customer_id'];
     if (directId != null && directId.toString().isNotEmpty) {
       if (mounted) {
@@ -130,7 +156,6 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
 
       final customers = await ApiService.getCustomers();
 
-      // Find customer by email or phone
       for (var c in customers) {
         final cEmail = (c['email'] ?? '').toString().toLowerCase();
         final cPhone = (c['phone'] ?? '').toString();
@@ -145,6 +170,92 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
         }
       }
     } catch (_) {}
+  }
+
+  Future<void> _loadBookedIntervals() async {
+    if (_selectedStaffId == null || _selectedDate == null) {
+      setState(() {
+        _bookedIntervals = [];
+        _conflictingInterval = null;
+      });
+      return;
+    }
+
+    setState(() => _isLoadingIntervals = true);
+
+    try {
+      final intervals = await BookingService.getStaffBookedIntervals(
+        staffId: _selectedStaffId!,
+        date: _selectedDate!,
+      );
+
+      if (mounted) {
+        setState(() {
+          _bookedIntervals = intervals;
+          _isLoadingIntervals = false;
+          _recheckConflict();
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isLoadingIntervals = false);
+    }
+  }
+
+  int _getServiceDuration() {
+    if (_selectedServiceId == null) return 30;
+    for (var service in _services) {
+      if (service['service_id'] == _selectedServiceId) {
+        dynamic durationValue = service['duration_minutes'] ?? 30;
+        if (durationValue is int) return durationValue;
+        if (durationValue is double) return durationValue.toInt();
+        if (durationValue is String) return int.tryParse(durationValue) ?? 30;
+        if (durationValue is num) return durationValue.toInt();
+      }
+    }
+    return 30;
+  }
+
+  void _recheckConflict() {
+    if (_selectedDate == null || _selectedTime == null || _selectedStaffId == null) {
+      _conflictingInterval = null;
+      return;
+    }
+
+    final duration = _getServiceDuration();
+    final startDt = DateTime(
+      _selectedDate!.year,
+      _selectedDate!.month,
+      _selectedDate!.day,
+      _selectedTime!.hour,
+      _selectedTime!.minute,
+    );
+    final endDt = startDt.add(Duration(minutes: duration));
+
+    _conflictingInterval = BookingService.findConflictingBooking(
+      proposedStart: startDt,
+      proposedEnd: endDt,
+      existingIntervals: _bookedIntervals,
+    );
+  }
+
+  bool _isSlotBooked(TimeOfDay time) {
+    if (_selectedDate == null || _bookedIntervals.isEmpty) return false;
+    final duration = _getServiceDuration();
+    final startDt = DateTime(
+      _selectedDate!.year,
+      _selectedDate!.month,
+      _selectedDate!.day,
+      time.hour,
+      time.minute,
+    );
+    final endDt = startDt.add(Duration(minutes: duration));
+
+    final conflict = BookingService.findConflictingBooking(
+      proposedStart: startDt,
+      proposedEnd: endDt,
+      existingIntervals: _bookedIntervals,
+    );
+    return conflict != null;
   }
 
   Future<void> _selectDate() async {
@@ -162,7 +273,7 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
           return Theme(
             data: Theme.of(context).copyWith(
               colorScheme: const ColorScheme.light(
-                primary: Color(0xB25BBCFF), // Blue
+                primary: Color(0xFF5BBCFF),
                 onPrimary: Colors.white,
                 surface: Colors.white,
                 onSurface: Colors.black,
@@ -176,6 +287,7 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
         setState(() {
           _selectedDate = picked;
         });
+        await _loadBookedIntervals();
       }
     } catch (_) {}
   }
@@ -189,7 +301,7 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
           return Theme(
             data: Theme.of(context).copyWith(
               colorScheme: const ColorScheme.light(
-                primary: Color(0xB25BBCFF), // Blue
+                primary: Color(0xFF5BBCFF),
                 onPrimary: Colors.white,
                 surface: Colors.white,
                 onSurface: Colors.black,
@@ -202,6 +314,7 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
       if (picked != null) {
         setState(() {
           _selectedTime = picked;
+          _recheckConflict();
         });
       }
     } catch (_) {}
@@ -224,6 +337,21 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
       return;
     }
 
+    _recheckConflict();
+    if (_conflictingInterval != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Cannot book: ${_getBarberName()} is already booked from ${_conflictingInterval!['start_formatted']} to ${_conflictingInterval!['end_formatted']}. Please choose another time.',
+            style: GoogleFonts.manrope(),
+          ),
+          backgroundColor: Colors.red[800],
+          duration: const Duration(seconds: 4),
+        ),
+      );
+      return;
+    }
+
     if (_customerId == null || _customerId!.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -237,10 +365,10 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
       return;
     }
 
-    // Show confirmation dialog
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           'Confirm Booking',
           style: GoogleFonts.manrope(fontWeight: FontWeight.bold),
@@ -271,11 +399,14 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xB25BBCFF),
+              backgroundColor: const Color(0xFF5BBCFF),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
             child: Text(
               'Confirm',
-              style: GoogleFonts.manrope(color: Colors.white),
+              style: GoogleFonts.manrope(color: Colors.white, fontWeight: FontWeight.bold),
             ),
           ),
         ],
@@ -289,41 +420,14 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
     });
 
     try {
-      // Get service to calculate duration
-      Map<String, dynamic>? selectedService;
-      for (var service in _services) {
-        if (service['service_id'] == _selectedServiceId) {
-          selectedService = service;
-          break;
-        }
-      }
+      final durationMinutes = _getServiceDuration();
 
-      if (selectedService == null) {
-        throw Exception('Service not found');
-      }
-
-      // Parse duration_minutes - handle int, double, or String
-      dynamic durationValue = selectedService['duration_minutes'] ?? 30;
-      int durationMinutes = 30; // Default
-
-      if (durationValue is int) {
-        durationMinutes = durationValue;
-      } else if (durationValue is double) {
-        durationMinutes = durationValue.toInt();
-      } else if (durationValue is String) {
-        durationMinutes = int.tryParse(durationValue) ?? 30;
-      } else if (durationValue is num) {
-        durationMinutes = durationValue.toInt();
-      }
-
-      // Format date and time
       final dateStr =
           '${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}';
       final timeStr =
           '${_selectedTime!.hour.toString().padLeft(2, '0')}:${_selectedTime!.minute.toString().padLeft(2, '0')}:00';
       final startTime = '$dateStr $timeStr';
 
-      // Calculate end_time
       final startDateTime = DateTime(
         _selectedDate!.year,
         _selectedDate!.month,
@@ -335,7 +439,6 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
       final endTime =
           '${endDateTime.year}-${endDateTime.month.toString().padLeft(2, '0')}-${endDateTime.day.toString().padLeft(2, '0')} ${endDateTime.hour.toString().padLeft(2, '0')}:${endDateTime.minute.toString().padLeft(2, '0')}:00';
 
-      // Create appointment
       final appointmentData = {
         'customer_id': _customerId,
         'staff_id': _selectedStaffId,
@@ -350,14 +453,20 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(
-                'Appointment booked successfully!',
-                style: GoogleFonts.manrope(),
+              content: Row(
+                children: [
+                  const Icon(Icons.check_circle, color: Colors.white),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Appointment booked successfully!',
+                    style: GoogleFonts.manrope(fontWeight: FontWeight.w600),
+                  ),
+                ],
               ),
-              backgroundColor: Colors.green,
+              backgroundColor: Colors.green[700],
             ),
           );
-          Navigator.pop(context, true); // Return true to indicate success
+          Navigator.pop(context, true);
         }
       } else {
         throw Exception('Failed to create appointment');
@@ -367,10 +476,11 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Error booking appointment: ${e.toString()}',
+              e.toString().replaceAll('Exception:', '').trim(),
               style: GoogleFonts.manrope(),
             ),
-            backgroundColor: Colors.red,
+            backgroundColor: Colors.red[800],
+            duration: const Duration(seconds: 4),
           ),
         );
       }
@@ -413,7 +523,6 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
   String _getServiceName() {
     try {
       if (_selectedServiceId == null) return 'Unknown';
-
       for (var service in _services) {
         if (service['service_id'] == _selectedServiceId) {
           return service['name'] ?? 'Unknown';
@@ -428,7 +537,6 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
   String _getBarberName() {
     try {
       if (_selectedStaffId == null) return 'Unknown';
-
       for (var barber in _staff) {
         if (barber['staff_id'] == _selectedStaffId) {
           return barber['name'] ?? 'Unknown';
@@ -461,21 +569,32 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: Text(
           'Book Appointment',
           style: GoogleFonts.manrope(
+            fontSize: 20,
             fontWeight: FontWeight.bold,
+            color: Colors.black,
           ),
         ),
         backgroundColor: Colors.white,
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () => Navigator.pop(context),
+        ),
+        centerTitle: true,
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF5BBCFF)),
+              ),
+            )
           : SingleChildScrollView(
-              padding: const EdgeInsets.all(24.0),
+              padding: const EdgeInsets.all(24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -483,12 +602,12 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
                   Text(
                     'Select Service',
                     style: GoogleFonts.manrope(
-                      fontSize: 18,
+                      fontSize: 17,
                       fontWeight: FontWeight.bold,
                       color: Colors.black,
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 10),
                   Container(
                     decoration: BoxDecoration(
                       color: Colors.white,
@@ -497,6 +616,13 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
                     ),
                     child: DropdownButtonFormField<String>(
                       value: _selectedServiceId,
+                      dropdownColor: Colors.white,
+                      icon: const Icon(Icons.arrow_drop_down, color: Colors.black87),
+                      style: GoogleFonts.manrope(
+                        color: Colors.black87,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
                       decoration: InputDecoration(
                         border: InputBorder.none,
                         contentPadding: const EdgeInsets.symmetric(
@@ -521,17 +647,24 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
                               ),
                             ]
                           : _services.map<DropdownMenuItem<String>>((service) {
+                              final duration = service['duration_minutes'] ?? 30;
+                              final price = service['price'] ?? 0;
                               return DropdownMenuItem<String>(
                                 value: service['service_id'] as String?,
                                 child: Text(
-                                  service['name'] ?? 'Service',
-                                  style: GoogleFonts.manrope(),
+                                  '${service['name']} - ₱$price ($duration mins)',
+                                  style: GoogleFonts.manrope(
+                                    color: Colors.black87,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
                               );
                             }).toList(),
                       onChanged: (value) {
                         setState(() {
                           _selectedServiceId = value;
+                          _recheckConflict();
                         });
                       },
                     ),
@@ -542,12 +675,12 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
                   Text(
                     'Select Barber',
                     style: GoogleFonts.manrope(
-                      fontSize: 18,
+                      fontSize: 17,
                       fontWeight: FontWeight.bold,
                       color: Colors.black,
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 10),
                   Container(
                     decoration: BoxDecoration(
                       color: Colors.white,
@@ -556,6 +689,13 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
                     ),
                     child: DropdownButtonFormField<String>(
                       value: _selectedStaffId,
+                      dropdownColor: Colors.white,
+                      icon: const Icon(Icons.arrow_drop_down, color: Colors.black87),
+                      style: GoogleFonts.manrope(
+                        color: Colors.black87,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
                       decoration: InputDecoration(
                         border: InputBorder.none,
                         contentPadding: const EdgeInsets.symmetric(
@@ -589,7 +729,11 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
                                     const SizedBox(width: 10),
                                     Text(
                                       '${staff['name'] ?? 'Barber'} (${staff['role'] ?? 'Stylist'})',
-                                      style: GoogleFonts.manrope(fontSize: 14),
+                                      style: GoogleFonts.manrope(
+                                        color: Colors.black87,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -599,6 +743,7 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
                         setState(() {
                           _selectedStaffId = value;
                         });
+                        _loadBookedIntervals();
                       },
                     ),
                   ),
@@ -608,12 +753,12 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
                   Text(
                     'Select Date',
                     style: GoogleFonts.manrope(
-                      fontSize: 18,
+                      fontSize: 17,
                       fontWeight: FontWeight.bold,
                       color: Colors.black,
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 10),
                   InkWell(
                     onTap: _selectDate,
                     child: Container(
@@ -629,67 +774,138 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
                           Text(
                             _selectedDate == null
                                 ? 'Choose a date'
-                                : '${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}',
+                                : _formatDate(_selectedDate!),
                             style: GoogleFonts.manrope(
                               color: _selectedDate == null
                                   ? Colors.grey[600]
                                   : Colors.black,
+                              fontWeight: _selectedDate == null
+                                  ? FontWeight.normal
+                                  : FontWeight.w600,
                             ),
                           ),
-                          const Icon(Icons.calendar_today, color: Colors.grey),
+                          const Icon(Icons.calendar_today, color: Color(0xFF5BBCFF)),
                         ],
                       ),
                     ),
                   ),
                   const SizedBox(height: 24),
 
-                  // Time Selection
-                  Text(
-                    'Select Time',
-                    style: GoogleFonts.manrope(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  InkWell(
-                    onTap: _selectTime,
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey[300]!),
+                  // Time Slots Section (Quick visual slots + availability)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Select Time Slot',
+                        style: GoogleFonts.manrope(
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black,
+                        ),
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            _selectedTime == null
-                                ? 'Choose a time'
-                                : _selectedTime!.format(context),
+                      if (_selectedStaffId != null && _selectedDate != null)
+                        TextButton.icon(
+                          onPressed: _selectTime,
+                          icon: const Icon(Icons.edit_calendar, size: 16, color: Color(0xFF1E88E5)),
+                          label: Text(
+                            'Custom Time',
                             style: GoogleFonts.manrope(
-                              color: _selectedTime == null
-                                  ? Colors.grey[600]
-                                  : Colors.black,
+                              fontSize: 12.5,
+                              color: const Color(0xFF1E88E5),
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
-                          const Icon(Icons.access_time, color: Colors.grey),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+
+                  if (_selectedStaffId == null || _selectedDate == null)
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[50],
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.grey[200]!),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.info_outline, color: Colors.grey, size: 20),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'Please select a barber and date first to view real-time availability.',
+                              style: GoogleFonts.manrope(fontSize: 13, color: Colors.grey[700]),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  else if (_isLoadingIntervals)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                      child: Center(
+                        child: CircularProgressIndicator(color: Color(0xFF5BBCFF)),
+                      ),
+                    )
+                  else
+                    _buildTimeSlotsGrid(),
+
+                  // Conflict Alert Banner
+                  if (_conflictingInterval != null) ...[
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: Colors.red[50],
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.red[200]!),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(Icons.warning_amber_rounded, color: Colors.red[800], size: 22),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Time Slot Unavailable',
+                                  style: GoogleFonts.manrope(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                    color: Colors.red[900],
+                                  ),
+                                ),
+                                const SizedBox(height: 3),
+                                Text(
+                                  '${_getBarberName()} already has a booking from ${_conflictingInterval!['start_formatted']} to ${_conflictingInterval!['end_formatted']}. Please choose an open slot.',
+                                  style: GoogleFonts.manrope(
+                                    fontSize: 12.5,
+                                    color: Colors.red[800],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ],
                       ),
                     ),
-                  ),
+                  ],
+
                   const SizedBox(height: 32),
 
                   // Submit Button
                   SizedBox(
                     width: double.infinity,
-                    height: 55,
+                    height: 54,
                     child: ElevatedButton(
-                      onPressed: _isSubmitting ? null : _submitBooking,
+                      onPressed: (_isSubmitting || _conflictingInterval != null)
+                          ? null
+                          : _submitBooking,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xB25BBCFF),
+                        backgroundColor: const Color(0xFF5BBCFF),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -697,20 +913,22 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
                         disabledBackgroundColor: Colors.grey[300],
                       ),
                       child: _isSubmitting
-                          ? SizedBox(
-                              height: 20,
-                              width: 20,
+                          ? const SizedBox(
+                              height: 22,
+                              width: 22,
                               child: CircularProgressIndicator(
-                                strokeWidth: 2,
+                                strokeWidth: 2.5,
                                 valueColor:
                                     AlwaysStoppedAnimation<Color>(Colors.white),
                               ),
                             )
                           : Text(
-                              'Book Appointment',
+                              _conflictingInterval != null
+                                  ? 'Slot Unavailable (Conflict)'
+                                  : 'Book Appointment',
                               style: GoogleFonts.manrope(
                                 fontSize: 16,
-                                fontWeight: FontWeight.w600,
+                                fontWeight: FontWeight.bold,
                                 color: Colors.white,
                               ),
                             ),
@@ -719,6 +937,86 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
                 ],
               ),
             ),
+    );
+  }
+
+  Widget _buildTimeSlotsGrid() {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: _standardTimeSlots.map((slot) {
+        final isBooked = _isSlotBooked(slot);
+        final isSelected = _selectedTime != null &&
+            _selectedTime!.hour == slot.hour &&
+            _selectedTime!.minute == slot.minute;
+
+        Color chipBg;
+        Color textColor;
+        BorderSide borderSide;
+
+        if (isSelected) {
+          chipBg = const Color(0xFF5BBCFF);
+          textColor = Colors.white;
+          borderSide = const BorderSide(color: Color(0xFF5BBCFF), width: 1.5);
+        } else if (isBooked) {
+          chipBg = Colors.red[50]!;
+          textColor = Colors.red[400]!;
+          borderSide = BorderSide(color: Colors.red[200]!);
+        } else {
+          chipBg = Colors.white;
+          textColor = Colors.black87;
+          borderSide = BorderSide(color: Colors.grey[300]!);
+        }
+
+        return InkWell(
+          onTap: isBooked
+              ? () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        '${slot.format(context)} is already booked for ${_getBarberName()}.',
+                        style: GoogleFonts.manrope(),
+                      ),
+                      backgroundColor: Colors.orange[800],
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                }
+              : () {
+                  setState(() {
+                    _selectedTime = slot;
+                    _recheckConflict();
+                  });
+                },
+          borderRadius: BorderRadius.circular(8),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+            decoration: BoxDecoration(
+              color: chipBg,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.fromBorderSide(borderSide),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  slot.format(context),
+                  style: GoogleFonts.manrope(
+                    fontSize: 13,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                    color: textColor,
+                    decoration: isBooked ? TextDecoration.lineThrough : null,
+                  ),
+                ),
+                if (isBooked) ...[
+                  const SizedBox(width: 4),
+                  Icon(Icons.lock, size: 12, color: Colors.red[400]),
+                ],
+              ],
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 

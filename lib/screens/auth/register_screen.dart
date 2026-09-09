@@ -561,32 +561,34 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
             const SizedBox(height: 24),
 
-            // Phone Number with Country Code and Flag Picker
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Country Code & Flag Selector Button
-                InkWell(
-                  onTap: () {
-                    showCountryPickerModal(
-                      context,
-                      selectedCountry: _selectedCountry,
-                      onSelect: (country) {
-                        setState(() {
-                          _selectedCountry = country;
-                        });
-                      },
-                    );
-                  },
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    height: 56,
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[50],
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey),
-                    ),
+            // Phone Number with Integrated Country Code and Flag Picker
+            TextFormField(
+              controller: _phoneController,
+              keyboardType: TextInputType.phone,
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Phone number is required';
+                }
+                return null;
+              },
+              decoration: InputDecoration(
+                labelText: 'Phone Number',
+                labelStyle: GoogleFonts.manrope(color: Colors.grey[600]),
+                prefixIcon: Padding(
+                  padding: const EdgeInsets.only(left: 12, right: 8),
+                  child: InkWell(
+                    onTap: () {
+                      showCountryPickerModal(
+                        context,
+                        selectedCountry: _selectedCountry,
+                        onSelect: (country) {
+                          setState(() {
+                            _selectedCountry = country;
+                          });
+                        },
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(8),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -603,84 +605,77 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             color: Colors.black87,
                           ),
                         ),
-                        const SizedBox(width: 4),
+                        const SizedBox(width: 2),
                         const Icon(
                           Icons.arrow_drop_down,
                           color: Colors.grey,
                           size: 20,
                         ),
+                        const SizedBox(width: 8),
+                        Container(
+                          width: 1,
+                          height: 24,
+                          color: Colors.grey[300],
+                        ),
                       ],
                     ),
                   ),
                 ),
-                const SizedBox(width: 10),
-                // Phone Number Field
-                Expanded(
-                  child: TextFormField(
-                    controller: _phoneController,
-                    keyboardType: TextInputType.phone,
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Phone number is required';
-                      }
-                      return null;
-                    },
-                    decoration: InputDecoration(
-                      labelText: 'Phone Number',
-                      labelStyle: GoogleFonts.manrope(color: Colors.grey[600]),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Colors.grey),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Colors.grey),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide:
-                            const BorderSide(color: Colors.blue, width: 2),
-                      ),
-                      filled: true,
-                      fillColor: Colors.grey[50],
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 16),
-                    ),
-                    style: GoogleFonts.manrope(),
-                  ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Colors.grey),
                 ),
-              ],
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Colors.grey),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Colors.blue, width: 2),
+                ),
+                filled: true,
+                fillColor: Colors.grey[50],
+                contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16, vertical: 16),
+              ),
+              style: GoogleFonts.manrope(),
             ),
             const SizedBox(height: 24),
 
             // Gender Dropdown
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.grey[50],
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey),
-              ),
-              child: DropdownButtonFormField<String>(
-                value: _selectedGender,
-                decoration: InputDecoration(
-                  labelText: 'Gender',
-                  labelStyle: GoogleFonts.manrope(color: Colors.grey[600]),
-                  border: InputBorder.none,
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            DropdownButtonFormField<String>(
+              value: _selectedGender,
+              decoration: InputDecoration(
+                labelText: 'Gender',
+                labelStyle: GoogleFonts.manrope(color: Colors.grey[600]),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Colors.grey),
                 ),
-                items: ['Male', 'Female', 'Other']
-                    .map((gender) => DropdownMenuItem(
-                          value: gender,
-                          child: Text(gender, style: GoogleFonts.manrope()),
-                        ))
-                    .toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _selectedGender = value;
-                  });
-                },
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Colors.grey),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Colors.blue, width: 2),
+                ),
+                filled: true,
+                fillColor: Colors.grey[50],
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               ),
+              items: ['Male', 'Female', 'Other']
+                  .map((gender) => DropdownMenuItem(
+                        value: gender,
+                        child: Text(gender, style: GoogleFonts.manrope()),
+                      ))
+                  .toList(),
+              onChanged: (value) {
+                setState(() {
+                  _selectedGender = value;
+                });
+              },
             ),
             const SizedBox(height: 24),
 
@@ -1112,6 +1107,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   )
                 : DropdownButtonFormField<String>(
                     value: _selectedBarber,
+                    dropdownColor: Colors.white,
+                    icon: const Icon(Icons.arrow_drop_down, color: Colors.black87),
+                    style: GoogleFonts.manrope(
+                      color: Colors.black87,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
                     decoration: InputDecoration(
                       labelText: 'Preferred Barber',
                       labelStyle: GoogleFonts.manrope(color: Colors.grey[600]),
@@ -1136,6 +1138,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             const SizedBox(width: 10),
                             Text('Any Barber (No Preference)',
                                 style: GoogleFonts.manrope(
+                                    color: Colors.black87,
                                     fontWeight: FontWeight.w500)),
                           ],
                         ),
@@ -1153,6 +1156,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               const SizedBox(width: 10),
                               Text(name,
                                   style: GoogleFonts.manrope(
+                                      color: Colors.black87,
                                       fontWeight: FontWeight.w600)),
                               const SizedBox(width: 6),
                               Container(
@@ -1191,6 +1195,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
             child: DropdownButtonFormField<String>(
               value: _selectedAvailability,
+              dropdownColor: Colors.white,
+              icon: const Icon(Icons.arrow_drop_down, color: Colors.black87),
+              style: GoogleFonts.manrope(
+                color: Colors.black87,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
               decoration: InputDecoration(
                 labelText: 'Your Availability',
                 labelStyle: GoogleFonts.manrope(color: Colors.grey[600]),
@@ -1206,7 +1217,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ]
                   .map((availability) => DropdownMenuItem(
                         value: availability,
-                        child: Text(availability, style: GoogleFonts.manrope()),
+                        child: Text(
+                          availability,
+                          style: GoogleFonts.manrope(
+                            color: Colors.black87,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                       ))
                   .toList(),
               onChanged: (value) {
@@ -1305,20 +1322,27 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
           // Terms & Conditions Checkbox
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Checkbox(
-                value: _agreeToTerms,
-                onChanged: (value) {
-                  setState(() {
-                    _agreeToTerms = value ?? false;
-                  });
-                },
-                activeColor: const Color(0xB25BBCFF),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(4),
+              SizedBox(
+                width: 24,
+                height: 24,
+                child: Checkbox(
+                  value: _agreeToTerms,
+                  onChanged: (value) {
+                    setState(() {
+                      _agreeToTerms = value ?? false;
+                    });
+                  },
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  visualDensity: VisualDensity.compact,
+                  activeColor: const Color(0xB25BBCFF),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(4),
+                  ),
                 ),
               ),
+              const SizedBox(width: 12),
               Expanded(
                 child: GestureDetector(
                   onTap: () {

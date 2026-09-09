@@ -1285,6 +1285,13 @@ class _BookingScreenState extends State<BookingScreen> {
                       const SizedBox(height: 8),
                       DropdownButtonFormField<String>(
                         value: selectedPaymentMethod,
+                        dropdownColor: Colors.white,
+                        icon: const Icon(Icons.arrow_drop_down, color: Colors.black87),
+                        style: GoogleFonts.manrope(
+                          color: Colors.black87,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
                         decoration: InputDecoration(
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
@@ -1299,7 +1306,10 @@ class _BookingScreenState extends State<BookingScreen> {
                                   value: method,
                                   child: Text(
                                     method.toUpperCase(),
-                                    style: GoogleFonts.manrope(),
+                                    style: GoogleFonts.manrope(
+                                      color: Colors.black87,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
                                 ))
                             .toList(),

@@ -4,14 +4,58 @@ import 'supabase_service_helpers.dart';
 class EmployeeService {
   EmployeeService._();
 
-  static Future<List<Map<String, dynamic>>> getAllEmployees() async {
+  static List<Map<String, dynamic>>? _cachedEmployees;
+  static DateTime? _cacheTime;
+  static const Duration _cacheTtl = Duration(minutes: 2);
+
+  static void invalidateCache() {
+    _cachedEmployees = null;
+    _cacheTime = null;
+  }
+
+  static Future<List<Map<String, dynamic>>> getAllEmployees({
+    bool forceRefresh = false,
+  }) async {
+    if (!forceRefresh &&
+        _cachedEmployees != null &&
+        _cacheTime != null &&
+        DateTime.now().difference(_cacheTime!) < _cacheTtl) {
+      return _cachedEmployees!;
+    }
+
     try {
       final data = await SupabaseConfig.client
           .from(SupabaseConfig.staffDirectoryView)
           .select()
           .order('name');
       final rows = SupabaseServiceHelpers.asMapList(data);
-      return Future.wait(rows.map(_normalizeEmployee));
+      final rawList = await Future.wait(rows.map(_normalizeEmployee));
+
+      // Deduplicate employees by staff_id, email, and phone
+      final seenIds = <String>{};
+      final seenEmails = <String>{};
+      final seenPhones = <String>{};
+      final uniqueEmployees = <Map<String, dynamic>>[];
+
+      for (final emp in rawList) {
+        final id = (emp['staff_id'] ?? emp['id'] ?? '').toString();
+        final email = (emp['email'] ?? '').toString().trim().toLowerCase();
+        final phone = (emp['phone'] ?? '').toString().trim();
+
+        if (id.isNotEmpty && seenIds.contains(id)) continue;
+        if (email.isNotEmpty && seenEmails.contains(email)) continue;
+        if (phone.isNotEmpty && seenPhones.contains(phone)) continue;
+
+        if (id.isNotEmpty) seenIds.add(id);
+        if (email.isNotEmpty) seenEmails.add(email);
+        if (phone.isNotEmpty) seenPhones.add(phone);
+        uniqueEmployees.add(emp);
+      }
+
+      _cachedEmployees = uniqueEmployees;
+      _cacheTime = DateTime.now();
+
+      return uniqueEmployees;
     } catch (_) {
       return <Map<String, dynamic>>[];
     }
@@ -30,6 +74,13 @@ class EmployeeService {
   }
 
   static Future<Map<String, dynamic>?> getEmployeeById(String staffId) async {
+    // Check cached employees first
+    if (_cachedEmployees != null) {
+      for (final e in _cachedEmployees!) {
+        if ((e['staff_id'] ?? e['id']) == staffId) return e;
+      }
+    }
+
     try {
       final data = await SupabaseConfig.client
           .from(SupabaseConfig.staffDirectoryView)
@@ -47,25 +98,86 @@ class EmployeeService {
     Map<String, dynamic> employeeData,
   ) async {
     try {
+      final name = employeeData['name']?.toString().trim() ?? '';
       final email = employeeData['email']?.toString().trim() ?? '';
+      final phone = employeeData['phone']?.toString().trim() ?? '';
       final password = employeeData['password']?.toString() ?? '';
       final username = employeeData['username']?.toString().trim() ?? '';
+
+      if (name.isEmpty) {
+        return {
+          'success': false,
+          'message': 'Employee name cannot be empty',
+        };
+      }
+
+      // Check existing employees for duplicates
+      final existingEmployees = await getAllEmployees();
+
+      if (existingEmployees.any((e) =>
+          (e['name'] ?? '').toString().trim().toLowerCase() ==
+          name.toLowerCase())) {
+        return {
+          'success': false,
+          'message': 'A barber/employee named "$name" already exists.',
+        };
+      }
+
+      if (phone.isNotEmpty &&
+          existingEmployees
+              .any((e) => (e['phone'] ?? '').toString().trim() == phone)) {
+        return {
+          'success': false,
+          'message': 'Phone number "$phone" is already assigned to another barber.',
+        };
+      }
+
+      if (email.isNotEmpty &&
+          existingEmployees.any((e) =>
+              (e['email'] ?? '').toString().trim().toLowerCase() ==
+              email.toLowerCase())) {
+        return {
+          'success': false,
+          'message': 'Email "$email" is already registered to another barber.',
+        };
+      }
+
       Map<String, dynamic> staff;
 
-      if (email.isNotEmpty && password.isNotEmpty) {
+      if (password.isNotEmpty) {
+        if (password.length < 8) {
+          return {
+            'success': false,
+            'message': 'Barber login password must be at least 8 characters.',
+          };
+        }
+
+        final cleanUsername = username.isNotEmpty
+            ? username
+            : (email.contains('@')
+                ? email.split('@').first
+                : name.toLowerCase().replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '_'));
+
+        final authEmail = email.contains('@')
+            ? email
+            : '${cleanUsername.toLowerCase().replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '')}@liembarber.com';
+
         final response = await SupabaseConfig.client.functions.invoke(
           'create-staff',
           body: {
             ..._mutationFields(employeeData, includeImage: false),
-            'email': email,
+            'name': name,
+            'email': authEmail,
             'password': password,
-            'username': username.isEmpty ? email.split('@').first : username,
+            'username': cleanUsername,
           },
         );
         if (response.status < 200 || response.status >= 300) {
+          final payload = SupabaseServiceHelpers.asMap(response.data);
           throw Exception(
-            SupabaseServiceHelpers.asMap(response.data)['error'] ??
-                'Unable to create the staff login.',
+            payload['error'] ??
+                payload['message'] ??
+                'Unable to create the staff login account.',
           );
         }
         final payload = SupabaseServiceHelpers.asMap(response.data);
@@ -102,6 +214,8 @@ class EmployeeService {
         }
       }
 
+      invalidateCache();
+
       final normalized = await _normalizeEmployee(staff);
       return {
         'success': true,
@@ -120,6 +234,46 @@ class EmployeeService {
     Map<String, dynamic> employeeData,
   ) async {
     try {
+      final name = employeeData['name']?.toString().trim();
+      final phone = employeeData['phone']?.toString().trim();
+      final email = employeeData['email']?.toString().trim();
+
+      // Check duplicates on update
+      if (name != null || phone != null || email != null) {
+        final existing = await getAllEmployees();
+        for (final e in existing) {
+          final eId = (e['staff_id'] ?? e['id'] ?? '').toString();
+          if (eId == staffId) continue;
+
+          if (name != null &&
+              name.isNotEmpty &&
+              (e['name'] ?? '').toString().trim().toLowerCase() ==
+                  name.toLowerCase()) {
+            return {
+              'success': false,
+              'message': 'Another barber named "$name" already exists.',
+            };
+          }
+          if (phone != null &&
+              phone.isNotEmpty &&
+              (e['phone'] ?? '').toString().trim() == phone) {
+            return {
+              'success': false,
+              'message': 'Phone number "$phone" is used by another barber.',
+            };
+          }
+          if (email != null &&
+              email.isNotEmpty &&
+              (e['email'] ?? '').toString().trim().toLowerCase() ==
+                  email.toLowerCase()) {
+            return {
+              'success': false,
+              'message': 'Email "$email" is used by another barber.',
+            };
+          }
+        }
+      }
+
       final update = _mutationFields(employeeData, includeImage: false);
       final rawPhoto = employeeData['profile_photo'];
       if (SupabaseStorageService.isDataImage(rawPhoto)) {
@@ -142,6 +296,9 @@ class EmployeeService {
           .eq('id', staffId)
           .select()
           .single();
+
+      invalidateCache();
+
       return {
         'success': true,
         'message': 'Employee updated successfully',
@@ -157,6 +314,7 @@ class EmployeeService {
       await SupabaseConfig.client
           .from(SupabaseConfig.staffTable)
           .update({'is_active': false}).eq('id', staffId);
+      invalidateCache();
       return {
         'success': true,
         'message': 'Employee deactivated successfully',

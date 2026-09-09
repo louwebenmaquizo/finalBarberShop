@@ -257,7 +257,14 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
       imageContent = Image.memory(_customImageBytes!, fit: BoxFit.cover);
     } else if (_existingImageUrl != null && _existingImageUrl!.isNotEmpty) {
       final clean = _existingImageUrl!.trim();
-      if (clean.startsWith('http://') || clean.startsWith('https://')) {
+      if (clean.startsWith('assets/')) {
+        imageContent = Image.asset(
+          clean,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => const Center(
+              child: Icon(Icons.content_cut, size: 48, color: Colors.grey)),
+        );
+      } else if (clean.startsWith('http://') || clean.startsWith('https://')) {
         imageContent = Image.network(
           clean,
           fit: BoxFit.cover,
@@ -451,16 +458,25 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
                     // Category Dropdown (Clean, full-width)
                     DropdownButtonFormField<String>(
                       value: _selectedCategoryId,
+                      dropdownColor: Colors.white,
+                      icon: const Icon(Icons.arrow_drop_down, color: Colors.black87),
                       decoration: InputDecoration(
                         labelText: 'Category',
-                        labelStyle: GoogleFonts.manrope(),
+                        labelStyle: GoogleFonts.manrope(
+                          color: Colors.grey[700],
+                          fontWeight: FontWeight.w500,
+                        ),
                         border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12)),
-                        prefixIcon: const Icon(Icons.category_outlined),
+                        prefixIcon: const Icon(Icons.category_outlined, color: Colors.black87),
                         filled: true,
                         fillColor: Colors.grey[50],
                       ),
-                      style: GoogleFonts.manrope(color: Colors.black87),
+                      style: GoogleFonts.manrope(
+                        color: Colors.black87,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                      ),
                       items: [
                         DropdownMenuItem<String>(
                           value: null,

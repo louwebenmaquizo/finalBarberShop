@@ -326,8 +326,18 @@ class ApiService {
       );
       return _mutationData(result, idKey: 'appointment_id');
     } catch (error) {
+      final errStr = error.toString().toLowerCase();
+      if (errStr.contains('23p01') ||
+          errStr.contains('not available') ||
+          errStr.contains('overlap') ||
+          errStr.contains('exclusion')) {
+        throw Exception(
+          'This barber is already booked at that time. Please select another time or barber.',
+        );
+      }
+
       if (!SupabaseServiceHelpers.isMissingDatabaseObject(error)) {
-        return null;
+        throw Exception(SupabaseServiceHelpers.errorMessage(error));
       }
 
       // Development fallback for a project whose RPC migration has not yet
@@ -353,8 +363,16 @@ class ApiService {
             .select()
             .single();
         return _mutationData(data, idKey: 'appointment_id');
-      } catch (_) {
-        return null;
+      } catch (insertErr) {
+        final insertErrStr = insertErr.toString().toLowerCase();
+        if (insertErrStr.contains('23p01') ||
+            insertErrStr.contains('overlap') ||
+            insertErrStr.contains('exclusion')) {
+          throw Exception(
+            'This barber is already booked at that time. Please select another time or barber.',
+          );
+        }
+        throw Exception(SupabaseServiceHelpers.errorMessage(insertErr));
       }
     }
   }

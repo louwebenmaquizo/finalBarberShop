@@ -501,7 +501,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                         crossAxisCount: 2,
                         mainAxisSpacing: 14,
                         crossAxisSpacing: 14,
-                        childAspectRatio: 0.78,
+                        childAspectRatio: 0.64,
                       ),
                       itemCount: _services.length,
                       itemBuilder: (context, index) {
@@ -816,7 +816,9 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
           Stack(
             children: [
               _buildCustomerServiceImage(
-                  service['image_url'] ?? service['photo']),
+                  service['image_url'] ?? service['photo'],
+                  serviceName: name,
+                  categoryName: categoryName),
               // Category Pill
               if (categoryName.isNotEmpty)
                 Positioned(
@@ -989,19 +991,41 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     );
   }
 
-  Widget _buildCustomerServiceImage(String? photo) {
-    const double imgHeight = 125.0;
-    if (photo == null || photo.isEmpty) {
-      return Container(
+  static String getDefaultCatalogImage(String? name, [String? category]) {
+    final n = (name ?? '').toLowerCase();
+    final c = (category ?? '').toLowerCase();
+    if (n.contains('classic')) return 'assets/catalog/1.png';
+    if (n.contains('fade') || n.contains('skin')) return 'assets/catalog/2.jpg';
+    if (n.contains('kid') || n.contains('child')) return 'assets/catalog/3.jpg';
+    if (n.contains('styling') || n.contains('style') || c.contains('styling')) return 'assets/catalog/4.png';
+    if ((n.contains('beard') && !n.contains('haircut')) || c.contains('beard')) return 'assets/catalog/5.jpg';
+    if (n.contains('beard') || n.contains('package')) return 'assets/catalog/6.jpg';
+    return 'assets/catalog/1.png';
+  }
+
+  Widget _buildCustomerServiceImage(String? photo, {String? serviceName, String? categoryName}) {
+    const double imgHeight = 115.0;
+    String? clean = photo?.trim();
+    if (clean == null || clean.isEmpty) {
+      clean = getDefaultCatalogImage(serviceName, categoryName);
+    }
+
+    if (clean.startsWith('assets/')) {
+      return Image.asset(
+        clean,
         height: imgHeight,
         width: double.infinity,
-        color: const Color(0x1A5BBCFF),
-        child:
-            const Icon(Icons.content_cut, size: 36, color: Color(0xFF5BBCFF)),
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => Container(
+          height: imgHeight,
+          width: double.infinity,
+          color: const Color(0x1A5BBCFF),
+          child:
+              const Icon(Icons.content_cut, size: 36, color: Color(0xFF5BBCFF)),
+        ),
       );
     }
 
-    final clean = photo.trim();
     if (clean.startsWith('http://') || clean.startsWith('https://')) {
       return Image.network(
         clean,

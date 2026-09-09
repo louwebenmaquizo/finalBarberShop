@@ -6,6 +6,7 @@ import '../../widgets/terms_modal.dart';
 import '../customer/change_password_dialog.dart';
 import '../customer/help_support_dialog.dart';
 import '../customer/about_dialog.dart';
+import 'admin_profile_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -190,8 +191,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 16),
           _buildSettingsItem(
             icon: Icons.person,
-            title: 'Account Details',
-            onTap: _showAccountDetailsDialog,
+            title: 'Admin Profile & Security',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (context) => const AdminProfileScreen()),
+            ),
           ),
           const SizedBox(height: 16),
           _buildSettingsItem(

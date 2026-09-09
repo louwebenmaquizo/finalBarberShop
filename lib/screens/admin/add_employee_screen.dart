@@ -154,7 +154,20 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
             username.toLowerCase())) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Username "$username" is already in use.'),
+          content: Text('Username "$username" is already in use.',
+              style: GoogleFonts.manrope()),
+          backgroundColor: Colors.orange[800],
+        ),
+      );
+      return;
+    }
+
+    final password = _passwordController.text.trim();
+    if (password.isNotEmpty && password.length < 8) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Barber login password must be at least 8 characters long.',
+              style: GoogleFonts.manrope()),
           backgroundColor: Colors.orange[800],
         ),
       );

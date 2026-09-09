@@ -29,8 +29,26 @@ class SupabaseServiceHelpers {
     if (error is AuthException) return error.message;
     if (error is PostgrestException) return error.message;
     if (error is StorageException) return error.message;
+    if (error is FunctionException) {
+      if (error.details is Map) {
+        final detailsMap = error.details as Map;
+        if (detailsMap.containsKey('error')) {
+          return detailsMap['error'].toString();
+        }
+        if (detailsMap.containsKey('message')) {
+          return detailsMap['message'].toString();
+        }
+      }
+      if (error.reasonPhrase != null && error.reasonPhrase!.isNotEmpty) {
+        return error.reasonPhrase!;
+      }
+    }
 
     final text = error.toString();
+    if (text.contains('details: {error: ')) {
+      final match = RegExp(r'details:\s*\{error:\s*([^}]+)\}').firstMatch(text);
+      if (match != null) return match.group(1)?.trim() ?? text;
+    }
     return text.startsWith('Exception: ') ? text.substring(11) : text;
   }
 
@@ -199,6 +217,8 @@ class SupabaseStorageService {
     return path;
   }
 
+  static final Map<String, String> _urlCache = {};
+
   /// Turns a stored object path into a URL understood by the existing widgets.
   static Future<String?> resolveReference({
     required String bucket,
@@ -211,15 +231,25 @@ class SupabaseStorageService {
     if (reference.isEmpty) return null;
     if (reference.startsWith('http://') ||
         reference.startsWith('https://') ||
-        reference.startsWith('data:image/')) {
+        reference.startsWith('data:image/') ||
+        reference.startsWith('assets/')) {
       return reference;
+    }
+
+    final cacheKey = '$bucket:$reference:$isPublic';
+    if (_urlCache.containsKey(cacheKey)) {
+      return _urlCache[cacheKey];
     }
 
     try {
       final storage = SupabaseConfig.client.storage.from(bucket);
-      return isPublic
+      final resolved = isPublic
           ? storage.getPublicUrl(reference)
           : await storage.createSignedUrl(reference, signedUrlLifetimeSeconds);
+      if (resolved.isNotEmpty) {
+        _urlCache[cacheKey] = resolved;
+      }
+      return resolved;
     } catch (_) {
       // Preserve legacy values so existing data can still use its fallback UI.
       return reference;

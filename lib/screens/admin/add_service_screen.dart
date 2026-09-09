@@ -382,25 +382,47 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
                     // Category Dropdown (Clean, full-width without add button)
                     DropdownButtonFormField<String>(
                       value: _selectedCategoryId,
+                      dropdownColor: Colors.white,
+                      icon: const Icon(Icons.arrow_drop_down, color: Colors.black87),
                       decoration: InputDecoration(
                         labelText: 'Category',
-                        labelStyle: GoogleFonts.manrope(),
+                        labelStyle: GoogleFonts.manrope(
+                          color: Colors.grey[700],
+                          fontWeight: FontWeight.w500,
+                        ),
                         border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12)),
                         filled: true,
                         fillColor: Colors.grey[50],
-                        prefixIcon: const Icon(Icons.category_outlined),
+                        prefixIcon: const Icon(Icons.category_outlined, color: Colors.black87),
                       ),
-                      style: GoogleFonts.manrope(),
+                      style: GoogleFonts.manrope(
+                        color: Colors.black87,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                      ),
                       items: [
-                        const DropdownMenuItem<String>(
+                        DropdownMenuItem<String>(
                           value: null,
-                          child: Text('No Category'),
+                          child: Text(
+                            'No Category',
+                            style: GoogleFonts.manrope(
+                              color: Colors.black87,
+                              fontSize: 14,
+                            ),
+                          ),
                         ),
                         ..._categories.map((category) {
                           return DropdownMenuItem<String>(
                             value: category['category_id'],
-                            child: Text(category['name'] ?? ''),
+                            child: Text(
+                              category['name'] ?? '',
+                              style: GoogleFonts.manrope(
+                                color: Colors.black87,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
                           );
                         }),
                       ],

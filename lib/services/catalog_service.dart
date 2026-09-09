@@ -4,14 +4,37 @@ import 'supabase_service_helpers.dart';
 class CatalogService {
   CatalogService._();
 
-  static Future<List<Map<String, dynamic>>> getAllServices() async {
+  static List<Map<String, dynamic>>? _cachedServices;
+  static DateTime? _servicesCacheTime;
+  static List<Map<String, dynamic>>? _cachedCategories;
+  static DateTime? _categoriesCacheTime;
+  static const Duration _cacheTtl = Duration(minutes: 2);
+
+  static void invalidateCache() {
+    _cachedServices = null;
+    _servicesCacheTime = null;
+    _cachedCategories = null;
+    _categoriesCacheTime = null;
+  }
+
+  static Future<List<Map<String, dynamic>>> getAllServices({
+    bool forceRefresh = false,
+  }) async {
+    if (!forceRefresh &&
+        _cachedServices != null &&
+        _servicesCacheTime != null &&
+        DateTime.now().difference(_servicesCacheTime!) < _cacheTtl) {
+      return _cachedServices!;
+    }
+
+    List<Map<String, dynamic>> rawList;
     try {
       final data = await SupabaseConfig.client
           .from(SupabaseConfig.serviceCatalogView)
           .select()
           .order('name');
       final rows = SupabaseServiceHelpers.asMapList(data);
-      return Future.wait(rows.map(_normalizeService));
+      rawList = await Future.wait(rows.map(_normalizeService));
     } catch (error) {
       if (!SupabaseServiceHelpers.isMissingDatabaseObject(error)) return [];
       try {
@@ -19,13 +42,35 @@ class CatalogService {
             .from(SupabaseConfig.servicesTable)
             .select()
             .order('name');
-        return Future.wait(
+        rawList = await Future.wait(
           SupabaseServiceHelpers.asMapList(data).map(_normalizeService),
         );
       } catch (_) {
         return [];
       }
     }
+
+    // Deduplicate services by unique ID and normalized name
+    final seenIds = <String>{};
+    final seenNames = <String>{};
+    final uniqueServices = <Map<String, dynamic>>[];
+
+    for (final s in rawList) {
+      final id = (s['service_id'] ?? s['id'] ?? '').toString();
+      final name = (s['name'] ?? '').toString().trim().toLowerCase();
+
+      if (id.isNotEmpty && seenIds.contains(id)) continue;
+      if (name.isNotEmpty && seenNames.contains(name)) continue;
+
+      if (id.isNotEmpty) seenIds.add(id);
+      if (name.isNotEmpty) seenNames.add(name);
+      uniqueServices.add(s);
+    }
+
+    _cachedServices = uniqueServices;
+    _servicesCacheTime = DateTime.now();
+
+    return uniqueServices;
   }
 
   static Future<Map<String, dynamic>> _normalizeService(
@@ -69,6 +114,13 @@ class CatalogService {
   }
 
   static Future<Map<String, dynamic>?> getServiceById(String serviceId) async {
+    // Check cached services first for instant lookup
+    if (_cachedServices != null) {
+      for (final s in _cachedServices!) {
+        if ((s['service_id'] ?? s['id']) == serviceId) return s;
+      }
+    }
+
     try {
       final data = await SupabaseConfig.client
           .from(SupabaseConfig.serviceCatalogView)
@@ -97,8 +149,30 @@ class CatalogService {
     Map<String, dynamic> serviceData,
   ) async {
     try {
+      final name = serviceData['name']?.toString().trim() ?? '';
+      if (name.isEmpty) {
+        return {
+          'success': false,
+          'message': 'Service name cannot be empty',
+        };
+      }
+
+      // Check for duplicate service name
+      final existingServices = await getAllServices();
+      final duplicate = existingServices.any((s) =>
+          (s['name'] ?? '').toString().trim().toLowerCase() ==
+          name.toLowerCase());
+      if (duplicate) {
+        return {
+          'success': false,
+          'message': 'A service named "$name" already exists in the catalog.',
+        };
+      }
+
       final rawImage = serviceData['image_url'] ?? serviceData['photo'];
       final insert = _serviceMutationFields(serviceData)..remove('image_url');
+      insert['name'] = name;
+
       final inserted = await SupabaseConfig.client
           .from(SupabaseConfig.servicesTable)
           .insert(insert)
@@ -132,6 +206,8 @@ class CatalogService {
             .update({'image_url': imageReference}).eq('id', serviceId);
       }
 
+      invalidateCache();
+
       return {
         'success': true,
         'message': warning ?? 'Service created successfully',
@@ -151,6 +227,23 @@ class CatalogService {
     Map<String, dynamic> serviceData,
   ) async {
     try {
+      final name = serviceData['name']?.toString().trim();
+      if (name != null && name.isNotEmpty) {
+        // Check for duplicate name under a different service ID
+        final existingServices = await getAllServices();
+        final duplicate = existingServices.any((s) {
+          final sId = (s['service_id'] ?? s['id'] ?? '').toString();
+          final sName = (s['name'] ?? '').toString().trim().toLowerCase();
+          return sId != serviceId && sName == name.toLowerCase();
+        });
+        if (duplicate) {
+          return {
+            'success': false,
+            'message': 'Another service with the name "$name" already exists.',
+          };
+        }
+      }
+
       final update = _serviceMutationFields(serviceData);
       final rawImage = update['image_url'];
       if (SupabaseStorageService.isDataImage(rawImage)) {
@@ -170,6 +263,9 @@ class CatalogService {
           .select()
           .single();
       final row = SupabaseServiceHelpers.asMap(data);
+
+      invalidateCache();
+
       return {
         'success': true,
         'message': 'Service updated successfully',
@@ -207,6 +303,7 @@ class CatalogService {
           .eq('id', serviceId)
           .select()
           .single();
+      invalidateCache();
       return {
         'success': true,
         'message': 'Service deactivated successfully',
@@ -217,13 +314,23 @@ class CatalogService {
     }
   }
 
-  static Future<List<Map<String, dynamic>>> getAllCategories() async {
+  static Future<List<Map<String, dynamic>>> getAllCategories({
+    bool forceRefresh = false,
+  }) async {
+    if (!forceRefresh &&
+        _cachedCategories != null &&
+        _categoriesCacheTime != null &&
+        DateTime.now().difference(_categoriesCacheTime!) < _cacheTtl) {
+      return _cachedCategories!;
+    }
+
+    List<Map<String, dynamic>> rawCategories;
     try {
       final data = await SupabaseConfig.client
           .from(SupabaseConfig.categoryCatalogView)
           .select()
           .order('name');
-      return SupabaseServiceHelpers.asMapList(data).map((row) {
+      rawCategories = SupabaseServiceHelpers.asMapList(data).map((row) {
         return {
           'category_id': row['category_id'] ?? row['id'] ?? '',
           'name': row['name'] ?? '',
@@ -238,7 +345,7 @@ class CatalogService {
             .from(SupabaseConfig.categoriesTable)
             .select()
             .order('name');
-        return SupabaseServiceHelpers.asMapList(data).map((row) {
+        rawCategories = SupabaseServiceHelpers.asMapList(data).map((row) {
           return {
             'category_id': row['id'] ?? '',
             'name': row['name'] ?? '',
@@ -250,6 +357,22 @@ class CatalogService {
         return [];
       }
     }
+
+    // Deduplicate categories by normalized name
+    final seenNames = <String>{};
+    final uniqueCategories = <Map<String, dynamic>>[];
+
+    for (final c in rawCategories) {
+      final name = (c['name'] ?? '').toString().trim().toLowerCase();
+      if (name.isNotEmpty && seenNames.contains(name)) continue;
+      if (name.isNotEmpty) seenNames.add(name);
+      uniqueCategories.add(c);
+    }
+
+    _cachedCategories = uniqueCategories;
+    _categoriesCacheTime = DateTime.now();
+
+    return uniqueCategories;
   }
 
   static Future<Map<String, dynamic>> createCategory(
@@ -257,12 +380,33 @@ class CatalogService {
     String? description,
   ) async {
     try {
+      final trimmedName = name.trim();
+      if (trimmedName.isEmpty) {
+        return {
+          'success': false,
+          'message': 'Category name cannot be empty',
+        };
+      }
+
+      final existingCategories = await getAllCategories();
+      if (existingCategories.any((c) =>
+          (c['name'] ?? '').toString().trim().toLowerCase() ==
+          trimmedName.toLowerCase())) {
+        return {
+          'success': false,
+          'message': 'Category "$trimmedName" already exists.',
+        };
+      }
+
       final data = await SupabaseConfig.client
           .from(SupabaseConfig.categoriesTable)
-          .insert({'name': name.trim(), 'description': description})
+          .insert({'name': trimmedName, 'description': description})
           .select()
           .single();
       final row = SupabaseServiceHelpers.asMap(data);
+
+      invalidateCache();
+
       return {
         'success': true,
         'message': 'Category created successfully',
@@ -279,13 +423,37 @@ class CatalogService {
     String? description,
   ) async {
     try {
+      final trimmedName = name.trim();
+      if (trimmedName.isEmpty) {
+        return {
+          'success': false,
+          'message': 'Category name cannot be empty',
+        };
+      }
+
+      final existingCategories = await getAllCategories();
+      final duplicate = existingCategories.any((c) {
+        final cId = (c['category_id'] ?? c['id'] ?? '').toString();
+        final cName = (c['name'] ?? '').toString().trim().toLowerCase();
+        return cId != categoryId && cName == trimmedName.toLowerCase();
+      });
+      if (duplicate) {
+        return {
+          'success': false,
+          'message': 'Category "$trimmedName" already exists.',
+        };
+      }
+
       final data = await SupabaseConfig.client
           .from(SupabaseConfig.categoriesTable)
-          .update({'name': name.trim(), 'description': description})
+          .update({'name': trimmedName, 'description': description})
           .eq('id', categoryId)
           .select()
           .single();
       final row = SupabaseServiceHelpers.asMap(data);
+
+      invalidateCache();
+
       return {
         'success': true,
         'message': 'Category updated successfully',
@@ -304,6 +472,7 @@ class CatalogService {
           .from(SupabaseConfig.categoriesTable)
           .delete()
           .eq('id', categoryId);
+      invalidateCache();
       return {
         'success': true,
         'message': 'Category deleted successfully',

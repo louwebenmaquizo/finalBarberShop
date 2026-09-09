@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dashboard_screen.dart';
@@ -5,6 +6,8 @@ import 'employee_screen.dart';
 import 'catalog_screen.dart';
 import 'booking_screen.dart';
 import 'settings_screen.dart';
+import 'admin_profile_screen.dart';
+import '../../services/auth_session_service.dart';
 import '../../widgets/notifications_modal.dart';
 
 class AdminHomeScreen extends StatefulWidget {
@@ -19,6 +22,7 @@ class AdminHomeScreen extends StatefulWidget {
 class _AdminHomeScreenState extends State<AdminHomeScreen> {
   int _selectedIndex = 0; // Default to first screen (Navigation/Dashboard)
   String? _username;
+  String? _profilePhoto;
 
   // Navigation items
   final List<NavItem> _navItems = [
@@ -32,7 +36,20 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
   @override
   void initState() {
     super.initState();
-    _username = widget.username ?? 'Admin'; // Use passed username or default
+    _username = widget.username ?? 'Admin';
+    _loadAdminSession();
+  }
+
+  Future<void> _loadAdminSession() async {
+    try {
+      final session = await AuthSessionService.getSession();
+      if (session != null && mounted) {
+        setState(() {
+          _username = session['full_name'] ?? session['username'] ?? widget.username ?? 'Admin';
+          _profilePhoto = session['profile_photo'] ?? session['profile_picture'];
+        });
+      }
+    } catch (_) {}
   }
 
   // Placeholder screens for now
@@ -121,40 +138,58 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       ),
       child: Row(
         children: [
-          // Admin Image
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: Image.asset(
-              'assets/images/admin_fes.jpg',
-              width: 48,
-              height: 48,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: const Color(0xB25BBCFF),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(
-                    Icons.person,
-                    color: Colors.white,
-                    size: 28,
-                  ),
-                );
-              },
+          // Admin Image (Tappable to edit profile)
+          GestureDetector(
+            onTap: () async {
+              final updated = await Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => const AdminProfileScreen()),
+              );
+              if (updated == true) {
+                _loadAdminSession();
+              }
+            },
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: _buildHeaderAvatar(),
             ),
           ),
           const SizedBox(width: 16),
-          // Admin Name - "Hi + username"
+          // Admin Name - "Hi + username" (Tappable)
           Expanded(
-            child: Text(
-              'Hi ${_username ?? 'Admin'}',
-              style: GoogleFonts.manrope(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
+            child: GestureDetector(
+              onTap: () async {
+                final updated = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const AdminProfileScreen()),
+                );
+                if (updated == true) {
+                  _loadAdminSession();
+                }
+              },
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Hi ${_username ?? 'Admin'}',
+                    style: GoogleFonts.manrope(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  Text(
+                    'Administrator',
+                    style: GoogleFonts.manrope(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w500,
+                      color: const Color(0xFF1E88E5),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -203,6 +238,49 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
     );
   }
 
+  Widget _buildHeaderAvatar() {
+    if (_profilePhoto != null && _profilePhoto!.trim().isNotEmpty) {
+      final clean = _profilePhoto!.trim();
+      if (clean.startsWith('assets/')) {
+        return Image.asset(clean, width: 48, height: 48, fit: BoxFit.cover);
+      }
+      if (clean.startsWith('http://') || clean.startsWith('https://')) {
+        return Image.network(
+          clean,
+          width: 48,
+          height: 48,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => Image.asset(
+              'assets/images/admin_fes.jpg',
+              width: 48,
+              height: 48,
+              fit: BoxFit.cover),
+        );
+      }
+      try {
+        final base64Data = clean.contains(',') ? clean.split(',').last : clean;
+        final bytes = base64Decode(
+            base64Data.replaceAll('\n', '').replaceAll('\r', '').trim());
+        return Image.memory(bytes, width: 48, height: 48, fit: BoxFit.cover);
+      } catch (_) {}
+    }
+    return Image.asset(
+      'assets/images/admin_fes.jpg',
+      width: 48,
+      height: 48,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          color: const Color(0xB25BBCFF),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: const Icon(Icons.person, color: Colors.white, size: 28),
+      ),
+    );
+  }
+
   Widget _buildFooter() {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -240,6 +318,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
           setState(() {
             _selectedIndex = index;
           });
+          _loadAdminSession();
         },
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 8),

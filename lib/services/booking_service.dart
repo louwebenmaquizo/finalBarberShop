@@ -1,15 +1,26 @@
 import 'api_service.dart';
+import '../config/api_config.dart';
+import 'supabase_service_helpers.dart';
 
 class BookingService {
   BookingService._();
 
   static Future<List<Map<String, dynamic>>> getAllBookings() async {
     final appointments = await ApiService.getAppointments();
-    return appointments.map((value) {
+    final seenIds = <String>{};
+    final uniqueList = <Map<String, dynamic>>[];
+
+    for (final value in appointments) {
       final booking = Map<String, dynamic>.from(value as Map);
-      return <String, dynamic>{
+      final id = (booking['appointment_id'] ?? booking['id'] ?? '').toString();
+      if (id.isNotEmpty && seenIds.contains(id)) {
+        continue;
+      }
+      if (id.isNotEmpty) seenIds.add(id);
+
+      uniqueList.add(<String, dynamic>{
         ...booking,
-        'appointment_id': booking['appointment_id'] ?? '',
+        'appointment_id': id,
         'customer_id': booking['customer_id'] ?? '',
         'customer_name': booking['customer_name'] ?? 'Unknown',
         'customer_phone': booking['customer_phone'] ?? '',
@@ -26,8 +37,94 @@ class BookingService {
         'service_image': booking['service_image'] ?? booking['image_url'],
         'staff_name': booking['staff_name'] ?? '',
         'notes': booking['notes'] ?? '',
-      };
-    }).toList();
+      });
+    }
+
+    return uniqueList;
+  }
+
+  /// Fetches all active booked intervals for a specific barber on a specific date.
+  /// Used to visually disable conflicting time slots and prevent double bookings.
+  static Future<List<Map<String, dynamic>>> getStaffBookedIntervals({
+    required String staffId,
+    required DateTime date,
+    String? excludeAppointmentId,
+  }) async {
+    if (staffId.isEmpty) return [];
+
+    try {
+      final startOfDay = DateTime(date.year, date.month, date.day, 0, 0, 0);
+      final endOfDay = DateTime(date.year, date.month, date.day, 23, 59, 59);
+
+      final startIso = SupabaseServiceHelpers.toUtcIso(startOfDay.toIso8601String());
+      final endIso = SupabaseServiceHelpers.toUtcIso(endOfDay.toIso8601String());
+
+      final data = await SupabaseConfig.client
+          .from(SupabaseConfig.appointmentsTable)
+          .select('id, staff_id, start_time, end_time, status')
+          .eq('staff_id', staffId)
+          .gte('end_time', startIso)
+          .lte('start_time', endIso)
+          .not('status', 'in', '("canceled","declined","no-show")');
+
+      final rows = SupabaseServiceHelpers.asMapList(data);
+      final intervals = <Map<String, dynamic>>[];
+
+      for (final row in rows) {
+        final id = (row['id'] ?? '').toString();
+        if (excludeAppointmentId != null && id == excludeAppointmentId) {
+          continue;
+        }
+
+        final rawStart = row['start_time'];
+        final rawEnd = row['end_time'];
+        if (rawStart == null || rawEnd == null) continue;
+
+        final startDt = DateTime.tryParse(rawStart.toString())?.toLocal();
+        final endDt = DateTime.tryParse(rawEnd.toString())?.toLocal();
+
+        if (startDt != null && endDt != null) {
+          intervals.add({
+            'appointment_id': id,
+            'start': startDt,
+            'end': endDt,
+            'start_formatted': _formatTime(startDt),
+            'end_formatted': _formatTime(endDt),
+          });
+        }
+      }
+
+      return intervals;
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /// Checks whether a proposed appointment interval [start, end] conflicts with any existing intervals.
+  /// Returns the conflicting interval Map if there is a conflict, or null if free.
+  static Map<String, dynamic>? findConflictingBooking({
+    required DateTime proposedStart,
+    required DateTime proposedEnd,
+    required List<Map<String, dynamic>> existingIntervals,
+  }) {
+    for (final interval in existingIntervals) {
+      final bookedStart = interval['start'] as DateTime?;
+      final bookedEnd = interval['end'] as DateTime?;
+      if (bookedStart == null || bookedEnd == null) continue;
+
+      // Overlap formula: proposedStart < bookedEnd && proposedEnd > bookedStart
+      if (proposedStart.isBefore(bookedEnd) && proposedEnd.isAfter(bookedStart)) {
+        return interval;
+      }
+    }
+    return null;
+  }
+
+  static String _formatTime(DateTime dt) {
+    final hour = dt.hour == 0 ? 12 : (dt.hour > 12 ? dt.hour - 12 : dt.hour);
+    final minute = dt.minute.toString().padLeft(2, '0');
+    final period = dt.hour >= 12 ? 'PM' : 'AM';
+    return '$hour:$minute $period';
   }
 
   static Future<List<Map<String, dynamic>>> searchBookings(String query) async {
