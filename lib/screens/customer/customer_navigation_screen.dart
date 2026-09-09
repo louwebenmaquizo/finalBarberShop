@@ -19,39 +19,34 @@ class CustomerNavigationScreen extends StatefulWidget {
 
 class _CustomerNavigationScreenState extends State<CustomerNavigationScreen> {
   late int _currentIndex;
-  int _refreshCounter = 0;
+  late final List<Widget> _screens;
 
   @override
   void initState() {
     super.initState();
     _currentIndex = widget.initialIndex;
+    _screens = [
+      CustomerHomeScreen(
+        userData: widget.userData,
+      ),
+      CustomerCatalogScreen(
+        userData: widget.userData,
+      ),
+      CustomerAppointmentsScreen(
+        userData: widget.userData,
+      ),
+      CustomerSettingsScreen(
+        userData: widget.userData,
+      ),
+    ];
   }
 
   @override
   Widget build(BuildContext context) {
-    final screens = [
-      CustomerHomeScreen(
-        key: ValueKey('home_$_refreshCounter'),
-        userData: widget.userData,
-      ),
-      CustomerCatalogScreen(
-        key: ValueKey('catalog_$_refreshCounter'),
-        userData: widget.userData,
-      ),
-      CustomerAppointmentsScreen(
-        key: ValueKey('appointments_$_refreshCounter'),
-        userData: widget.userData,
-      ),
-      CustomerSettingsScreen(
-        key: ValueKey('settings_$_refreshCounter'),
-        userData: widget.userData,
-      ),
-    ];
-
     return Scaffold(
       body: IndexedStack(
         index: _currentIndex,
-        children: screens,
+        children: _screens,
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
@@ -68,7 +63,6 @@ class _CustomerNavigationScreenState extends State<CustomerNavigationScreen> {
           onTap: (index) {
             setState(() {
               _currentIndex = index;
-              _refreshCounter++;
             });
           },
           type: BottomNavigationBarType.fixed,

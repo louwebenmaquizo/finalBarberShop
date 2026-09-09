@@ -138,7 +138,8 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
   Future<void> _loadCustomerId() async {
     if (widget.userData == null) return;
 
-    final directId = widget.userData!['customer_id'];
+    final directId =
+        widget.userData!['customer_id'] ?? widget.userData!['id'];
     if (directId != null && directId.toString().isNotEmpty) {
       if (mounted) {
         setState(() {
@@ -149,24 +150,14 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
     }
 
     try {
-      final email = widget.userData!['email'] ?? '';
-      final phone = widget.userData!['phone'] ?? '';
-
-      if (email.isEmpty && phone.isEmpty) return;
-
-      final customers = await ApiService.getCustomers();
-
-      for (var c in customers) {
-        final cEmail = (c['email'] ?? '').toString().toLowerCase();
-        final cPhone = (c['phone'] ?? '').toString();
-        if ((email.isNotEmpty && cEmail == email.toLowerCase()) ||
-            (phone.isNotEmpty && cPhone == phone)) {
-          if (mounted) {
-            setState(() {
-              _customerId = c['customer_id'];
-            });
-          }
-          break;
+      final userId =
+          (widget.userData!['user_id'] ?? widget.userData!['id'] ?? '').toString();
+      if (userId.isNotEmpty) {
+        final cust = await ApiService.getCustomerByUserId(userId);
+        if (cust != null && cust['customer_id'] != null && mounted) {
+          setState(() {
+            _customerId = cust['customer_id'].toString();
+          });
         }
       }
     } catch (_) {}

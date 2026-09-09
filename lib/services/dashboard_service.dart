@@ -4,11 +4,29 @@ import 'supabase_service_helpers.dart';
 class DashboardService {
   DashboardService._();
 
-  static Future<Map<String, dynamic>?> getDashboardData() async {
+  static Map<String, dynamic>? _cachedDashboard;
+  static DateTime? _dashboardCacheTime;
+  static const Duration _cacheTtl = Duration(seconds: 45);
+
+  static void invalidateCache() {
+    _cachedDashboard = null;
+    _dashboardCacheTime = null;
+  }
+
+  static Future<Map<String, dynamic>?> getDashboardData({
+    bool forceRefresh = false,
+  }) async {
+    if (!forceRefresh &&
+        _cachedDashboard != null &&
+        _dashboardCacheTime != null &&
+        DateTime.now().difference(_dashboardCacheTime!) < _cacheTtl) {
+      return _cachedDashboard;
+    }
+
     try {
       final raw = await SupabaseConfig.client.rpc(SupabaseConfig.dashboardRpc);
       final data = SupabaseServiceHelpers.asMap(raw);
-      if (data.isEmpty) return null;
+      if (data.isEmpty) return _cachedDashboard;
 
       final barbers = SupabaseServiceHelpers.asMapList(data['top_barbers']);
       data['top_barbers'] = await Future.wait(barbers.map((barber) async {
@@ -24,9 +42,12 @@ class DashboardService {
           SupabaseServiceHelpers.asMapList(data['recent_bookings']);
       data['monthly_revenue'] =
           SupabaseServiceHelpers.asMapList(data['monthly_revenue']);
+
+      _cachedDashboard = data;
+      _dashboardCacheTime = DateTime.now();
       return data;
     } catch (_) {
-      return null;
+      return _cachedDashboard;
     }
   }
 

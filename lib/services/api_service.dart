@@ -152,14 +152,93 @@ class ApiService {
     }
   }
 
-  static Future<List<dynamic>> getCustomers() async {
+  static final Map<String, Map<String, dynamic>> _customerCache = {};
+  static List<dynamic>? _cachedCustomers;
+  static DateTime? _customersCacheTime;
+  static const Duration _cacheTtl = Duration(minutes: 2);
+
+  static void invalidateCustomerCache() {
+    _cachedCustomers = null;
+    _customersCacheTime = null;
+    _customerCache.clear();
+  }
+
+  static Future<Map<String, dynamic>?> getCustomerByUserId(String userId) async {
+    final cleanId = userId.trim();
+    if (cleanId.isEmpty) return null;
+    if (_customerCache.containsKey(cleanId)) {
+      return _customerCache[cleanId];
+    }
+    try {
+      final data = await SupabaseConfig.client
+          .from(SupabaseConfig.customersTable)
+          .select()
+          .eq('user_id', cleanId)
+          .maybeSingle();
+      if (data == null) return null;
+      final normalized =
+          await _normalizeCustomer(SupabaseServiceHelpers.asMap(data));
+      _customerCache[cleanId] = normalized;
+      final customerId = normalized['customer_id']?.toString();
+      if (customerId != null && customerId.isNotEmpty) {
+        _customerCache[customerId] = normalized;
+      }
+      return normalized;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<Map<String, dynamic>?> getCustomerById(String customerId) async {
+    final cleanId = customerId.trim();
+    if (cleanId.isEmpty) return null;
+    if (_customerCache.containsKey(cleanId)) {
+      return _customerCache[cleanId];
+    }
+    try {
+      final data = await SupabaseConfig.client
+          .from(SupabaseConfig.customersTable)
+          .select()
+          .eq('id', cleanId)
+          .maybeSingle();
+      if (data == null) return null;
+      final normalized =
+          await _normalizeCustomer(SupabaseServiceHelpers.asMap(data));
+      _customerCache[cleanId] = normalized;
+      final userId = normalized['user_id']?.toString();
+      if (userId != null && userId.isNotEmpty) {
+        _customerCache[userId] = normalized;
+      }
+      return normalized;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<List<dynamic>> getCustomers({bool forceRefresh = false}) async {
+    if (!forceRefresh &&
+        _cachedCustomers != null &&
+        _customersCacheTime != null &&
+        DateTime.now().difference(_customersCacheTime!) < _cacheTtl) {
+      return _cachedCustomers!;
+    }
     try {
       final data = await SupabaseConfig.client
           .from(SupabaseConfig.customersTable)
           .select()
           .order('full_name');
       final customers = SupabaseServiceHelpers.asMapList(data);
-      return Future.wait(customers.map(_normalizeCustomer));
+      final normalizedList =
+          await Future.wait(customers.map(_normalizeCustomer));
+      _cachedCustomers = normalizedList;
+      _customersCacheTime = DateTime.now();
+      for (final c in normalizedList) {
+        final id = c['customer_id']?.toString();
+        final uid = c['user_id']?.toString();
+        if (id != null && id.isNotEmpty) _customerCache[id] = c;
+        if (uid != null && uid.isNotEmpty) _customerCache[uid] = c;
+      }
+      return normalizedList;
     } catch (_) {
       return <dynamic>[];
     }

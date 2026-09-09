@@ -30,54 +30,42 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   @override
   void initState() {
     super.initState();
-    _loadCustomerData();
-    _loadAppointments();
-    _loadServices();
+    _initUserData();
+    _loadInitialData();
   }
 
-  Future<void> _loadCustomerData() async {
-    // Get customer name, phone, and photo from user data or customer record
+  void _initUserData() {
     if (widget.userData != null) {
       final email = widget.userData!['email'] ?? '';
       final phone = widget.userData!['phone'] ?? '';
-      final directId = widget.userData!['customer_id'];
+      final directId = widget.userData!['customer_id'] ?? widget.userData!['id'];
       final photo = widget.userData!['profile_picture'] ??
           widget.userData!['profile_photo'];
 
-      setState(() {
-        if (directId != null && directId.toString().isNotEmpty) {
-          _customerId = directId.toString();
-        }
-        if (photo != null && photo.toString().isNotEmpty) {
-          _customerPhoto = photo.toString();
-        }
-        _customerName = widget.userData!['full_name'] ??
-            widget.userData!['username'] ??
-            (email.isNotEmpty ? email.split('@')[0] : 'Customer');
-        _customerPhone = phone;
-      });
+      if (directId != null && directId.toString().isNotEmpty) {
+        _customerId = directId.toString();
+      }
+      if (photo != null && photo.toString().isNotEmpty) {
+        _customerPhoto = photo.toString();
+      }
+      _customerName = widget.userData!['full_name'] ??
+          widget.userData!['username'] ??
+          (email.isNotEmpty ? email.split('@')[0] : 'Customer');
+      _customerPhone = phone;
+    }
+  }
 
-      // Look up customer by email or phone to get latest profile_picture if needed
-      try {
-        final customers = await ApiService.getCustomers();
-        Map<String, dynamic>? customer;
-
-        for (var c in customers) {
-          final cEmail = (c['email'] ?? '').toString().toLowerCase();
-          final cPhone = (c['phone'] ?? '').toString();
-          final cId = (c['customer_id'] ?? '').toString();
-          if ((_customerId != null && cId == _customerId) ||
-              (email.isNotEmpty && cEmail == email.toLowerCase()) ||
-              (phone.isNotEmpty && cPhone == phone)) {
-            customer = c as Map<String, dynamic>?;
-            break;
-          }
-        }
-
-        if (customer != null && customer['customer_id'] != null) {
-          if (mounted) {
+  Future<void> _loadCustomerData() async {
+    if (_customerId != null && _customerId!.isNotEmpty) return;
+    if (widget.userData != null) {
+      final userId =
+          (widget.userData!['user_id'] ?? widget.userData!['id'] ?? '').toString();
+      if (userId.isNotEmpty) {
+        try {
+          final customer = await ApiService.getCustomerByUserId(userId);
+          if (customer != null && customer['customer_id'] != null && mounted) {
             setState(() {
-              _customerId = customer!['customer_id'];
+              _customerId = customer['customer_id'].toString();
               if (_customerPhone.isEmpty && customer['phone'] != null) {
                 _customerPhone = customer['phone'].toString();
               }
@@ -90,9 +78,19 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
               }
             });
           }
-        }
-      } catch (_) {}
+        } catch (_) {}
+      }
     }
+  }
+
+  Future<void> _loadInitialData() async {
+    if (_customerId == null && widget.userData != null) {
+      await _loadCustomerData();
+    }
+    await Future.wait([
+      _loadAppointments(),
+      _loadServices(),
+    ]);
   }
 
   Future<void> _loadAppointments() async {
@@ -101,11 +99,6 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     });
 
     try {
-      // Load customer_id first if not already loaded
-      if (_customerId == null && widget.userData != null) {
-        await _loadCustomerData();
-      }
-
       // Get appointments filtered by customer_id and upcoming only (no past appointments)
       final appointments = await ApiService.getAppointments(
         customerId: _customerId,

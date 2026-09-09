@@ -33,10 +33,19 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
     NavItem(icon: Icons.settings, label: 'Settings', route: 'settings'),
   ];
 
+  late final List<Widget> _adminScreens;
+
   @override
   void initState() {
     super.initState();
     _username = widget.username ?? 'Admin';
+    _adminScreens = const [
+      DashboardScreen(),
+      EmployeeScreen(),
+      CatalogScreen(),
+      BookingScreen(),
+      SettingsScreen(),
+    ];
     _loadAdminSession();
   }
 
@@ -52,46 +61,11 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
     } catch (_) {}
   }
 
-  // Placeholder screens for now
   Widget _getBodyContent() {
-    switch (_selectedIndex) {
-      case 0: // Navigation/Dashboard
-        return _buildDashboardScreen();
-      case 1: // Employee
-        return _buildEmployeeScreen();
-      case 2: // Catalog
-        return _buildCatalogScreen();
-      case 3: // Booking
-        return _buildBookingScreen();
-      case 4: // Settings
-        return _buildSettingsScreen();
-      default:
-        return _buildDashboardScreen();
-    }
-  }
-
-  // Dashboard screen
-  Widget _buildDashboardScreen() {
-    return const DashboardScreen();
-  }
-
-  Widget _buildEmployeeScreen() {
-    return const EmployeeScreen();
-  }
-
-  // Catalog screen
-  Widget _buildCatalogScreen() {
-    return const CatalogScreen();
-  }
-
-  // Booking screen
-  Widget _buildBookingScreen() {
-    return const BookingScreen();
-  }
-
-  // Settings screen
-  Widget _buildSettingsScreen() {
-    return const SettingsScreen();
+    return IndexedStack(
+      index: _selectedIndex,
+      children: _adminScreens,
+    );
   }
 
   @override

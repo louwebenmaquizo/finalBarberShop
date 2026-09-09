@@ -55,8 +55,8 @@ class _CustomerAppointmentsScreenState
       return;
     }
 
-    // Check if customer_id is already present in userData
-    final directId = widget.userData!['customer_id'];
+    final directId =
+        widget.userData!['customer_id'] ?? widget.userData!['id'];
     if (directId != null && directId.toString().isNotEmpty) {
       if (mounted) {
         setState(() {
@@ -67,32 +67,13 @@ class _CustomerAppointmentsScreenState
     }
 
     try {
-      final email = widget.userData!['email'] ?? '';
-      final phone = widget.userData!['phone'] ?? '';
-
-      if (email.isEmpty && phone.isEmpty) {
-        return;
-      }
-
-      final customers = await ApiService.getCustomers();
-
-      // Find customer by email or phone
-      Map<String, dynamic>? foundCustomer;
-      for (var c in customers) {
-        final cEmail = (c['email'] ?? '').toString().toLowerCase();
-        final cPhone = (c['phone'] ?? '').toString();
-
-        if ((email.isNotEmpty && cEmail == email.toLowerCase()) ||
-            (phone.isNotEmpty && cPhone == phone)) {
-          foundCustomer = c as Map<String, dynamic>?;
-          break;
-        }
-      }
-
-      if (foundCustomer != null && foundCustomer['customer_id'] != null) {
-        if (mounted) {
+      final userId =
+          (widget.userData!['user_id'] ?? widget.userData!['id'] ?? '').toString();
+      if (userId.isNotEmpty) {
+        final cust = await ApiService.getCustomerByUserId(userId);
+        if (cust != null && cust['customer_id'] != null && mounted) {
           setState(() {
-            _customerId = foundCustomer!['customer_id'];
+            _customerId = cust['customer_id'].toString();
           });
         }
       }

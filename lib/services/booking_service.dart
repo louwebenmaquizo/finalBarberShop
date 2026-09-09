@@ -1,11 +1,30 @@
 import 'api_service.dart';
+import 'dashboard_service.dart';
 import '../config/api_config.dart';
 import 'supabase_service_helpers.dart';
 
 class BookingService {
   BookingService._();
 
-  static Future<List<Map<String, dynamic>>> getAllBookings() async {
+  static List<Map<String, dynamic>>? _cachedBookings;
+  static DateTime? _bookingsCacheTime;
+  static const Duration _cacheTtl = Duration(seconds: 45);
+
+  static void invalidateCache() {
+    _cachedBookings = null;
+    _bookingsCacheTime = null;
+  }
+
+  static Future<List<Map<String, dynamic>>> getAllBookings({
+    bool forceRefresh = false,
+  }) async {
+    if (!forceRefresh &&
+        _cachedBookings != null &&
+        _bookingsCacheTime != null &&
+        DateTime.now().difference(_bookingsCacheTime!) < _cacheTtl) {
+      return _cachedBookings!;
+    }
+
     final appointments = await ApiService.getAppointments();
     final seenIds = <String>{};
     final uniqueList = <Map<String, dynamic>>[];
@@ -39,6 +58,9 @@ class BookingService {
         'notes': booking['notes'] ?? '',
       });
     }
+
+    _cachedBookings = uniqueList;
+    _bookingsCacheTime = DateTime.now();
 
     return uniqueList;
   }
@@ -171,16 +193,22 @@ class BookingService {
   static Future<Map<String, dynamic>> updateBooking(
     String appointmentId,
     Map<String, dynamic> bookingData,
-  ) =>
-      ApiService.updateAppointment(appointmentId, bookingData);
+  ) async {
+    invalidateCache();
+    DashboardService.invalidateCache();
+    return ApiService.updateAppointment(appointmentId, bookingData);
+  }
 
   static Future<Map<String, dynamic>> deleteBooking(
     String appointmentId,
-  ) =>
-      ApiService.updateAppointment(
-        appointmentId,
-        {'status': 'canceled'},
-      );
+  ) async {
+    invalidateCache();
+    DashboardService.invalidateCache();
+    return ApiService.updateAppointment(
+      appointmentId,
+      {'status': 'canceled'},
+    );
+  }
 
   static Future<Map<String, dynamic>> cancelBooking(
     String appointmentId,
@@ -192,24 +220,30 @@ class BookingService {
     String date,
     String time,
     String staffId,
-  ) =>
-      ApiService.updateAppointment(
-        appointmentId,
-        {
-          'date': date,
-          'time': time,
-          'staff_id': staffId,
-        },
-      );
+  ) async {
+    invalidateCache();
+    DashboardService.invalidateCache();
+    return ApiService.updateAppointment(
+      appointmentId,
+      {
+        'date': date,
+        'time': time,
+        'staff_id': staffId,
+      },
+    );
+  }
 
   /// The payment flow calls [TransactionService.createTransaction] first; that
   /// method uses the atomic `complete_appointment` RPC. This update is therefore
   /// intentionally idempotent and also supports barber-only completion flows.
   static Future<Map<String, dynamic>> completeBooking(
     String appointmentId,
-  ) =>
-      ApiService.updateAppointment(
-        appointmentId,
-        {'status': 'completed'},
-      );
+  ) async {
+    invalidateCache();
+    DashboardService.invalidateCache();
+    return ApiService.updateAppointment(
+      appointmentId,
+      {'status': 'completed'},
+    );
+  }
 }
