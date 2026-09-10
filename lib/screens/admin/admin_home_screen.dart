@@ -9,6 +9,7 @@ import 'settings_screen.dart';
 import 'admin_profile_screen.dart';
 import '../../services/auth_session_service.dart';
 import '../../widgets/notifications_modal.dart';
+import '../ai_chat_screen.dart';
 
 class AdminHomeScreen extends StatefulWidget {
   final String? username;
@@ -82,6 +83,8 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       },
       child: Scaffold(
         backgroundColor: Colors.white,
+        floatingActionButton: const AiFloatingButton(),
+        floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
         body: SafeArea(
           bottom: false,
           child: Column(

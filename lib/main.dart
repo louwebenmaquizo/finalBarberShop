@@ -26,7 +26,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF5BBCFF)),
         useMaterial3: true,
         textTheme: GoogleFonts.manropeTextTheme(
-          Theme.of(context).textTheme,
+          Theme.of(context).textTheme,  
         ),
       ),
       home: const AuthGate(),
