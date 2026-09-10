@@ -490,11 +490,15 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
+                          SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: MediaQuery.of(context).size.width > 900
+                            ? 4
+                            : MediaQuery.of(context).size.width > 600
+                                ? 3
+                                : 2,
                         mainAxisSpacing: 14,
                         crossAxisSpacing: 14,
-                        childAspectRatio: 0.64,
+                        childAspectRatio: 0.80,
                       ),
                       itemCount: _services.length,
                       itemBuilder: (context, index) {
@@ -875,7 +879,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
           // Card Details
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+              padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -997,7 +1001,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   }
 
   Widget _buildCustomerServiceImage(String? photo, {String? serviceName, String? categoryName}) {
-    const double imgHeight = 115.0;
+    const double imgHeight = 108.0;
     String? clean = photo?.trim();
     if (clean == null || clean.isEmpty) {
       clean = getDefaultCatalogImage(serviceName, categoryName);
