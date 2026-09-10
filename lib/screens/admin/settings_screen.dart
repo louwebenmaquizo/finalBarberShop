@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../auth/login_screen.dart';
+import '../onboarding.dart';
 import '../../services/auth_session_service.dart';
 import '../../widgets/terms_modal.dart';
 import '../customer/change_password_dialog.dart';
@@ -145,7 +146,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               if (context.mounted) {
                 Navigator.pushAndRemoveUntil(
                   context,
-                  MaterialPageRoute(builder: (context) => const LoginScreen()),
+                  MaterialPageRoute(
+                      builder: (context) => const OnboardingScreen()),
                   (route) => false,
                 );
               }

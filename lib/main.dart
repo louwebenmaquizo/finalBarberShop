@@ -5,12 +5,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'config/api_config.dart';
-import 'services/auth_session_service.dart';
 import 'screens/onboarding.dart';
-import 'screens/admin/admin_home_screen.dart';
-import 'screens/barber/barber_home_screen.dart';
 import 'screens/auth/password_recovery_screen.dart';
-import 'screens/customer/customer_navigation_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -47,7 +43,6 @@ class AuthGate extends StatefulWidget {
 }
 
 class _AuthGateState extends State<AuthGate> {
-  bool _isChecking = true;
   Widget _targetScreen = const OnboardingScreen();
   StreamSubscription<AuthState>? _authSubscription;
 
@@ -60,12 +55,10 @@ class _AuthGateState extends State<AuthGate> {
         if (state.event == AuthChangeEvent.passwordRecovery) {
           setState(() {
             _targetScreen = const PasswordRecoveryScreen();
-            _isChecking = false;
           });
         }
       },
     );
-    _checkActiveSession();
   }
 
   @override
@@ -74,57 +67,8 @@ class _AuthGateState extends State<AuthGate> {
     super.dispose();
   }
 
-  Future<void> _checkActiveSession() async {
-    try {
-      final session = await AuthSessionService.getSession();
-      if (session != null && session.isNotEmpty) {
-        final role = session['role']?.toString().toLowerCase();
-        if (role == 'admin' || role == 'manager' || role == 'cashier') {
-          _targetScreen = AdminHomeScreen(username: session['username']);
-        } else if (role == 'barber' || role == 'staff') {
-          _targetScreen = BarberHomeScreen(barberData: session);
-        } else if (role == 'customer') {
-          _targetScreen = CustomerNavigationScreen(userData: session);
-        }
-      }
-    } catch (error) {
-      debugPrint('Session check failed: $error');
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isChecking = false;
-        });
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    if (_isChecking) {
-      return Scaffold(
-        backgroundColor: Colors.white,
-        body: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 72,
-                height: 72,
-                decoration: const BoxDecoration(
-                  color: Color(0xFF5BBCFF),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.content_cut,
-                    size: 36, color: Colors.white),
-              ),
-              const SizedBox(height: 20),
-              const CircularProgressIndicator(
-                  color: Color(0xFF5BBCFF), strokeWidth: 2.5),
-            ],
-          ),
-        ),
-      );
-    }
     return _targetScreen;
   }
 }

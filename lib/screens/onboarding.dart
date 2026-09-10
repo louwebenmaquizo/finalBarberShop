@@ -11,12 +11,15 @@ class OnboardingScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: Column(
-          children: [
-            // Image section - takes up top portion
-            Expanded(
-              flex: 5,
-              child: Image.asset(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 500),
+            child: Column(
+              children: [
+                // Image section - takes up top portion
+                Expanded(
+                  flex: 5,
+                  child: Image.asset(
                 'assets/images/picture1.png',
                 width: double.infinity,
                 fit: BoxFit.cover,
@@ -137,6 +140,8 @@ class OnboardingScreen extends StatelessWidget {
           ],
         ),
       ),
-    );
+    ),
+  ),
+);
   }
 }

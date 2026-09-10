@@ -5,6 +5,7 @@ import '../../services/auth_session_service.dart';
 import '../../services/booking_service.dart';
 import '../../widgets/notifications_modal.dart';
 import '../auth/login_screen.dart';
+import '../onboarding.dart';
 
 class BarberHomeScreen extends StatefulWidget {
   final Map<String, dynamic>? barberData;
@@ -219,7 +220,8 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
               if (context.mounted) {
                 Navigator.pushAndRemoveUntil(
                   context,
-                  MaterialPageRoute(builder: (context) => const LoginScreen()),
+                  MaterialPageRoute(
+                      builder: (context) => const OnboardingScreen()),
                   (route) => false,
                 );
               }
