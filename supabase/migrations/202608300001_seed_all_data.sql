@@ -1,16 +1,8 @@
 -- ============================================================================
--- Complete System Seeder Migration for Liem Barber Shop
--- Populates:
---   1. Service Categories (5 categories)
---   2. Services Catalog (12 services across categories)
---   3. Staff / Barbers (5 barbers with roles, rates, and skills)
---   4. Customers (8 customers with profiles, contact info, and notes)
---   5. Appointments (15 appointments: past, today, future, non-overlapping)
---   6. Transactions (Historical, recent, and today's transactions with tips/tax)
---   7. Customer Feedback / Reviews (Ratings 1-5 and authentic comments)
---
+-- Complete System Seeder Migration for Liem Barber Shop (50 records each)
+-- Populates 50 Services, 50 Barbers/Staff, 50 Customers, 50 Appointments,
+-- 50 Transactions, and 50 Customer Reviews/Feedback.
 -- Safe and idempotent: Uses fixed deterministic UUIDs and ON CONFLICT DO UPDATE.
--- Timestamps are dynamically calculated relative to current date (Asia/Singapore).
 -- ============================================================================
 
 begin;
@@ -20,815 +12,356 @@ begin;
 -- ============================================================================
 insert into public.service_categories (id, name, description)
 values
-  (
-    'c0000000-0000-0000-0000-000000000001'::uuid,
-    'Haircut',
-    'Precision haircuts, fades, scissor work, and traditional trims tailored to your personal style.'
-  ),
-  (
-    'c0000000-0000-0000-0000-000000000002'::uuid,
-    'Beard',
-    'Beard shaping, razor line-ups, and relaxing hot towel treatments.'
-  ),
-  (
-    'c0000000-0000-0000-0000-000000000003'::uuid,
-    'Styling',
-    'Washes, blowouts, pomade styling, and modern hair finishing.'
-  ),
-  (
-    'c0000000-0000-0000-0000-000000000004'::uuid,
-    'Treatments & Spa',
-    'Scalp detox, deep conditioning, and relaxing head and shoulder massage.'
-  ),
-  (
-    'c0000000-0000-0000-0000-000000000005'::uuid,
-    'Packages & Combos',
-    'Full grooming packages combining haircuts, beard detailing, and treatments.'
-  )
-on conflict (name) do update
-set description = excluded.description;
+  ('c0000000-0000-0000-0000-000000000001'::uuid, 'Haircut', 'Precision haircuts, fades, scissor work, and traditional trims.'),
+  ('c0000000-0000-0000-0000-000000000002'::uuid, 'Beard & Shave', 'Beard shaping, razor line-ups, and relaxing hot towel treatments.'),
+  ('c0000000-0000-0000-0000-000000000003'::uuid, 'Styling & Finish', 'Washes, blowouts, pomade styling, and modern hair finishing.'),
+  ('c0000000-0000-0000-0000-000000000004'::uuid, 'Treatments & Spa', 'Scalp detox, deep conditioning, and relaxing head and shoulder massage.'),
+  ('c0000000-0000-0000-0000-000000000005'::uuid, 'Packages & Combos', 'Full grooming packages combining haircuts, beard detailing, and treatments.'),
+  ('c0000000-0000-0000-0000-000000000006'::uuid, 'Kids & Juniors', 'Gentle, modern, and classic haircuts for kids and teens.'),
+  ('c0000000-0000-0000-0000-000000000007'::uuid, 'Color & Highlights', 'Grey blending, beard tinting, highlights, and full hair coloring.'),
+  ('c0000000-0000-0000-0000-000000000008'::uuid, 'VIP & Groom', 'Executive luxury grooming, wedding prep, and private chair service.')
+on conflict (name) do update set description = excluded.description;
 
 -- ============================================================================
--- 2. SERVICES
+-- 2. 50 SERVICES
 -- ============================================================================
-insert into public.services (
-  id,
-  name,
-  category_id,
-  duration_minutes,
-  price,
-  cost,
-  description,
-  image_url,
-  is_active
-)
+insert into public.services (id, name, category_id, duration_minutes, price, cost, description, image_url, is_active)
 values
-  (
-    's0000000-0000-0000-0000-000000000001'::uuid,
-    'Classic Haircut',
-    (select id from public.service_categories where name = 'Haircut'),
-    30,
-    25.00,
-    5.00,
-    'A clean, classic cut finished with a neck taper and razor cleanup.',
-    'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=600',
-    true
-  ),
-  (
-    's0000000-0000-0000-0000-000000000002'::uuid,
-    'Skin Fade',
-    (select id from public.service_categories where name = 'Haircut'),
-    45,
-    35.00,
-    7.00,
-    'Zero fade blended seamlessly into your chosen length on top with crisp outlines.',
-    'https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=600',
-    true
-  ),
-  (
-    's0000000-0000-0000-0000-000000000003'::uuid,
-    'Kids Haircut',
-    (select id from public.service_categories where name = 'Haircut'),
-    30,
-    18.00,
-    3.00,
-    'Gentle, patient haircut service for children under 12 years old.',
-    'https://images.unsplash.com/photo-1595152772835-219674b2a8a6?w=600',
-    true
-  ),
-  (
-    's0000000-0000-0000-0000-000000000004'::uuid,
-    'Scissor Cut & Texture',
-    (select id from public.service_categories where name = 'Haircut'),
-    45,
-    40.00,
-    8.00,
-    'Full shear/scissor cut for longer hair with custom texture and styling.',
-    'https://images.unsplash.com/photo-1517832606589-7629c3395909?w=600',
-    true
-  ),
-  (
-    's0000000-0000-0000-0000-000000000005'::uuid,
-    'Beard Grooming',
-    (select id from public.service_categories where name = 'Beard'),
-    30,
-    18.00,
-    4.00,
-    'Beard trim, cheek/neck line sculpting, and organic beard oil treatment.',
-    'https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=600',
-    true
-  ),
-  (
-    's0000000-0000-0000-0000-000000000006'::uuid,
-    'Hot Towel Shave',
-    (select id from public.service_categories where name = 'Beard'),
-    35,
-    28.00,
-    6.00,
-    'Traditional straight razor shave with pre-shave oil, hot steam towels, and soothing balm.',
-    'https://images.unsplash.com/photo-1512690459411-b9245aed614b?w=600',
-    true
-  ),
-  (
-    's0000000-0000-0000-0000-000000000007'::uuid,
-    'Hair Styling',
-    (select id from public.service_categories where name = 'Styling'),
-    30,
-    20.00,
-    4.00,
-    'Invigorating shampoo wash, blow dry, and premium matte clay or pomade styling.',
-    'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=600',
-    true
-  ),
-  (
-    's0000000-0000-0000-0000-000000000008'::uuid,
-    'Haircut and Beard',
-    (select id from public.service_categories where name = 'Haircut'),
-    60,
-    45.00,
-    9.00,
-    'The full package: tailored haircut plus full beard shaping and hot towel finish.',
-    'https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=600',
-    true
-  ),
-  (
-    's0000000-0000-0000-0000-000000000009'::uuid,
-    'Scalp Treatment & Massage',
-    (select id from public.service_categories where name = 'Treatments & Spa'),
-    30,
-    32.00,
-    6.00,
-    'Exfoliating tea tree scalp scrub and tension-relieving head massage.',
-    'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=600',
-    true
-  ),
-  (
-    's0000000-0000-0000-0000-000000000010'::uuid,
-    'Deep Conditioning Mask',
-    (select id from public.service_categories where name = 'Treatments & Spa'),
-    25,
-    24.00,
-    5.00,
-    'Moisturizing hair mask to repair dry hair and nourish scalp roots.',
-    'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=600',
-    true
-  ),
-  (
-    's0000000-0000-0000-0000-000000000011'::uuid,
-    'The Royal Treatment',
-    (select id from public.service_categories where name = 'Packages & Combos'),
-    75,
-    70.00,
-    15.00,
-    'Haircut, straight razor hot towel shave, scalp massage, and facial scrub.',
-    'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=600',
-    true
-  ),
-  (
-    's0000000-0000-0000-0000-000000000012'::uuid,
-    'Father & Son Duo',
-    (select id from public.service_categories where name = 'Packages & Combos'),
-    60,
-    52.00,
-    10.00,
-    'Two haircuts for father and son with complimentary beverage and styling.',
-    'https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?w=600',
-    true
-  )
-on conflict (name) do update
-set category_id = excluded.category_id,
-    duration_minutes = excluded.duration_minutes,
-    price = excluded.price,
-    cost = excluded.cost,
-    description = excluded.description,
-    image_url = coalesce(excluded.image_url, services.image_url),
-    is_active = excluded.is_active;
+  ('s0000001-0000-0000-0000-000000000000'::uuid, 'Classic Haircut', (select id from public.service_categories where name = 'Haircut'), 30, 25.00, 5.00, 'Clean classic cut finished with a neck taper and razor cleanup.', 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=600', true),
+  ('s0000002-0000-0000-0000-000000000000'::uuid, 'Skin Fade', (select id from public.service_categories where name = 'Haircut'), 45, 35.00, 7.00, 'Zero fade blended seamlessly into your chosen length on top with crisp outlines.', 'https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=600', true),
+  ('s0000003-0000-0000-0000-000000000000'::uuid, 'Kids Haircut', (select id from public.service_categories where name = 'Kids & Juniors'), 30, 18.00, 3.00, 'Gentle, patient haircut service for children under 12 years old.', 'https://images.unsplash.com/photo-1595152772835-219674b2a8a6?w=600', true),
+  ('s0000004-0000-0000-0000-000000000000'::uuid, 'Scissor Cut & Texture', (select id from public.service_categories where name = 'Haircut'), 45, 40.00, 8.00, 'Full shear/scissor cut for longer hair with custom texture and styling.', 'https://images.unsplash.com/photo-1517832606589-7629c3395909?w=600', true),
+  ('s0000005-0000-0000-0000-000000000000'::uuid, 'Beard Grooming', (select id from public.service_categories where name = 'Beard & Shave'), 30, 18.00, 4.00, 'Beard trim, cheek/neck line sculpting, and organic beard oil treatment.', 'https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=600', true),
+  ('s0000006-0000-0000-0000-000000000000'::uuid, 'Hot Towel Shave', (select id from public.service_categories where name = 'Beard & Shave'), 35, 28.00, 6.00, 'Traditional straight razor shave with pre-shave oil, hot steam towels, and soothing balm.', 'https://images.unsplash.com/photo-1512690459411-b9245aed614b?w=600', true),
+  ('s0000007-0000-0000-0000-000000000000'::uuid, 'Hair Styling', (select id from public.service_categories where name = 'Styling & Finish'), 30, 20.00, 4.00, 'Invigorating shampoo wash, blow dry, and premium matte clay or pomade styling.', 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=600', true),
+  ('s0000008-0000-0000-0000-000000000000'::uuid, 'Haircut and Beard', (select id from public.service_categories where name = 'Packages & Combos'), 60, 45.00, 9.00, 'The full package: tailored haircut plus full beard shaping and hot towel finish.', 'https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=600', true),
+  ('s0000009-0000-0000-0000-000000000000'::uuid, 'Scalp Treatment & Massage', (select id from public.service_categories where name = 'Treatments & Spa'), 30, 32.00, 6.00, 'Exfoliating tea tree scalp scrub and tension-relieving head massage.', 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=600', true),
+  ('s0000010-0000-0000-0000-000000000000'::uuid, 'Deep Conditioning Mask', (select id from public.service_categories where name = 'Treatments & Spa'), 25, 24.00, 5.00, 'Moisturizing hair mask to repair dry hair and nourish scalp roots.', 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=600', true),
+  ('s0000011-0000-0000-0000-000000000000'::uuid, 'The Royal Treatment', (select id from public.service_categories where name = 'VIP & Groom'), 75, 70.00, 15.00, 'Haircut, straight razor hot towel shave, scalp massage, and facial scrub.', 'https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?w=600', true),
+  ('s0000012-0000-0000-0000-000000000000'::uuid, 'Father & Son Duo', (select id from public.service_categories where name = 'Packages & Combos'), 60, 52.00, 10.00, 'Two haircuts for father and son with complimentary beverage and styling.', 'https://images.unsplash.com/photo-1593702288056-7927b442d0fa?w=600', true),
+  ('s0000013-0000-0000-0000-000000000000'::uuid, 'Taper Fade', (select id from public.service_categories where name = 'Haircut'), 35, 30.00, 6.00, 'Low or high temple and neckline taper with clean blended edges.', 'https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?w=600', true),
+  ('s0000014-0000-0000-0000-000000000000'::uuid, 'Buzz Cut & Lineup', (select id from public.service_categories where name = 'Haircut'), 20, 20.00, 4.00, 'Uniform clipper buzz cut with razor edge lineup around perimeter.', 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=600', true),
+  ('s0000015-0000-0000-0000-000000000000'::uuid, 'Executive Beard Trim', (select id from public.service_categories where name = 'Beard & Shave'), 35, 25.00, 5.00, 'Sculpted beard contouring, moustache trimming, and conditioning treatment.', 'https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=600', true),
+  ('s0000016-0000-0000-0000-000000000000'::uuid, 'Moustache Trim & Wax', (select id from public.service_categories where name = 'Beard & Shave'), 15, 12.00, 2.00, 'Precise moustache shaping and styling with organic moustache wax.', 'https://images.unsplash.com/photo-1595152772835-219674b2a8a6?w=600', true),
+  ('s0000017-0000-0000-0000-000000000000'::uuid, 'Head Shave Razor Finish', (select id from public.service_categories where name = 'Beard & Shave'), 40, 32.00, 6.00, 'Full smooth head shave with hot towels and hydrating aftershave balm.', 'https://images.unsplash.com/photo-1517832606589-7629c3395909?w=600', true),
+  ('s0000018-0000-0000-0000-000000000000'::uuid, 'Charcoal Face Mask', (select id from public.service_categories where name = 'Treatments & Spa'), 25, 22.00, 4.00, 'Pore-cleansing activated charcoal peel mask with cooling mint toner.', 'https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=600', true),
+  ('s0000019-0000-0000-0000-000000000000'::uuid, 'Eyebrow Threading & Wax', (select id from public.service_categories where name = 'Beard & Shave'), 15, 14.00, 2.00, 'Clean eyebrow definition and arch cleanup for men.', 'https://images.unsplash.com/photo-1512690459411-b9245aed614b?w=600', true),
+  ('s0000020-0000-0000-0000-000000000000'::uuid, 'Junior High School Cut', (select id from public.service_categories where name = 'Kids & Juniors'), 30, 22.00, 4.00, 'Trendy fade or crop for teenagers and middle/high school students.', 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=600', true),
+  ('s0000021-0000-0000-0000-000000000000'::uuid, 'Toddler First Cut', (select id from public.service_categories where name = 'Kids & Juniors'), 25, 20.00, 3.00, 'Gentle first haircut experience with commemorative certificate and lock of hair.', 'https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=600', true),
+  ('s0000022-0000-0000-0000-000000000000'::uuid, 'Silver Hair Blending', (select id from public.service_categories where name = 'Color & Highlights'), 45, 45.00, 10.00, 'Subtle grey hair camouflage that blends silver hair naturally.', 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=600', true),
+  ('s0000023-0000-0000-0000-000000000000'::uuid, 'Beard Color & Tint', (select id from public.service_categories where name = 'Color & Highlights'), 30, 28.00, 6.00, 'Enrich beard tone and cover patchy grey hairs seamlessly.', 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=600', true),
+  ('s0000024-0000-0000-0000-000000000000'::uuid, 'Full Hair Color Transformation', (select id from public.service_categories where name = 'Color & Highlights'), 60, 65.00, 15.00, 'Complete single-process hair color application with conditioning seal.', 'https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?w=600', true),
+  ('s0000025-0000-0000-0000-000000000000'::uuid, 'Bleach & Blonde Highlights', (select id from public.service_categories where name = 'Color & Highlights'), 75, 80.00, 18.00, 'Modern top highlights or platinum bleach with toner treatment.', 'https://images.unsplash.com/photo-1593702288056-7927b442d0fa?w=600', true),
+  ('s0000026-0000-0000-0000-000000000000'::uuid, 'Modern Mullet & Burst Fade', (select id from public.service_categories where name = 'Haircut'), 45, 38.00, 7.00, 'Contemporary modern mullet with burst fade sides and textured top.', 'https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?w=600', true),
+  ('s0000027-0000-0000-0000-000000000000'::uuid, 'Pompadour Sculpting', (select id from public.service_categories where name = 'Styling & Finish'), 40, 35.00, 7.00, 'Vintage slick pomp cut with high-shine pomade and comb lines.', 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=600', true),
+  ('s0000028-0000-0000-0000-000000000000'::uuid, 'Textured French Crop', (select id from public.service_categories where name = 'Haircut'), 35, 32.00, 6.00, 'Blunt fringe crop with heavy point-cutting texture on crown.', 'https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=600', true),
+  ('s0000029-0000-0000-0000-000000000000'::uuid, 'Curtains & Middle Part Cut', (select id from public.service_categories where name = 'Haircut'), 40, 34.00, 6.00, '90s inspired middle-part flow haircut with scissor graduation.', 'https://images.unsplash.com/photo-1595152772835-219674b2a8a6?w=600', true),
+  ('s0000030-0000-0000-0000-000000000000'::uuid, 'Anti-Dandruff Scalp Detox', (select id from public.service_categories where name = 'Treatments & Spa'), 35, 36.00, 7.00, 'Zinc and eucalyptus treatment to eliminate flakes and soothe itchiness.', 'https://images.unsplash.com/photo-1517832606589-7629c3395909?w=600', true),
+  ('s0000031-0000-0000-0000-000000000000'::uuid, 'Hot Oil Hair Therapy', (select id from public.service_categories where name = 'Treatments & Spa'), 30, 28.00, 5.00, 'Warm argan and jojoba oil infusion for damaged, brittle hair.', 'https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=600', true),
+  ('s0000032-0000-0000-0000-000000000000'::uuid, 'Groom''s Wedding Day Grooming', (select id from public.service_categories where name = 'VIP & Groom'), 90, 95.00, 20.00, 'VIP wedding cut, beard detailing, facial massage, and styling with champagne.', 'https://images.unsplash.com/photo-1512690459411-b9245aed614b?w=600', true),
+  ('s0000033-0000-0000-0000-000000000000'::uuid, 'Groomsmen Party Package', (select id from public.service_categories where name = 'VIP & Groom'), 120, 180.00, 40.00, 'Group grooming package for up to 3 groomsmen before the wedding.', 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=600', true),
+  ('s0000034-0000-0000-0000-000000000000'::uuid, 'Express Neck & Sideburn Cleanup', (select id from public.service_categories where name = 'Haircut'), 15, 12.00, 2.00, 'Quick 15-minute touch up around neck and ears between full cuts.', 'https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=600', true),
+  ('s0000035-0000-0000-0000-000000000000'::uuid, 'Deluxe Hair Wash & Blowout', (select id from public.service_categories where name = 'Styling & Finish'), 25, 20.00, 4.00, 'Double peppermint wash, invigorating scalp scrub, and round brush blow-dry.', 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=600', true),
+  ('s0000036-0000-0000-0000-000000000000'::uuid, 'Keratin Hair Smoothing', (select id from public.service_categories where name = 'Treatments & Spa'), 60, 85.00, 20.00, 'Frizz-reduction smoothing treatment lasting up to 6 weeks.', 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=600', true),
+  ('s0000037-0000-0000-0000-000000000000'::uuid, 'Afro Shape Up & Sponge Curl', (select id from public.service_categories where name = 'Haircut'), 40, 35.00, 7.00, 'Geometric afro taper and sponge twist styling with high-hold spray.', 'https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?w=600', true),
+  ('s0000038-0000-0000-0000-000000000000'::uuid, 'Comb-Over Fade & Hard Part', (select id from public.service_categories where name = 'Haircut'), 40, 36.00, 7.00, 'Classic gentleman side-part with carved razor hard part line.', 'https://images.unsplash.com/photo-1593702288056-7927b442d0fa?w=600', true),
+  ('s0000039-0000-0000-0000-000000000000'::uuid, 'Beard Oil & Steam Hydration', (select id from public.service_categories where name = 'Beard & Shave'), 25, 22.00, 4.00, 'Deep beard conditioning under steam dome with premium essential oils.', 'https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?w=600', true),
+  ('s0000040-0000-0000-0000-000000000000'::uuid, 'Nose & Ear Waxing', (select id from public.service_categories where name = 'Beard & Shave'), 15, 15.00, 2.00, 'Quick and painless hot wax hair removal for nose and ears.', 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=600', true),
+  ('s0000041-0000-0000-0000-000000000000'::uuid, 'Caesar Cut & Forward Fringe', (select id from public.service_categories where name = 'Haircut'), 30, 28.00, 5.00, 'Classic short Caesar cut with uniform fringe and low fade.', 'https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=600', true),
+  ('s0000042-0000-0000-0000-000000000000'::uuid, 'Slick Back Undercut', (select id from public.service_categories where name = 'Haircut'), 40, 34.00, 6.00, 'Disconnected undercut sides with long slicked-back top styling.', 'https://images.unsplash.com/photo-1595152772835-219674b2a8a6?w=600', true),
+  ('s0000043-0000-0000-0000-000000000000'::uuid, 'Gentleman''s Signature Combo', (select id from public.service_categories where name = 'Packages & Combos'), 60, 55.00, 12.00, 'Haircut, beard sculpt, hot steam towel, and cooling eye gel mask.', 'https://images.unsplash.com/photo-1517832606589-7629c3395909?w=600', true),
+  ('s0000044-0000-0000-0000-000000000000'::uuid, 'Father & Two Sons Trio', (select id from public.service_categories where name = 'Packages & Combos'), 75, 72.00, 15.00, 'Special 3-person haircut combo for family grooming day.', 'https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=600', true),
+  ('s0000045-0000-0000-0000-000000000000'::uuid, 'VIP Chair Club Cut', (select id from public.service_categories where name = 'VIP & Groom'), 60, 60.00, 12.00, 'Private booth cut with craft beverage, scalp massage, and hot towel.', 'https://images.unsplash.com/photo-1512690459411-b9245aed614b?w=600', true),
+  ('s0000046-0000-0000-0000-000000000000'::uuid, 'Sea Salt Wave Styling', (select id from public.service_categories where name = 'Styling & Finish'), 20, 18.00, 3.00, 'Texturizing sea salt spray application with diffuser blow-dry for natural waves.', 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=600', true),
+  ('s0000047-0000-0000-0000-000000000000'::uuid, 'High & Tight Military Cut', (select id from public.service_categories where name = 'Haircut'), 25, 24.00, 4.00, 'Strict military standard high and tight fade with razor crest.', 'https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=600', true),
+  ('s0000048-0000-0000-0000-000000000000'::uuid, 'Razor Fade & Graphic Hair Art', (select id from public.service_categories where name = 'Haircut'), 50, 48.00, 10.00, 'Custom geometric lines or hair design carved into fade sides.', 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=600', true),
+  ('s0000049-0000-0000-0000-000000000000'::uuid, 'Beard Reconstruction & Tint', (select id from public.service_categories where name = 'Beard & Shave'), 45, 42.00, 8.00, 'Full reshaping of overgrown or uneven beard with dye blending.', 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=600', true),
+  ('s0000050-0000-0000-0000-000000000000'::uuid, 'The Ultimate Platinum Cut', (select id from public.service_categories where name = 'VIP & Groom'), 90, 120.00, 25.00, 'Top-tier 90-min grooming ritual with full facial, shave, cut, and massage.', 'https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?w=600', true)
+on conflict (name) do update set category_id = excluded.category_id, duration_minutes = excluded.duration_minutes, price = excluded.price, cost = excluded.cost, description = excluded.description, image_url = coalesce(excluded.image_url, services.image_url), is_active = excluded.is_active;
 
 -- ============================================================================
--- 3. STAFF / BARBERS
+-- 3. 50 STAFF / BARBERS
 -- ============================================================================
-insert into public.staff (
-  id,
-  name,
-  phone,
-  email,
-  role,
-  skills,
-  pay_rate,
-  commission_rate,
-  profile_photo,
-  is_active
-)
+insert into public.staff (id, name, phone, email, role, skills, pay_rate, commission_rate, profile_photo, is_active)
 values
-  (
-    'e0000000-0000-0000-0000-000000000001'::uuid,
-    'Marcus Vance',
-    '+1 (555) 234-5671',
-    'marcus.vance@barbershop.com',
-    'Master Barber',
-    'Precision Fades, Hot Towel Shave, Beard Design, Scissor Work',
-    35.00,
-    15.000,
-    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400',
-    true
-  ),
-  (
-    'e0000000-0000-0000-0000-000000000002'::uuid,
-    'David Miller',
-    '+1 (555) 234-5672',
-    'david.miller@barbershop.com',
-    'Senior Fade Specialist',
-    'Skin Fades, Taper Fades, Razor Lineups, Textured Crops',
-    30.00,
-    12.500,
-    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400',
-    true
-  ),
-  (
-    'e0000000-0000-0000-0000-000000000003'::uuid,
-    'Alex Rivera',
-    '+1 (555) 234-5673',
-    'alex.rivera@barbershop.com',
-    'Stylist & Barber',
-    'Scissor Cuts, Pompadours, Hair Coloring, Modern Styling',
-    32.00,
-    14.000,
-    'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400',
-    true
-  ),
-  (
-    'e0000000-0000-0000-0000-000000000004'::uuid,
-    'Sarah Chen',
-    '+1 (555) 234-5674',
-    'sarah.chen@barbershop.com',
-    'Grooming & Spa Specialist',
-    'Scalp Massage, Deep Conditioning, Classic Haircuts, Facials',
-    28.00,
-    10.000,
-    'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400',
-    true
-  ),
-  (
-    'e0000000-0000-0000-0000-000000000005'::uuid,
-    'Liam Bennett',
-    '+1 (555) 234-5675',
-    'liam.bennett@barbershop.com',
-    'Junior Barber',
-    'Buzz Cuts, Traditional Tapers, Beard Trims, Neck Shaves',
-    22.00,
-    8.000,
-    'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400',
-    true
-  )
-on conflict (lower(btrim(name))) do update
-set phone = excluded.phone,
-    email = excluded.email,
-    role = excluded.role,
-    skills = excluded.skills,
-    pay_rate = excluded.pay_rate,
-    commission_rate = excluded.commission_rate,
-    profile_photo = coalesce(excluded.profile_photo, staff.profile_photo),
-    is_active = excluded.is_active;
+  ('e0000001-0000-0000-0000-000000000000'::uuid, 'Marcus Vance', '+1 (555) 234-5671', 'marcus.vance@barbershop.com', 'Master Barber', 'Precision Fades, Hot Towel Shave, Beard Design, Scissor Work', 38.00, 15.000, 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400', true),
+  ('e0000002-0000-0000-0000-000000000000'::uuid, 'David Miller', '+1 (555) 234-5672', 'david.miller@barbershop.com', 'Senior Fade Specialist', 'Skin Fades, Taper Fades, Razor Lineups, Textured Crops', 32.00, 12.500, 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400', true),
+  ('e0000003-0000-0000-0000-000000000000'::uuid, 'Alex Rivera', '+1 (555) 234-5673', 'alex.rivera@barbershop.com', 'Stylist & Barber', 'Scissor Cuts, Pompadours, Hair Coloring, Modern Styling', 34.00, 14.000, 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400', true),
+  ('e0000004-0000-0000-0000-000000000000'::uuid, 'Sarah Chen', '+1 (555) 234-5674', 'sarah.chen@barbershop.com', 'Grooming & Spa Specialist', 'Scalp Massage, Deep Conditioning, Classic Haircuts, Facials', 30.00, 10.000, 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400', true),
+  ('e0000005-0000-0000-0000-000000000000'::uuid, 'Liam Bennett', '+1 (555) 234-5675', 'liam.bennett@barbershop.com', 'Junior Barber', 'Buzz Cuts, Traditional Tapers, Beard Trims, Neck Shaves', 22.00, 8.000, 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400', true),
+  ('e0000006-0000-0000-0000-000000000000'::uuid, 'Carlos Santos', '+1 (555) 234-5676', 'carlos.santos@barbershop.com', 'Colorist & Barber', 'Beard Tinting, Silver Blending, Bleach & Tone, Precision Trims', 35.00, 14.000, 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400', true),
+  ('e0000007-0000-0000-0000-000000000000'::uuid, 'Ethan Wright', '+1 (555) 234-5677', 'ethan.wright@barbershop.com', 'Executive Groomer', 'VIP Packages, Straight Razor Shaves, Hot Towel Therapy', 40.00, 16.000, 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=400', true),
+  ('e0000008-0000-0000-0000-000000000000'::uuid, 'James Wilson', '+1 (555) 234-5678', 'james.wilson@barbershop.com', 'Classic Barber', 'Gentleman Cuts, Side Parts, Traditional Scissor & Comb', 28.00, 11.000, 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=400', true),
+  ('e0000009-0000-0000-0000-000000000000'::uuid, 'Elena Reyes', '+1 (555) 234-5679', 'elena.reyes@barbershop.com', 'Master Barber', 'Precision Fades, Hot Towel Shave, Beard Design, Scissor Work', 38.00, 15.000, 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400', true),
+  ('e0000010-0000-0000-0000-000000000000'::uuid, 'Lucas Gomez', '+1 (555) 234-5680', 'lucas.gomez@barbershop.com', 'Senior Fade Specialist', 'Skin Fades, Taper Fades, Razor Lineups, Textured Crops', 32.00, 12.500, 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400', true),
+  ('e0000011-0000-0000-0000-000000000000'::uuid, 'Jordan Hayes', '+1 (555) 234-5681', 'jordan.hayes@barbershop.com', 'Stylist & Barber', 'Scissor Cuts, Pompadours, Hair Coloring, Modern Styling', 34.00, 14.000, 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400', true),
+  ('e0000012-0000-0000-0000-000000000000'::uuid, 'Kevin Foster', '+1 (555) 234-5682', 'kevin.foster@barbershop.com', 'Grooming & Spa Specialist', 'Scalp Massage, Deep Conditioning, Classic Haircuts, Facials', 30.00, 10.000, 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400', true),
+  ('e0000013-0000-0000-0000-000000000000'::uuid, 'Gabriel Torres', '+1 (555) 234-5683', 'gabriel.torres@barbershop.com', 'Junior Barber', 'Buzz Cuts, Traditional Tapers, Beard Trims, Neck Shaves', 22.00, 8.000, 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400', true),
+  ('e0000014-0000-0000-0000-000000000000'::uuid, 'Mateo Morales', '+1 (555) 234-5684', 'mateo.morales@barbershop.com', 'Colorist & Barber', 'Beard Tinting, Silver Blending, Bleach & Tone, Precision Trims', 35.00, 14.000, 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400', true),
+  ('e0000015-0000-0000-0000-000000000000'::uuid, 'Ryan Brooks', '+1 (555) 234-5685', 'ryan.brooks@barbershop.com', 'Executive Groomer', 'VIP Packages, Straight Razor Shaves, Hot Towel Therapy', 40.00, 16.000, 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400', true),
+  ('e0000016-0000-0000-0000-000000000000'::uuid, 'Brandon Ward', '+1 (555) 234-5686', 'brandon.ward@barbershop.com', 'Classic Barber', 'Gentleman Cuts, Side Parts, Traditional Scissor & Comb', 28.00, 11.000, 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400', true),
+  ('e0000017-0000-0000-0000-000000000000'::uuid, 'Tyler Morgan', '+1 (555) 234-5687', 'tyler.morgan@barbershop.com', 'Master Barber', 'Precision Fades, Hot Towel Shave, Beard Design, Scissor Work', 38.00, 15.000, 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=400', true),
+  ('e0000018-0000-0000-0000-000000000000'::uuid, 'Justin Cooper', '+1 (555) 234-5688', 'justin.cooper@barbershop.com', 'Senior Fade Specialist', 'Skin Fades, Taper Fades, Razor Lineups, Textured Crops', 32.00, 12.500, 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=400', true),
+  ('e0000019-0000-0000-0000-000000000000'::uuid, 'Aaron Reed', '+1 (555) 234-5689', 'aaron.reed@barbershop.com', 'Stylist & Barber', 'Scissor Cuts, Pompadours, Hair Coloring, Modern Styling', 34.00, 14.000, 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400', true),
+  ('e0000020-0000-0000-0000-000000000000'::uuid, 'Victor Bailey', '+1 (555) 234-5690', 'victor.bailey@barbershop.com', 'Grooming & Spa Specialist', 'Scalp Massage, Deep Conditioning, Classic Haircuts, Facials', 30.00, 10.000, 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400', true),
+  ('e0000021-0000-0000-0000-000000000000'::uuid, 'Christian Bell', '+1 (555) 234-5691', 'christian.bell21@barbershop.com', 'Junior Barber', 'Buzz Cuts, Traditional Tapers, Beard Trims, Neck Shaves', 22.00, 8.000, 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400', true),
+  ('e0000022-0000-0000-0000-000000000000'::uuid, 'Anthony Kelly', '+1 (555) 234-5692', 'anthony.kelly22@barbershop.com', 'Colorist & Barber', 'Beard Tinting, Silver Blending, Bleach & Tone, Precision Trims', 35.00, 14.000, 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400', true),
+  ('e0000023-0000-0000-0000-000000000000'::uuid, 'Dylan Howard', '+1 (555) 234-5693', 'dylan.howard23@barbershop.com', 'Executive Groomer', 'VIP Packages, Straight Razor Shaves, Hot Towel Therapy', 40.00, 16.000, 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400', true),
+  ('e0000024-0000-0000-0000-000000000000'::uuid, 'Nathan Ward', '+1 (555) 234-5694', 'nathan.ward24@barbershop.com', 'Classic Barber', 'Gentleman Cuts, Side Parts, Traditional Scissor & Comb', 28.00, 11.000, 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400', true),
+  ('e0000025-0000-0000-0000-000000000000'::uuid, 'Jesse Cox', '+1 (555) 234-5695', 'jesse.cox25@barbershop.com', 'Master Barber', 'Precision Fades, Hot Towel Shave, Beard Design, Scissor Work', 38.00, 15.000, 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400', true),
+  ('e0000026-0000-0000-0000-000000000000'::uuid, 'Mason Diaz', '+1 (555) 234-5696', 'mason.diaz26@barbershop.com', 'Senior Fade Specialist', 'Skin Fades, Taper Fades, Razor Lineups, Textured Crops', 32.00, 12.500, 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400', true),
+  ('e0000027-0000-0000-0000-000000000000'::uuid, 'Logan Richardson', '+1 (555) 234-5697', 'logan.richardson27@barbershop.com', 'Stylist & Barber', 'Scissor Cuts, Pompadours, Hair Coloring, Modern Styling', 34.00, 14.000, 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=400', true),
+  ('e0000028-0000-0000-0000-000000000000'::uuid, 'Noah Wood', '+1 (555) 234-5698', 'noah.wood28@barbershop.com', 'Grooming & Spa Specialist', 'Scalp Massage, Deep Conditioning, Classic Haircuts, Facials', 30.00, 10.000, 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=400', true),
+  ('e0000029-0000-0000-0000-000000000000'::uuid, 'Leo Watson', '+1 (555) 234-5699', 'leo.watson29@barbershop.com', 'Junior Barber', 'Buzz Cuts, Traditional Tapers, Beard Trims, Neck Shaves', 22.00, 8.000, 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400', true),
+  ('e0000030-0000-0000-0000-000000000000'::uuid, 'Adrian Brooks', '+1 (555) 234-5700', 'adrian.brooks30@barbershop.com', 'Colorist & Barber', 'Beard Tinting, Silver Blending, Bleach & Tone, Precision Trims', 35.00, 14.000, 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400', true),
+  ('e0000031-0000-0000-0000-000000000000'::uuid, 'Oscar Chavez', '+1 (555) 234-5701', 'oscar.chavez31@barbershop.com', 'Executive Groomer', 'VIP Packages, Straight Razor Shaves, Hot Towel Therapy', 40.00, 16.000, 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400', true),
+  ('e0000032-0000-0000-0000-000000000000'::uuid, 'Julian Wood', '+1 (555) 234-5702', 'julian.wood32@barbershop.com', 'Classic Barber', 'Gentleman Cuts, Side Parts, Traditional Scissor & Comb', 28.00, 11.000, 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400', true),
+  ('e0000033-0000-0000-0000-000000000000'::uuid, 'Elijah James', '+1 (555) 234-5703', 'elijah.james33@barbershop.com', 'Master Barber', 'Precision Fades, Hot Towel Shave, Beard Design, Scissor Work', 38.00, 15.000, 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400', true),
+  ('e0000034-0000-0000-0000-000000000000'::uuid, 'Henry Bennett', '+1 (555) 234-5704', 'henry.bennett34@barbershop.com', 'Senior Fade Specialist', 'Skin Fades, Taper Fades, Razor Lineups, Textured Crops', 32.00, 12.500, 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400', true),
+  ('e0000035-0000-0000-0000-000000000000'::uuid, 'Samuel Gray', '+1 (555) 234-5705', 'samuel.gray35@barbershop.com', 'Stylist & Barber', 'Scissor Cuts, Pompadours, Hair Coloring, Modern Styling', 34.00, 14.000, 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400', true),
+  ('e0000036-0000-0000-0000-000000000000'::uuid, 'Sebastian Mendoza', '+1 (555) 234-5706', 'sebastian.mendoza36@barbershop.com', 'Grooming & Spa Specialist', 'Scalp Massage, Deep Conditioning, Classic Haircuts, Facials', 30.00, 10.000, 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400', true),
+  ('e0000037-0000-0000-0000-000000000000'::uuid, 'Jackson Ruiz', '+1 (555) 234-5707', 'jackson.ruiz37@barbershop.com', 'Junior Barber', 'Buzz Cuts, Traditional Tapers, Beard Trims, Neck Shaves', 22.00, 8.000, 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=400', true),
+  ('e0000038-0000-0000-0000-000000000000'::uuid, 'Oliver Hughes', '+1 (555) 234-5708', 'oliver.hughes38@barbershop.com', 'Colorist & Barber', 'Beard Tinting, Silver Blending, Bleach & Tone, Precision Trims', 35.00, 14.000, 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=400', true),
+  ('e0000039-0000-0000-0000-000000000000'::uuid, 'Alexander Price', '+1 (555) 234-5709', 'alexander.price39@barbershop.com', 'Executive Groomer', 'VIP Packages, Straight Razor Shaves, Hot Towel Therapy', 40.00, 16.000, 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400', true),
+  ('e0000040-0000-0000-0000-000000000000'::uuid, 'Daniel Alvarez', '+1 (555) 234-5710', 'daniel.alvarez40@barbershop.com', 'Classic Barber', 'Gentleman Cuts, Side Parts, Traditional Scissor & Comb', 28.00, 11.000, 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400', true),
+  ('e0000041-0000-0000-0000-000000000000'::uuid, 'Matthew Castillo', '+1 (555) 234-5711', 'matthew.castillo41@barbershop.com', 'Master Barber', 'Precision Fades, Hot Towel Shave, Beard Design, Scissor Work', 38.00, 15.000, 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400', true),
+  ('e0000042-0000-0000-0000-000000000000'::uuid, 'Joseph Sanders', '+1 (555) 234-5712', 'joseph.sanders42@barbershop.com', 'Senior Fade Specialist', 'Skin Fades, Taper Fades, Razor Lineups, Textured Crops', 32.00, 12.500, 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400', true),
+  ('e0000043-0000-0000-0000-000000000000'::uuid, 'Andrew Patel', '+1 (555) 234-5713', 'andrew.patel43@barbershop.com', 'Stylist & Barber', 'Scissor Cuts, Pompadours, Hair Coloring, Modern Styling', 34.00, 14.000, 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400', true),
+  ('e0000044-0000-0000-0000-000000000000'::uuid, 'Joshua Myers', '+1 (555) 234-5714', 'joshua.myers44@barbershop.com', 'Grooming & Spa Specialist', 'Scalp Massage, Deep Conditioning, Classic Haircuts, Facials', 30.00, 10.000, 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400', true),
+  ('e0000045-0000-0000-0000-000000000000'::uuid, 'Christopher Long', '+1 (555) 234-5715', 'christopher.long45@barbershop.com', 'Junior Barber', 'Buzz Cuts, Traditional Tapers, Beard Trims, Neck Shaves', 22.00, 8.000, 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400', true),
+  ('e0000046-0000-0000-0000-000000000000'::uuid, 'Nicholas Ross', '+1 (555) 234-5716', 'nicholas.ross46@barbershop.com', 'Colorist & Barber', 'Beard Tinting, Silver Blending, Bleach & Tone, Precision Trims', 35.00, 14.000, 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400', true),
+  ('e0000047-0000-0000-0000-000000000000'::uuid, 'Jonathan Foster', '+1 (555) 234-5717', 'jonathan.foster47@barbershop.com', 'Executive Groomer', 'VIP Packages, Straight Razor Shaves, Hot Towel Therapy', 40.00, 16.000, 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=400', true),
+  ('e0000048-0000-0000-0000-000000000000'::uuid, 'Austin Jimenez', '+1 (555) 234-5718', 'austin.jimenez48@barbershop.com', 'Classic Barber', 'Gentleman Cuts, Side Parts, Traditional Scissor & Comb', 28.00, 11.000, 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=400', true),
+  ('e0000049-0000-0000-0000-000000000000'::uuid, 'Cameron Powell', '+1 (555) 234-5719', 'cameron.powell49@barbershop.com', 'Master Barber', 'Precision Fades, Hot Towel Shave, Beard Design, Scissor Work', 38.00, 15.000, 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400', true),
+  ('e0000050-0000-0000-0000-000000000000'::uuid, 'Travis Jenkins', '+1 (555) 234-5720', 'travis.jenkins50@barbershop.com', 'Senior Fade Specialist', 'Skin Fades, Taper Fades, Razor Lineups, Textured Crops', 32.00, 12.500, 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400', true)
+on conflict (lower(btrim(name))) do update set phone = excluded.phone, email = excluded.email, role = excluded.role, skills = excluded.skills, pay_rate = excluded.pay_rate, commission_rate = excluded.commission_rate, profile_photo = coalesce(excluded.profile_photo, staff.profile_photo), is_active = excluded.is_active;
 
 -- ============================================================================
--- 4. CUSTOMERS
+-- 4. 50 CUSTOMERS
 -- ============================================================================
-insert into public.customers (
-  id,
-  full_name,
-  phone,
-  email,
-  registration_date,
-  date_of_birth,
-  gender,
-  notes,
-  profile_picture
-)
+insert into public.customers (id, full_name, phone, email, registration_date, date_of_birth, gender, notes, profile_picture)
 values
-  (
-    'd0000000-0000-0000-0000-000000000001'::uuid,
-    'James Wilson',
-    '+1 (555) 456-7801',
-    'james.wilson@example.com',
-    current_date - 120,
-    '1990-05-14',
-    'Male',
-    'Prefers low skin fade and pomade finish. VIP regular.',
-    'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200'
-  ),
-  (
-    'd0000000-0000-0000-0000-000000000002'::uuid,
-    'Robert Martinez',
-    '+1 (555) 456-7802',
-    'robert.martinez@example.com',
-    current_date - 90,
-    '1985-08-22',
-    'Male',
-    'Sensitive skin, use unscented pre-shave oil.',
-    'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=200'
-  ),
-  (
-    'd0000000-0000-0000-0000-000000000003'::uuid,
-    'Daniel Kim',
-    '+1 (555) 456-7803',
-    'daniel.kim@example.com',
-    current_date - 60,
-    '1994-11-03',
-    'Male',
-    'Regular every 2 weeks. Textured crop with taper.',
-    'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=200'
-  ),
-  (
-    'd0000000-0000-0000-0000-000000000004'::uuid,
-    'Anthony Davis',
-    '+1 (555) 456-7804',
-    'anthony.davis@example.com',
-    current_date - 45,
-    '1988-02-19',
-    'Male',
-    'Loves hot towel shaves with eucalyptus steam.',
-    'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=200'
-  ),
-  (
-    'd0000000-0000-0000-0000-000000000005'::uuid,
-    'Chris Taylor',
-    '+1 (555) 456-7805',
-    'chris.taylor@example.com',
-    current_date - 30,
-    '1998-07-30',
-    'Male',
-    'College athlete, high and tight fade.',
-    'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=200'
-  ),
-  (
-    'd0000000-0000-0000-0000-000000000006'::uuid,
-    'Ethan Wright',
-    '+1 (555) 456-7806',
-    'ethan.wright@example.com',
-    current_date - 20,
-    '1992-12-14',
-    'Male',
-    'Prefers evening appointments after 5 PM.',
-    'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=200'
-  ),
-  (
-    'd0000000-0000-0000-0000-000000000007'::uuid,
-    'Michael Brown',
-    '+1 (555) 456-7807',
-    'michael.brown@example.com',
-    current_date - 15,
-    '1983-03-09',
-    'Male',
-    'Visits with his son for Father & Son duo combo.',
-    'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200'
-  ),
-  (
-    'd0000000-0000-0000-0000-000000000008'::uuid,
-    'Oliver Thomas',
-    '+1 (555) 456-7808',
-    'oliver.thomas@example.com',
-    current_date - 5,
-    '1996-09-25',
-    'Male',
-    'New customer, referred by James Wilson.',
-    'https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?w=200'
-  )
-on conflict (phone) do update
-set full_name = excluded.full_name,
-    email = excluded.email,
-    date_of_birth = excluded.date_of_birth,
-    gender = excluded.gender,
-    notes = excluded.notes,
-    profile_picture = coalesce(excluded.profile_picture, customers.profile_picture);
+  ('d0000001-0000-0000-0000-000000000000'::uuid, 'James Wilson', '+1 (555) 456-7801', 'james.wilson@example.com', current_date - 148, '1981-02-02', 'Male', 'Prefers low skin fade and pomade finish. VIP regular.', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400'),
+  ('d0000002-0000-0000-0000-000000000000'::uuid, 'Robert Martinez', '+1 (555) 456-7802', 'robert.martinez@example.com', current_date - 146, '1982-03-03', 'Male', 'Sensitive skin, use unscented pre-shave oil.', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400'),
+  ('d0000003-0000-0000-0000-000000000000'::uuid, 'Daniel Kim', '+1 (555) 456-7803', 'daniel.kim@example.com', current_date - 144, '1983-04-04', 'Male', 'Regular every 2 weeks. Textured crop with taper.', 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400'),
+  ('d0000004-0000-0000-0000-000000000000'::uuid, 'Anthony Davis', '+1 (555) 456-7804', 'anthony.davis@example.com', current_date - 142, '1984-05-05', 'Male', 'Loves hot towel shaves with eucalyptus steam.', 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400'),
+  ('d0000005-0000-0000-0000-000000000000'::uuid, 'Chris Taylor', '+1 (555) 456-7805', 'chris.taylor@example.com', current_date - 140, '1985-06-06', 'Male', 'College athlete, high and tight fade.', 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400'),
+  ('d0000006-0000-0000-0000-000000000000'::uuid, 'Ethan Wright', '+1 (555) 456-7806', 'ethan.wright@example.com', current_date - 138, '1986-07-07', 'Male', 'Prefers evening appointments after 5 PM.', 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400'),
+  ('d0000007-0000-0000-0000-000000000000'::uuid, 'Michael Brown', '+1 (555) 456-7807', 'michael.brown@example.com', current_date - 136, '1987-08-08', 'Male', 'Visits with his son for Father & Son duo combo.', 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=400'),
+  ('d0000008-0000-0000-0000-000000000000'::uuid, 'Oliver Thomas', '+1 (555) 456-7808', 'oliver.thomas@example.com', current_date - 134, '1988-09-09', 'Male', 'New customer, referred by James Wilson.', 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=400'),
+  ('d0000009-0000-0000-0000-000000000000'::uuid, 'William Anderson', '+1 (555) 456-7809', 'william.anderson@example.com', current_date - 132, '1989-10-10', 'Male', 'Likes matte finish clay and scissor trimming on top.', 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400'),
+  ('d0000010-0000-0000-0000-000000000000'::uuid, 'Lucas Clark', '+1 (555) 456-7810', 'lucas.clark@example.com', current_date - 130, '1990-11-11', 'Male', 'Prefers quiet appointments, great tipper.', 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400'),
+  ('d0000011-0000-0000-0000-000000000000'::uuid, 'Benjamin Walker', '+1 (555) 456-7811', 'benjamin.walker@example.com', current_date - 128, '1991-12-12', 'Male', 'Corporate professional, needs crisp neck lines.', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400'),
+  ('d0000012-0000-0000-0000-000000000000'::uuid, 'Henry Hall', '+1 (555) 456-7812', 'henry.hall@example.com', current_date - 126, '1992-01-13', 'Male', 'Beard shaping only with straight razor cheek lines.', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400'),
+  ('d0000013-0000-0000-0000-000000000000'::uuid, 'Alexander Young', '+1 (555) 456-7813', 'alexander.young@example.com', current_date - 124, '1993-02-14', 'Male', 'Prefers low skin fade and pomade finish. VIP regular.', 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400'),
+  ('d0000014-0000-0000-0000-000000000000'::uuid, 'Sebastian Allen', '+1 (555) 456-7814', 'sebastian.allen@example.com', current_date - 122, '1994-03-15', 'Male', 'Sensitive skin, use unscented pre-shave oil.', 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400'),
+  ('d0000015-0000-0000-0000-000000000000'::uuid, 'Jack King', '+1 (555) 456-7815', 'jack.king@example.com', current_date - 120, '1995-04-16', 'Male', 'Regular every 2 weeks. Textured crop with taper.', 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400'),
+  ('d0000016-0000-0000-0000-000000000000'::uuid, 'Owen Scott', '+1 (555) 456-7816', 'owen.scott16@example.com', current_date - 118, '1996-05-17', 'Male', 'Loves hot towel shaves with eucalyptus steam.', 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400'),
+  ('d0000017-0000-0000-0000-000000000000'::uuid, 'Theodore Green', '+1 (555) 456-7817', 'theodore.green17@example.com', current_date - 116, '1997-06-18', 'Male', 'College athlete, high and tight fade.', 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=400'),
+  ('d0000018-0000-0000-0000-000000000000'::uuid, 'Matthew Baker', '+1 (555) 456-7818', 'matthew.baker18@example.com', current_date - 114, '1998-07-19', 'Male', 'Prefers evening appointments after 5 PM.', 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=400'),
+  ('d0000019-0000-0000-0000-000000000000'::uuid, 'Samuel Adams', '+1 (555) 456-7819', 'samuel.adams19@example.com', current_date - 112, '1999-08-20', 'Male', 'Visits with his son for Father & Son duo combo.', 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400'),
+  ('d0000020-0000-0000-0000-000000000000'::uuid, 'David Nelson', '+1 (555) 456-7820', 'david.nelson20@example.com', current_date - 110, '2000-09-21', 'Male', 'New customer, referred by James Wilson.', 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400'),
+  ('d0000021-0000-0000-0000-000000000000'::uuid, 'Joseph Hill', '+1 (555) 456-7821', 'joseph.hill21@example.com', current_date - 108, '2001-10-22', 'Male', 'Likes matte finish clay and scissor trimming on top.', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400'),
+  ('d0000022-0000-0000-0000-000000000000'::uuid, 'Carter Ramirez', '+1 (555) 456-7822', 'carter.ramirez22@example.com', current_date - 106, '2002-11-23', 'Male', 'Prefers quiet appointments, great tipper.', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400'),
+  ('d0000023-0000-0000-0000-000000000000'::uuid, 'Julian Campbell', '+1 (555) 456-7823', 'julian.campbell23@example.com', current_date - 104, '2003-12-24', 'Male', 'Corporate professional, needs crisp neck lines.', 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400'),
+  ('d0000024-0000-0000-0000-000000000000'::uuid, 'John Mitchell', '+1 (555) 456-7824', 'john.mitchell24@example.com', current_date - 102, '2004-01-25', 'Male', 'Beard shaping only with straight razor cheek lines.', 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400'),
+  ('d0000025-0000-0000-0000-000000000000'::uuid, 'Wyatt Roberts', '+1 (555) 456-7825', 'wyatt.roberts25@example.com', current_date - 100, '1980-02-26', 'Male', 'Prefers low skin fade and pomade finish. VIP regular.', 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400'),
+  ('d0000026-0000-0000-0000-000000000000'::uuid, 'Luke Carter', '+1 (555) 456-7826', 'luke.carter26@example.com', current_date - 98, '1981-03-27', 'Male', 'Sensitive skin, use unscented pre-shave oil.', 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400'),
+  ('d0000027-0000-0000-0000-000000000000'::uuid, 'Grayson Phillips', '+1 (555) 456-7827', 'grayson.phillips27@example.com', current_date - 96, '1982-04-28', 'Male', 'Regular every 2 weeks. Textured crop with taper.', 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=400'),
+  ('d0000028-0000-0000-0000-000000000000'::uuid, 'Isaac Evans', '+1 (555) 456-7828', 'isaac.evans28@example.com', current_date - 94, '1983-05-01', 'Male', 'Loves hot towel shaves with eucalyptus steam.', 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=400'),
+  ('d0000029-0000-0000-0000-000000000000'::uuid, 'Jayden Turner', '+1 (555) 456-7829', 'jayden.turner29@example.com', current_date - 92, '1984-06-02', 'Male', 'College athlete, high and tight fade.', 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400'),
+  ('d0000030-0000-0000-0000-000000000000'::uuid, 'Gabriel Torres', '+1 (555) 456-7830', 'gabriel.torres30@example.com', current_date - 90, '1985-07-03', 'Male', 'Prefers evening appointments after 5 PM.', 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400'),
+  ('d0000031-0000-0000-0000-000000000000'::uuid, 'Leo Parker', '+1 (555) 456-7831', 'leo.parker31@example.com', current_date - 88, '1986-08-04', 'Male', 'Visits with his son for Father & Son duo combo.', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400'),
+  ('d0000032-0000-0000-0000-000000000000'::uuid, 'Lincoln Collins', '+1 (555) 456-7832', 'lincoln.collins32@example.com', current_date - 86, '1987-09-05', 'Male', 'New customer, referred by James Wilson.', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400'),
+  ('d0000033-0000-0000-0000-000000000000'::uuid, 'Jaxon Edwards', '+1 (555) 456-7833', 'jaxon.edwards33@example.com', current_date - 84, '1988-10-06', 'Male', 'Likes matte finish clay and scissor trimming on top.', 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400'),
+  ('d0000034-0000-0000-0000-000000000000'::uuid, 'Levi Stewart', '+1 (555) 456-7834', 'levi.stewart34@example.com', current_date - 82, '1989-11-07', 'Male', 'Prefers quiet appointments, great tipper.', 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400'),
+  ('d0000035-0000-0000-0000-000000000000'::uuid, 'Mateo Flores', '+1 (555) 456-7835', 'mateo.flores35@example.com', current_date - 80, '1990-12-08', 'Male', 'Corporate professional, needs crisp neck lines.', 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400'),
+  ('d0000036-0000-0000-0000-000000000000'::uuid, 'Asher Morris', '+1 (555) 456-7836', 'asher.morris36@example.com', current_date - 78, '1991-01-09', 'Male', 'Beard shaping only with straight razor cheek lines.', 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400'),
+  ('d0000037-0000-0000-0000-000000000000'::uuid, 'Thomas Nguyen', '+1 (555) 456-7837', 'thomas.nguyen37@example.com', current_date - 76, '1992-02-10', 'Male', 'Prefers low skin fade and pomade finish. VIP regular.', 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=400'),
+  ('d0000038-0000-0000-0000-000000000000'::uuid, 'Charles Murphy', '+1 (555) 456-7838', 'charles.murphy38@example.com', current_date - 74, '1993-03-11', 'Male', 'Sensitive skin, use unscented pre-shave oil.', 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=400'),
+  ('d0000039-0000-0000-0000-000000000000'::uuid, 'Caleb Rivera', '+1 (555) 456-7839', 'caleb.rivera39@example.com', current_date - 72, '1994-04-12', 'Male', 'Regular every 2 weeks. Textured crop with taper.', 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400'),
+  ('d0000040-0000-0000-0000-000000000000'::uuid, 'Ezra Cook', '+1 (555) 456-7840', 'ezra.cook40@example.com', current_date - 70, '1995-05-13', 'Male', 'Loves hot towel shaves with eucalyptus steam.', 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400'),
+  ('d0000041-0000-0000-0000-000000000000'::uuid, 'Hudson Rogers', '+1 (555) 456-7841', 'hudson.rogers41@example.com', current_date - 68, '1996-06-14', 'Male', 'College athlete, high and tight fade.', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400'),
+  ('d0000042-0000-0000-0000-000000000000'::uuid, 'Nolan Morgan', '+1 (555) 456-7842', 'nolan.morgan42@example.com', current_date - 66, '1997-07-15', 'Male', 'Prefers evening appointments after 5 PM.', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400'),
+  ('d0000043-0000-0000-0000-000000000000'::uuid, 'Adrian Peterson', '+1 (555) 456-7843', 'adrian.peterson43@example.com', current_date - 64, '1998-08-16', 'Male', 'Visits with his son for Father & Son duo combo.', 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400'),
+  ('d0000044-0000-0000-0000-000000000000'::uuid, 'Cameron Cooper', '+1 (555) 456-7844', 'cameron.cooper44@example.com', current_date - 62, '1999-09-17', 'Male', 'New customer, referred by James Wilson.', 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400'),
+  ('d0000045-0000-0000-0000-000000000000'::uuid, 'Connor Reed', '+1 (555) 456-7845', 'connor.reed45@example.com', current_date - 60, '2000-10-18', 'Male', 'Likes matte finish clay and scissor trimming on top.', 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400'),
+  ('d0000046-0000-0000-0000-000000000000'::uuid, 'Hunter Bailey', '+1 (555) 456-7846', 'hunter.bailey46@example.com', current_date - 58, '2001-11-19', 'Male', 'Prefers quiet appointments, great tipper.', 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400'),
+  ('d0000047-0000-0000-0000-000000000000'::uuid, 'Eli Bell', '+1 (555) 456-7847', 'eli.bell47@example.com', current_date - 56, '2002-12-20', 'Male', 'Corporate professional, needs crisp neck lines.', 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=400'),
+  ('d0000048-0000-0000-0000-000000000000'::uuid, 'Austin Gomez', '+1 (555) 456-7848', 'austin.gomez48@example.com', current_date - 54, '2003-01-21', 'Male', 'Beard shaping only with straight razor cheek lines.', 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=400'),
+  ('d0000049-0000-0000-0000-000000000000'::uuid, 'Ian Kelly', '+1 (555) 456-7849', 'ian.kelly49@example.com', current_date - 52, '2004-02-22', 'Male', 'Prefers low skin fade and pomade finish. VIP regular.', 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400'),
+  ('d0000050-0000-0000-0000-000000000000'::uuid, 'Dominic Howard', '+1 (555) 456-7850', 'dominic.howard50@example.com', current_date - 50, '1980-03-23', 'Male', 'Sensitive skin, use unscented pre-shave oil.', 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400')
+on conflict (phone) do update set full_name = excluded.full_name, email = excluded.email, date_of_birth = excluded.date_of_birth, gender = excluded.gender, notes = excluded.notes, profile_picture = coalesce(excluded.profile_picture, customers.profile_picture);
 
 -- ============================================================================
--- 5. APPOINTMENTS
--- Time calculations are anchored to Singapore timezone (Asia/Singapore).
--- All appointments for each barber are spaced out to satisfy appointments_staff_no_overlap.
+-- 5. 50 APPOINTMENTS
 -- ============================================================================
-
--- Reference timestamp: start of today at 00:00:00 Singapore time
-with time_anchor as (
-  select date_trunc('day', now() at time zone 'Asia/Singapore') as today_sg
-),
-seed_appts (
-  id,
-  customer_id,
-  staff_id,
-  service_id,
-  start_offset_days,
-  start_hour,
-  start_minute,
-  duration_mins,
-  status,
-  source,
-  notes
-) as (
-  values
-    -- Staff 1: Marcus Vance (Master Barber)
-    (
-      'a0000000-0000-0000-0000-000000000001'::uuid,
-      'd0000000-0000-0000-0000-000000000001'::uuid, -- James Wilson
-      'e0000000-0000-0000-0000-000000000001'::uuid, -- Marcus Vance
-      's0000000-0000-0000-0000-000000000008'::uuid, -- Haircut and Beard (60m)
-      -4, 10, 0, 60,
-      'completed'::public.appointment_status, 'web'::public.appointment_source,
-      'Wants sharp beard lines and natural neck taper.'
-    ),
-    (
-      'a0000000-0000-0000-0000-000000000002'::uuid,
-      'd0000000-0000-0000-0000-000000000003'::uuid, -- Daniel Kim
-      'e0000000-0000-0000-0000-000000000001'::uuid, -- Marcus Vance
-      's0000000-0000-0000-0000-000000000002'::uuid, -- Skin Fade (45m)
-      -2, 14, 0, 45,
-      'completed'::public.appointment_status, 'web'::public.appointment_source,
-      'Low skin fade, finger length on top.'
-    ),
-    (
-      'a0000000-0000-0000-0000-000000000003'::uuid,
-      'd0000000-0000-0000-0000-000000000006'::uuid, -- Ethan Wright
-      'e0000000-0000-0000-0000-000000000001'::uuid, -- Marcus Vance
-      's0000000-0000-0000-0000-000000000001'::uuid, -- Classic Haircut (30m)
-      0, 10, 0, 30,
-      'confirmed'::public.appointment_status, 'phone'::public.appointment_source,
-      'Regular trim before weekend event.'
-    ),
-    (
-      'a0000000-0000-0000-0000-000000000004'::uuid,
-      'd0000000-0000-0000-0000-000000000008'::uuid, -- Oliver Thomas
-      'e0000000-0000-0000-0000-000000000001'::uuid, -- Marcus Vance
-      's0000000-0000-0000-0000-000000000011'::uuid, -- The Royal Treatment (75m)
-      1, 14, 0, 75,
-      'confirmed'::public.appointment_status, 'web'::public.appointment_source,
-      'First appointment at shop, VIP royal package.'
-    ),
-
-    -- Staff 2: David Miller (Senior Fade Specialist)
-    (
-      'a0000000-0000-0000-0000-000000000005'::uuid,
-      'd0000000-0000-0000-0000-000000000002'::uuid, -- Robert Martinez
-      'e0000000-0000-0000-0000-000000000002'::uuid, -- David Miller
-      's0000000-0000-0000-0000-000000000006'::uuid, -- Hot Towel Shave (35m)
-      -3, 11, 30, 35,
-      'completed'::public.appointment_status, 'walk-in'::public.appointment_source,
-      'Hot steam towel and soothing aloe vera balm.'
-    ),
-    (
-      'a0000000-0000-0000-0000-000000000006'::uuid,
-      'd0000000-0000-0000-0000-000000000004'::uuid, -- Anthony Davis
-      'e0000000-0000-0000-0000-000000000002'::uuid, -- David Miller
-      's0000000-0000-0000-0000-000000000005'::uuid, -- Beard Grooming (30m)
-      -1, 15, 0, 30,
-      'completed'::public.appointment_status, 'web'::public.appointment_source,
-      'Beard trim and organic beard butter.'
-    ),
-    (
-      'a0000000-0000-0000-0000-000000000007'::uuid,
-      'd0000000-0000-0000-0000-000000000005'::uuid, -- Chris Taylor
-      'e0000000-0000-0000-0000-000000000002'::uuid, -- David Miller
-      's0000000-0000-0000-0000-000000000002'::uuid, -- Skin Fade (45m)
-      0, 13, 30, 45,
-      'in-service'::public.appointment_status, 'web'::public.appointment_source,
-      'Mid drop fade with textured top.'
-    ),
-    (
-      'a0000000-0000-0000-0000-000000000008'::uuid,
-      'd0000000-0000-0000-0000-000000000001'::uuid, -- James Wilson
-      'e0000000-0000-0000-0000-000000000002'::uuid, -- David Miller
-      's0000000-0000-0000-0000-000000000006'::uuid, -- Hot Towel Shave (35m)
-      2, 11, 0, 35,
-      'pending'::public.appointment_status, 'web'::public.appointment_source,
-      'Post-gym shave.'
-    ),
-
-    -- Staff 3: Alex Rivera (Stylist & Barber)
-    (
-      'a0000000-0000-0000-0000-000000000009'::uuid,
-      'd0000000-0000-0000-0000-000000000007'::uuid, -- Michael Brown
-      'e0000000-0000-0000-0000-000000000003'::uuid, -- Alex Rivera
-      's0000000-0000-0000-0000-000000000004'::uuid, -- Scissor Cut & Texture (45m)
-      -5, 16, 0, 45,
-      'completed'::public.appointment_status, 'phone'::public.appointment_source,
-      'Layered scissor cut, blow-dry finish.'
-    ),
-    (
-      'a0000000-0000-0000-0000-000000000010'::uuid,
-      'd0000000-0000-0000-0000-000000000003'::uuid, -- Daniel Kim
-      'e0000000-0000-0000-0000-000000000003'::uuid, -- Alex Rivera
-      's0000000-0000-0000-0000-000000000007'::uuid, -- Hair Styling (30m)
-      0, 16, 0, 30,
-      'confirmed'::public.appointment_status, 'web'::public.appointment_source,
-      'Styling for business dinner.'
-    ),
-    (
-      'a0000000-0000-0000-0000-000000000011'::uuid,
-      'd0000000-0000-0000-0000-000000000005'::uuid, -- Chris Taylor
-      'e0000000-0000-0000-0000-000000000003'::uuid, -- Alex Rivera
-      's0000000-0000-0000-0000-000000000001'::uuid, -- Classic Haircut (30m)
-      -1, 9, 0, 30,
-      'canceled'::public.appointment_status, 'web'::public.appointment_source,
-      'Customer canceled due to emergency meeting.'
-    ),
-
-    -- Staff 4: Sarah Chen (Grooming & Spa Specialist)
-    (
-      'a0000000-0000-0000-0000-000000000012'::uuid,
-      'd0000000-0000-0000-0000-000000000006'::uuid, -- Ethan Wright
-      'e0000000-0000-0000-0000-000000000004'::uuid, -- Sarah Chen
-      's0000000-0000-0000-0000-000000000009'::uuid, -- Scalp Treatment (30m)
-      -3, 15, 0, 30,
-      'completed'::public.appointment_status, 'web'::public.appointment_source,
-      'Scalp exfoliation and therapeutic massage.'
-    ),
-    (
-      'a0000000-0000-0000-0000-000000000013'::uuid,
-      'd0000000-0000-0000-0000-000000000002'::uuid, -- Robert Martinez
-      'e0000000-0000-0000-0000-000000000004'::uuid, -- Sarah Chen
-      's0000000-0000-0000-0000-000000000010'::uuid, -- Deep Conditioning Mask (25m)
-      0, 17, 15, 25,
-      'confirmed'::public.appointment_status, 'web'::public.appointment_source,
-      'Hydration mask treatment.'
-    ),
-
-    -- Staff 5: Liam Bennett (Junior Barber)
-    (
-      'a0000000-0000-0000-0000-000000000014'::uuid,
-      'd0000000-0000-0000-0000-000000000007'::uuid, -- Michael Brown
-      'e0000000-0000-0000-0000-000000000005'::uuid, -- Liam Bennett
-      's0000000-0000-0000-0000-000000000003'::uuid, -- Kids Haircut (30m)
-      -2, 11, 0, 30,
-      'completed'::public.appointment_status, 'walk-in'::public.appointment_source,
-      'First haircut for 6-year-old son.'
-    ),
-    (
-      'a0000000-0000-0000-0000-000000000015'::uuid,
-      'd0000000-0000-0000-0000-000000000008'::uuid, -- Oliver Thomas
-      'e0000000-0000-0000-0000-000000000005'::uuid, -- Liam Bennett
-      's0000000-0000-0000-0000-000000000001'::uuid, -- Classic Haircut (30m)
-      3, 15, 30, 30,
-      'booked'::public.appointment_status, 'web'::public.appointment_source,
-      'Standard side part trim.'
-    )
-)
-insert into public.appointments (
-  id,
-  customer_id,
-  staff_id,
-  service_id,
-  start_time,
-  end_time,
-  status,
-  source,
-  notes
-)
-select
-  s.id,
-  s.customer_id,
-  s.staff_id,
-  s.service_id,
-  (t.today_sg + (s.start_offset_days || ' days')::interval + (s.start_hour || ' hours')::interval + (s.start_minute || ' minutes')::interval) at time zone 'Asia/Singapore',
-  (t.today_sg + (s.start_offset_days || ' days')::interval + (s.start_hour || ' hours')::interval + ((s.start_minute + s.duration_mins) || ' minutes')::interval) at time zone 'Asia/Singapore',
-  s.status,
-  s.source,
-  s.notes
-from seed_appts s
-cross join time_anchor t
-on conflict (id) do update
-set customer_id = excluded.customer_id,
-    staff_id = excluded.staff_id,
-    service_id = excluded.service_id,
-    start_time = excluded.start_time,
-    end_time = excluded.end_time,
-    status = excluded.status,
-    source = excluded.source,
-    notes = excluded.notes;
-
--- ============================================================================
--- 6. TRANSACTIONS
--- Populates completed transactions linked to completed appointments,
--- plus today's walk-in and past month historical totals for analytics charts.
--- ============================================================================
-insert into public.transactions (
-  id,
-  appointment_id,
-  customer_id,
-  staff_id,
-  amount,
-  tip_amount,
-  tax_amount,
-  payment_method,
-  status,
-  created_at
-)
+insert into public.appointments (id, customer_id, staff_id, service_id, start_time, end_time, price, status, notes)
 values
-  -- Completed Appt 1: James Wilson / Marcus Vance
-  (
-    't0000000-0000-0000-0000-000000000001'::uuid,
-    'a0000000-0000-0000-0000-000000000001'::uuid,
-    'd0000000-0000-0000-0000-000000000001'::uuid,
-    'e0000000-0000-0000-0000-000000000001'::uuid,
-    45.00,
-    8.00,
-    3.60,
-    'card'::public.payment_method_type,
-    'completed'::public.transaction_status,
-    (date_trunc('day', now() at time zone 'Asia/Singapore') - interval '4 days' + interval '11 hours') at time zone 'Asia/Singapore'
-  ),
-  -- Completed Appt 2: Daniel Kim / Marcus Vance
-  (
-    't0000000-0000-0000-0000-000000000002'::uuid,
-    'a0000000-0000-0000-0000-000000000002'::uuid,
-    'd0000000-0000-0000-0000-000000000003'::uuid,
-    'e0000000-0000-0000-0000-000000000001'::uuid,
-    35.00,
-    5.00,
-    2.80,
-    'mobile'::public.payment_method_type,
-    'completed'::public.transaction_status,
-    (date_trunc('day', now() at time zone 'Asia/Singapore') - interval '2 days' + interval '14 hours 45 minutes') at time zone 'Asia/Singapore'
-  ),
-  -- Completed Appt 5: Robert Martinez / David Miller
-  (
-    't0000000-0000-0000-0000-000000000003'::uuid,
-    'a0000000-0000-0000-0000-000000000005'::uuid,
-    'd0000000-0000-0000-0000-000000000002'::uuid,
-    'e0000000-0000-0000-0000-000000000002'::uuid,
-    28.00,
-    5.00,
-    2.24,
-    'cash'::public.payment_method_type,
-    'completed'::public.transaction_status,
-    (date_trunc('day', now() at time zone 'Asia/Singapore') - interval '3 days' + interval '12 hours 05 minutes') at time zone 'Asia/Singapore'
-  ),
-  -- Completed Appt 6: Anthony Davis / David Miller
-  (
-    't0000000-0000-0000-0000-000000000004'::uuid,
-    'a0000000-0000-0000-0000-000000000006'::uuid,
-    'd0000000-0000-0000-0000-000000000004'::uuid,
-    'e0000000-0000-0000-0000-000000000002'::uuid,
-    18.00,
-    4.00,
-    1.44,
-    'card'::public.payment_method_type,
-    'completed'::public.transaction_status,
-    (date_trunc('day', now() at time zone 'Asia/Singapore') - interval '1 day' + interval '15 hours 30 minutes') at time zone 'Asia/Singapore'
-  ),
-  -- Completed Appt 9: Michael Brown / Alex Rivera
-  (
-    't0000000-0000-0000-0000-000000000005'::uuid,
-    'a0000000-0000-0000-0000-000000000009'::uuid,
-    'd0000000-0000-0000-0000-000000000007'::uuid,
-    'e0000000-0000-0000-0000-000000000003'::uuid,
-    40.00,
-    6.00,
-    3.20,
-    'card'::public.payment_method_type,
-    'completed'::public.transaction_status,
-    (date_trunc('day', now() at time zone 'Asia/Singapore') - interval '5 days' + interval '16 hours 45 minutes') at time zone 'Asia/Singapore'
-  ),
-  -- Completed Appt 12: Ethan Wright / Sarah Chen
-  (
-    't0000000-0000-0000-0000-000000000006'::uuid,
-    'a0000000-0000-0000-0000-000000000012'::uuid,
-    'd0000000-0000-0000-0000-000000000006'::uuid,
-    'e0000000-0000-0000-0000-000000000004'::uuid,
-    32.00,
-    5.00,
-    2.56,
-    'mobile'::public.payment_method_type,
-    'completed'::public.transaction_status,
-    (date_trunc('day', now() at time zone 'Asia/Singapore') - interval '3 days' + interval '15 hours 30 minutes') at time zone 'Asia/Singapore'
-  ),
-  -- Completed Appt 14: Michael Brown / Liam Bennett
-  (
-    't0000000-0000-0000-0000-000000000007'::uuid,
-    'a0000000-0000-0000-0000-000000000014'::uuid,
-    'd0000000-0000-0000-0000-000000000007'::uuid,
-    'e0000000-0000-0000-0000-000000000005'::uuid,
-    18.00,
-    3.00,
-    1.44,
-    'cash'::public.payment_method_type,
-    'completed'::public.transaction_status,
-    (date_trunc('day', now() at time zone 'Asia/Singapore') - interval '2 days' + interval '11 hours 30 minutes') at time zone 'Asia/Singapore'
-  ),
-  -- Today's walk-in morning transaction (guarantees revenue_today in dashboard)
-  (
-    't0000000-0000-0000-0000-000000000008'::uuid,
-    null,
-    'd0000000-0000-0000-0000-000000000008'::uuid, -- Oliver Thomas
-    'e0000000-0000-0000-0000-000000000001'::uuid, -- Marcus Vance
-    35.00,
-    5.00,
-    2.80,
-    'card'::public.payment_method_type,
-    'completed'::public.transaction_status,
-    (date_trunc('day', now() at time zone 'Asia/Singapore') + interval '9 hours') at time zone 'Asia/Singapore'
-  ),
-  -- Historical transactions for monthly revenue analytics chart
-  (
-    't0000000-0000-0000-0000-000000000009'::uuid,
-    null,
-    'd0000000-0000-0000-0000-000000000001'::uuid,
-    'e0000000-0000-0000-0000-000000000001'::uuid,
-    380.00,
-    45.00,
-    30.40,
-    'card'::public.payment_method_type,
-    'completed'::public.transaction_status,
-    (date_trunc('month', now() at time zone 'Asia/Singapore') - interval '3 months' + interval '10 days') at time zone 'Asia/Singapore'
-  ),
-  (
-    't0000000-0000-0000-0000-000000000010'::uuid,
-    null,
-    'd0000000-0000-0000-0000-000000000003'::uuid,
-    'e0000000-0000-0000-0000-000000000002'::uuid,
-    540.00,
-    60.00,
-    43.20,
-    'mobile'::public.payment_method_type,
-    'completed'::public.transaction_status,
-    (date_trunc('month', now() at time zone 'Asia/Singapore') - interval '2 months' + interval '12 days') at time zone 'Asia/Singapore'
-  ),
-  (
-    't0000000-0000-0000-0000-000000000011'::uuid,
-    null,
-    'd0000000-0000-0000-0000-000000000005'::uuid,
-    'e0000000-0000-0000-0000-000000000003'::uuid,
-    720.00,
-    85.00,
-    57.60,
-    'card'::public.payment_method_type,
-    'completed'::public.transaction_status,
-    (date_trunc('month', now() at time zone 'Asia/Singapore') - interval '1 month' + interval '14 days') at time zone 'Asia/Singapore'
-  )
-on conflict (id) do update
-set appointment_id = excluded.appointment_id,
-    customer_id = excluded.customer_id,
-    staff_id = excluded.staff_id,
-    amount = excluded.amount,
-    tip_amount = excluded.tip_amount,
-    tax_amount = excluded.tax_amount,
-    payment_method = excluded.payment_method,
-    status = excluded.status,
-    created_at = excluded.created_at;
+  ('a0000001-0000-0000-0000-000000000000'::uuid, 'd0000001-0000-0000-0000-000000000000'::uuid, 'e0000001-0000-0000-0000-000000000000'::uuid, 's0000001-0000-0000-0000-000000000000'::uuid, (current_date + interval '-25 days' + time '10:00:00') at time zone 'Asia/Singapore', (current_date + interval '-25 days' + time '10:30:00') at time zone 'Asia/Singapore', 25.00, 'completed', 'Completed service for James. Customer satisfied.'),
+  ('a0000002-0000-0000-0000-000000000000'::uuid, 'd0000002-0000-0000-0000-000000000000'::uuid, 'e0000002-0000-0000-0000-000000000000'::uuid, 's0000002-0000-0000-0000-000000000000'::uuid, (current_date + interval '-24 days' + time '11:00:00') at time zone 'Asia/Singapore', (current_date + interval '-24 days' + time '11:45:00') at time zone 'Asia/Singapore', 35.00, 'completed', 'Completed service for Robert. Customer satisfied.'),
+  ('a0000003-0000-0000-0000-000000000000'::uuid, 'd0000003-0000-0000-0000-000000000000'::uuid, 'e0000003-0000-0000-0000-000000000000'::uuid, 's0000003-0000-0000-0000-000000000000'::uuid, (current_date + interval '-23 days' + time '12:00:00') at time zone 'Asia/Singapore', (current_date + interval '-23 days' + time '12:30:00') at time zone 'Asia/Singapore', 18.00, 'completed', 'Completed service for Daniel. Customer satisfied.'),
+  ('a0000004-0000-0000-0000-000000000000'::uuid, 'd0000004-0000-0000-0000-000000000000'::uuid, 'e0000004-0000-0000-0000-000000000000'::uuid, 's0000004-0000-0000-0000-000000000000'::uuid, (current_date + interval '-22 days' + time '13:00:00') at time zone 'Asia/Singapore', (current_date + interval '-22 days' + time '13:45:00') at time zone 'Asia/Singapore', 40.00, 'completed', 'Completed service for Anthony. Customer satisfied.'),
+  ('a0000005-0000-0000-0000-000000000000'::uuid, 'd0000005-0000-0000-0000-000000000000'::uuid, 'e0000005-0000-0000-0000-000000000000'::uuid, 's0000005-0000-0000-0000-000000000000'::uuid, (current_date + interval '-21 days' + time '14:00:00') at time zone 'Asia/Singapore', (current_date + interval '-21 days' + time '14:30:00') at time zone 'Asia/Singapore', 18.00, 'completed', 'Completed service for Chris. Customer satisfied.'),
+  ('a0000006-0000-0000-0000-000000000000'::uuid, 'd0000006-0000-0000-0000-000000000000'::uuid, 'e0000006-0000-0000-0000-000000000000'::uuid, 's0000006-0000-0000-0000-000000000000'::uuid, (current_date + interval '-20 days' + time '15:00:00') at time zone 'Asia/Singapore', (current_date + interval '-20 days' + time '15:35:00') at time zone 'Asia/Singapore', 28.00, 'completed', 'Completed service for Ethan. Customer satisfied.'),
+  ('a0000007-0000-0000-0000-000000000000'::uuid, 'd0000007-0000-0000-0000-000000000000'::uuid, 'e0000007-0000-0000-0000-000000000000'::uuid, 's0000007-0000-0000-0000-000000000000'::uuid, (current_date + interval '-19 days' + time '16:00:00') at time zone 'Asia/Singapore', (current_date + interval '-19 days' + time '16:30:00') at time zone 'Asia/Singapore', 20.00, 'completed', 'Completed service for Michael. Customer satisfied.'),
+  ('a0000008-0000-0000-0000-000000000000'::uuid, 'd0000008-0000-0000-0000-000000000000'::uuid, 'e0000008-0000-0000-0000-000000000000'::uuid, 's0000008-0000-0000-0000-000000000000'::uuid, (current_date + interval '-18 days' + time '09:00:00') at time zone 'Asia/Singapore', (current_date + interval '-18 days' + time '09:60:00') at time zone 'Asia/Singapore', 45.00, 'completed', 'Completed service for Oliver. Customer satisfied.'),
+  ('a0000009-0000-0000-0000-000000000000'::uuid, 'd0000009-0000-0000-0000-000000000000'::uuid, 'e0000009-0000-0000-0000-000000000000'::uuid, 's0000009-0000-0000-0000-000000000000'::uuid, (current_date + interval '-17 days' + time '10:00:00') at time zone 'Asia/Singapore', (current_date + interval '-17 days' + time '10:30:00') at time zone 'Asia/Singapore', 32.00, 'completed', 'Completed service for William. Customer satisfied.'),
+  ('a0000010-0000-0000-0000-000000000000'::uuid, 'd0000010-0000-0000-0000-000000000000'::uuid, 'e0000010-0000-0000-0000-000000000000'::uuid, 's0000010-0000-0000-0000-000000000000'::uuid, (current_date + interval '-16 days' + time '11:00:00') at time zone 'Asia/Singapore', (current_date + interval '-16 days' + time '11:25:00') at time zone 'Asia/Singapore', 24.00, 'completed', 'Completed service for Lucas. Customer satisfied.'),
+  ('a0000011-0000-0000-0000-000000000000'::uuid, 'd0000011-0000-0000-0000-000000000000'::uuid, 'e0000011-0000-0000-0000-000000000000'::uuid, 's0000011-0000-0000-0000-000000000000'::uuid, (current_date + interval '-15 days' + time '12:00:00') at time zone 'Asia/Singapore', (current_date + interval '-15 days' + time '12:75:00') at time zone 'Asia/Singapore', 70.00, 'completed', 'Completed service for Benjamin. Customer satisfied.'),
+  ('a0000012-0000-0000-0000-000000000000'::uuid, 'd0000012-0000-0000-0000-000000000000'::uuid, 'e0000012-0000-0000-0000-000000000000'::uuid, 's0000012-0000-0000-0000-000000000000'::uuid, (current_date + interval '-14 days' + time '13:00:00') at time zone 'Asia/Singapore', (current_date + interval '-14 days' + time '13:60:00') at time zone 'Asia/Singapore', 52.00, 'completed', 'Completed service for Henry. Customer satisfied.'),
+  ('a0000013-0000-0000-0000-000000000000'::uuid, 'd0000013-0000-0000-0000-000000000000'::uuid, 'e0000013-0000-0000-0000-000000000000'::uuid, 's0000013-0000-0000-0000-000000000000'::uuid, (current_date + interval '-13 days' + time '14:00:00') at time zone 'Asia/Singapore', (current_date + interval '-13 days' + time '14:35:00') at time zone 'Asia/Singapore', 30.00, 'completed', 'Completed service for Alexander. Customer satisfied.'),
+  ('a0000014-0000-0000-0000-000000000000'::uuid, 'd0000014-0000-0000-0000-000000000000'::uuid, 'e0000014-0000-0000-0000-000000000000'::uuid, 's0000014-0000-0000-0000-000000000000'::uuid, (current_date + interval '-12 days' + time '15:00:00') at time zone 'Asia/Singapore', (current_date + interval '-12 days' + time '15:20:00') at time zone 'Asia/Singapore', 20.00, 'completed', 'Completed service for Sebastian. Customer satisfied.'),
+  ('a0000015-0000-0000-0000-000000000000'::uuid, 'd0000015-0000-0000-0000-000000000000'::uuid, 'e0000015-0000-0000-0000-000000000000'::uuid, 's0000015-0000-0000-0000-000000000000'::uuid, (current_date + interval '-11 days' + time '16:00:00') at time zone 'Asia/Singapore', (current_date + interval '-11 days' + time '16:35:00') at time zone 'Asia/Singapore', 25.00, 'completed', 'Completed service for Jack. Customer satisfied.'),
+  ('a0000016-0000-0000-0000-000000000000'::uuid, 'd0000016-0000-0000-0000-000000000000'::uuid, 'e0000016-0000-0000-0000-000000000000'::uuid, 's0000016-0000-0000-0000-000000000000'::uuid, (current_date + interval '-10 days' + time '09:00:00') at time zone 'Asia/Singapore', (current_date + interval '-10 days' + time '09:15:00') at time zone 'Asia/Singapore', 12.00, 'completed', 'Completed service for Owen. Customer satisfied.'),
+  ('a0000017-0000-0000-0000-000000000000'::uuid, 'd0000017-0000-0000-0000-000000000000'::uuid, 'e0000017-0000-0000-0000-000000000000'::uuid, 's0000017-0000-0000-0000-000000000000'::uuid, (current_date + interval '-9 days' + time '10:00:00') at time zone 'Asia/Singapore', (current_date + interval '-9 days' + time '10:40:00') at time zone 'Asia/Singapore', 32.00, 'completed', 'Completed service for Theodore. Customer satisfied.'),
+  ('a0000018-0000-0000-0000-000000000000'::uuid, 'd0000018-0000-0000-0000-000000000000'::uuid, 'e0000018-0000-0000-0000-000000000000'::uuid, 's0000018-0000-0000-0000-000000000000'::uuid, (current_date + interval '-8 days' + time '11:00:00') at time zone 'Asia/Singapore', (current_date + interval '-8 days' + time '11:25:00') at time zone 'Asia/Singapore', 22.00, 'completed', 'Completed service for Matthew. Customer satisfied.'),
+  ('a0000019-0000-0000-0000-000000000000'::uuid, 'd0000019-0000-0000-0000-000000000000'::uuid, 'e0000019-0000-0000-0000-000000000000'::uuid, 's0000019-0000-0000-0000-000000000000'::uuid, (current_date + interval '-7 days' + time '12:00:00') at time zone 'Asia/Singapore', (current_date + interval '-7 days' + time '12:15:00') at time zone 'Asia/Singapore', 14.00, 'completed', 'Completed service for Samuel. Customer satisfied.'),
+  ('a0000020-0000-0000-0000-000000000000'::uuid, 'd0000020-0000-0000-0000-000000000000'::uuid, 'e0000020-0000-0000-0000-000000000000'::uuid, 's0000020-0000-0000-0000-000000000000'::uuid, (current_date + interval '-6 days' + time '13:00:00') at time zone 'Asia/Singapore', (current_date + interval '-6 days' + time '13:30:00') at time zone 'Asia/Singapore', 22.00, 'completed', 'Completed service for David. Customer satisfied.'),
+  ('a0000021-0000-0000-0000-000000000000'::uuid, 'd0000021-0000-0000-0000-000000000000'::uuid, 'e0000021-0000-0000-0000-000000000000'::uuid, 's0000021-0000-0000-0000-000000000000'::uuid, (current_date + interval '-5 days' + time '14:00:00') at time zone 'Asia/Singapore', (current_date + interval '-5 days' + time '14:25:00') at time zone 'Asia/Singapore', 20.00, 'completed', 'Completed service for Joseph. Customer satisfied.'),
+  ('a0000022-0000-0000-0000-000000000000'::uuid, 'd0000022-0000-0000-0000-000000000000'::uuid, 'e0000022-0000-0000-0000-000000000000'::uuid, 's0000022-0000-0000-0000-000000000000'::uuid, (current_date + interval '-4 days' + time '15:00:00') at time zone 'Asia/Singapore', (current_date + interval '-4 days' + time '15:45:00') at time zone 'Asia/Singapore', 45.00, 'completed', 'Completed service for Carter. Customer satisfied.'),
+  ('a0000023-0000-0000-0000-000000000000'::uuid, 'd0000023-0000-0000-0000-000000000000'::uuid, 'e0000023-0000-0000-0000-000000000000'::uuid, 's0000023-0000-0000-0000-000000000000'::uuid, (current_date + interval '-3 days' + time '16:00:00') at time zone 'Asia/Singapore', (current_date + interval '-3 days' + time '16:30:00') at time zone 'Asia/Singapore', 28.00, 'completed', 'Completed service for Julian. Customer satisfied.'),
+  ('a0000024-0000-0000-0000-000000000000'::uuid, 'd0000024-0000-0000-0000-000000000000'::uuid, 'e0000024-0000-0000-0000-000000000000'::uuid, 's0000024-0000-0000-0000-000000000000'::uuid, (current_date + interval '-2 days' + time '09:00:00') at time zone 'Asia/Singapore', (current_date + interval '-2 days' + time '09:60:00') at time zone 'Asia/Singapore', 65.00, 'completed', 'Completed service for John. Customer satisfied.'),
+  ('a0000025-0000-0000-0000-000000000000'::uuid, 'd0000025-0000-0000-0000-000000000000'::uuid, 'e0000025-0000-0000-0000-000000000000'::uuid, 's0000025-0000-0000-0000-000000000000'::uuid, (current_date + interval '-1 days' + time '10:00:00') at time zone 'Asia/Singapore', (current_date + interval '-1 days' + time '10:75:00') at time zone 'Asia/Singapore', 80.00, 'completed', 'Completed service for Wyatt. Customer satisfied.'),
+  ('a0000026-0000-0000-0000-000000000000'::uuid, 'd0000026-0000-0000-0000-000000000000'::uuid, 'e0000026-0000-0000-0000-000000000000'::uuid, 's0000026-0000-0000-0000-000000000000'::uuid, (current_date + time '08:00:00') at time zone 'Asia/Singapore', (current_date + time '08:45:00') at time zone 'Asia/Singapore', 38.00, 'completed', 'Finished morning cut.'),
+  ('a0000027-0000-0000-0000-000000000000'::uuid, 'd0000027-0000-0000-0000-000000000000'::uuid, 'e0000027-0000-0000-0000-000000000000'::uuid, 's0000027-0000-0000-0000-000000000000'::uuid, (current_date + time '09:00:00') at time zone 'Asia/Singapore', (current_date + time '09:40:00') at time zone 'Asia/Singapore', 35.00, 'in_progress', 'Currently in chair.'),
+  ('a0000028-0000-0000-0000-000000000000'::uuid, 'd0000028-0000-0000-0000-000000000000'::uuid, 'e0000028-0000-0000-0000-000000000000'::uuid, 's0000028-0000-0000-0000-000000000000'::uuid, (current_date + time '10:00:00') at time zone 'Asia/Singapore', (current_date + time '10:35:00') at time zone 'Asia/Singapore', 32.00, 'booked', 'Confirmed booking, customer on way.'),
+  ('a0000029-0000-0000-0000-000000000000'::uuid, 'd0000029-0000-0000-0000-000000000000'::uuid, 'e0000029-0000-0000-0000-000000000000'::uuid, 's0000029-0000-0000-0000-000000000000'::uuid, (current_date + time '11:00:00') at time zone 'Asia/Singapore', (current_date + time '11:40:00') at time zone 'Asia/Singapore', 34.00, 'completed', 'Finished morning cut.'),
+  ('a0000030-0000-0000-0000-000000000000'::uuid, 'd0000030-0000-0000-0000-000000000000'::uuid, 'e0000030-0000-0000-0000-000000000000'::uuid, 's0000030-0000-0000-0000-000000000000'::uuid, (current_date + time '12:00:00') at time zone 'Asia/Singapore', (current_date + time '12:35:00') at time zone 'Asia/Singapore', 36.00, 'in_progress', 'Currently in chair.'),
+  ('a0000031-0000-0000-0000-000000000000'::uuid, 'd0000031-0000-0000-0000-000000000000'::uuid, 'e0000031-0000-0000-0000-000000000000'::uuid, 's0000031-0000-0000-0000-000000000000'::uuid, (current_date + time '13:00:00') at time zone 'Asia/Singapore', (current_date + time '13:30:00') at time zone 'Asia/Singapore', 28.00, 'booked', 'Confirmed booking, customer on way.'),
+  ('a0000032-0000-0000-0000-000000000000'::uuid, 'd0000032-0000-0000-0000-000000000000'::uuid, 'e0000032-0000-0000-0000-000000000000'::uuid, 's0000032-0000-0000-0000-000000000000'::uuid, (current_date + time '14:00:00') at time zone 'Asia/Singapore', (current_date + time '14:90:00') at time zone 'Asia/Singapore', 95.00, 'completed', 'Finished morning cut.'),
+  ('a0000033-0000-0000-0000-000000000000'::uuid, 'd0000033-0000-0000-0000-000000000000'::uuid, 'e0000033-0000-0000-0000-000000000000'::uuid, 's0000033-0000-0000-0000-000000000000'::uuid, (current_date + time '15:00:00') at time zone 'Asia/Singapore', (current_date + time '15:120:00') at time zone 'Asia/Singapore', 180.00, 'in_progress', 'Currently in chair.'),
+  ('a0000034-0000-0000-0000-000000000000'::uuid, 'd0000034-0000-0000-0000-000000000000'::uuid, 'e0000034-0000-0000-0000-000000000000'::uuid, 's0000034-0000-0000-0000-000000000000'::uuid, (current_date + time '16:00:00') at time zone 'Asia/Singapore', (current_date + time '16:15:00') at time zone 'Asia/Singapore', 12.00, 'booked', 'Confirmed booking, customer on way.'),
+  ('a0000035-0000-0000-0000-000000000000'::uuid, 'd0000035-0000-0000-0000-000000000000'::uuid, 'e0000035-0000-0000-0000-000000000000'::uuid, 's0000035-0000-0000-0000-000000000000'::uuid, (current_date + time '17:00:00') at time zone 'Asia/Singapore', (current_date + time '17:25:00') at time zone 'Asia/Singapore', 20.00, 'completed', 'Finished morning cut.'),
+  ('a0000036-0000-0000-0000-000000000000'::uuid, 'd0000036-0000-0000-0000-000000000000'::uuid, 'e0000036-0000-0000-0000-000000000000'::uuid, 's0000036-0000-0000-0000-000000000000'::uuid, (current_date + time '08:00:00') at time zone 'Asia/Singapore', (current_date + time '08:60:00') at time zone 'Asia/Singapore', 85.00, 'in_progress', 'Currently in chair.'),
+  ('a0000037-0000-0000-0000-000000000000'::uuid, 'd0000037-0000-0000-0000-000000000000'::uuid, 'e0000037-0000-0000-0000-000000000000'::uuid, 's0000037-0000-0000-0000-000000000000'::uuid, (current_date + time '09:00:00') at time zone 'Asia/Singapore', (current_date + time '09:40:00') at time zone 'Asia/Singapore', 35.00, 'booked', 'Confirmed booking, customer on way.'),
+  ('a0000038-0000-0000-0000-000000000000'::uuid, 'd0000038-0000-0000-0000-000000000000'::uuid, 'e0000038-0000-0000-0000-000000000000'::uuid, 's0000038-0000-0000-0000-000000000000'::uuid, (current_date + time '10:00:00') at time zone 'Asia/Singapore', (current_date + time '10:40:00') at time zone 'Asia/Singapore', 36.00, 'completed', 'Finished morning cut.'),
+  ('a0000039-0000-0000-0000-000000000000'::uuid, 'd0000039-0000-0000-0000-000000000000'::uuid, 'e0000039-0000-0000-0000-000000000000'::uuid, 's0000039-0000-0000-0000-000000000000'::uuid, (current_date + time '11:00:00') at time zone 'Asia/Singapore', (current_date + time '11:25:00') at time zone 'Asia/Singapore', 22.00, 'in_progress', 'Currently in chair.'),
+  ('a0000040-0000-0000-0000-000000000000'::uuid, 'd0000040-0000-0000-0000-000000000000'::uuid, 'e0000040-0000-0000-0000-000000000000'::uuid, 's0000040-0000-0000-0000-000000000000'::uuid, (current_date + time '12:00:00') at time zone 'Asia/Singapore', (current_date + time '12:15:00') at time zone 'Asia/Singapore', 15.00, 'booked', 'Confirmed booking, customer on way.'),
+  ('a0000041-0000-0000-0000-000000000000'::uuid, 'd0000041-0000-0000-0000-000000000000'::uuid, 'e0000041-0000-0000-0000-000000000000'::uuid, 's0000041-0000-0000-0000-000000000000'::uuid, (current_date + interval '1 days' + time '16:00:00') at time zone 'Asia/Singapore', (current_date + interval '1 days' + time '16:30:00') at time zone 'Asia/Singapore', 28.00, 'booked', 'Upcoming online booking reservation.'),
+  ('a0000042-0000-0000-0000-000000000000'::uuid, 'd0000042-0000-0000-0000-000000000000'::uuid, 'e0000042-0000-0000-0000-000000000000'::uuid, 's0000042-0000-0000-0000-000000000000'::uuid, (current_date + interval '2 days' + time '10:00:00') at time zone 'Asia/Singapore', (current_date + interval '2 days' + time '10:40:00') at time zone 'Asia/Singapore', 34.00, 'booked', 'Upcoming online booking reservation.'),
+  ('a0000043-0000-0000-0000-000000000000'::uuid, 'd0000043-0000-0000-0000-000000000000'::uuid, 'e0000043-0000-0000-0000-000000000000'::uuid, 's0000043-0000-0000-0000-000000000000'::uuid, (current_date + interval '3 days' + time '11:00:00') at time zone 'Asia/Singapore', (current_date + interval '3 days' + time '11:60:00') at time zone 'Asia/Singapore', 55.00, 'booked', 'Upcoming online booking reservation.'),
+  ('a0000044-0000-0000-0000-000000000000'::uuid, 'd0000044-0000-0000-0000-000000000000'::uuid, 'e0000044-0000-0000-0000-000000000000'::uuid, 's0000044-0000-0000-0000-000000000000'::uuid, (current_date + interval '4 days' + time '12:00:00') at time zone 'Asia/Singapore', (current_date + interval '4 days' + time '12:75:00') at time zone 'Asia/Singapore', 72.00, 'booked', 'Upcoming online booking reservation.'),
+  ('a0000045-0000-0000-0000-000000000000'::uuid, 'd0000045-0000-0000-0000-000000000000'::uuid, 'e0000045-0000-0000-0000-000000000000'::uuid, 's0000045-0000-0000-0000-000000000000'::uuid, (current_date + interval '5 days' + time '13:00:00') at time zone 'Asia/Singapore', (current_date + interval '5 days' + time '13:60:00') at time zone 'Asia/Singapore', 60.00, 'booked', 'Upcoming online booking reservation.'),
+  ('a0000046-0000-0000-0000-000000000000'::uuid, 'd0000046-0000-0000-0000-000000000000'::uuid, 'e0000046-0000-0000-0000-000000000000'::uuid, 's0000046-0000-0000-0000-000000000000'::uuid, (current_date + interval '6 days' + time '14:00:00') at time zone 'Asia/Singapore', (current_date + interval '6 days' + time '14:20:00') at time zone 'Asia/Singapore', 18.00, 'booked', 'Upcoming online booking reservation.'),
+  ('a0000047-0000-0000-0000-000000000000'::uuid, 'd0000047-0000-0000-0000-000000000000'::uuid, 'e0000047-0000-0000-0000-000000000000'::uuid, 's0000047-0000-0000-0000-000000000000'::uuid, (current_date + interval '7 days' + time '15:00:00') at time zone 'Asia/Singapore', (current_date + interval '7 days' + time '15:25:00') at time zone 'Asia/Singapore', 24.00, 'booked', 'Upcoming online booking reservation.'),
+  ('a0000048-0000-0000-0000-000000000000'::uuid, 'd0000048-0000-0000-0000-000000000000'::uuid, 'e0000048-0000-0000-0000-000000000000'::uuid, 's0000048-0000-0000-0000-000000000000'::uuid, (current_date + interval '8 days' + time '16:00:00') at time zone 'Asia/Singapore', (current_date + interval '8 days' + time '16:50:00') at time zone 'Asia/Singapore', 48.00, 'booked', 'Upcoming online booking reservation.'),
+  ('a0000049-0000-0000-0000-000000000000'::uuid, 'd0000049-0000-0000-0000-000000000000'::uuid, 'e0000049-0000-0000-0000-000000000000'::uuid, 's0000049-0000-0000-0000-000000000000'::uuid, (current_date + interval '9 days' + time '10:00:00') at time zone 'Asia/Singapore', (current_date + interval '9 days' + time '10:45:00') at time zone 'Asia/Singapore', 42.00, 'booked', 'Upcoming online booking reservation.'),
+  ('a0000050-0000-0000-0000-000000000000'::uuid, 'd0000050-0000-0000-0000-000000000000'::uuid, 'e0000050-0000-0000-0000-000000000000'::uuid, 's0000050-0000-0000-0000-000000000000'::uuid, (current_date + interval '10 days' + time '11:00:00') at time zone 'Asia/Singapore', (current_date + interval '10 days' + time '11:90:00') at time zone 'Asia/Singapore', 120.00, 'booked', 'Upcoming online booking reservation.')
+on conflict (id) do update set start_time = excluded.start_time, end_time = excluded.end_time, price = excluded.price, status = excluded.status, notes = excluded.notes;
 
 -- ============================================================================
--- 7. CUSTOMER FEEDBACK & REVIEWS
--- Links completed appointments with satisfied 5-star customer reviews.
+-- 6. 50 TRANSACTIONS
 -- ============================================================================
-insert into public.feedback (
-  id,
-  appointment_id,
-  customer_id,
-  rating,
-  comments
-)
+insert into public.transactions (id, appointment_id, total_amount, subtotal, tip_amount, tax_amount, discount_amount, payment_method, payment_status, processed_at)
 values
-  (
-    'f0000000-0000-0000-0000-000000000001'::uuid,
-    'a0000000-0000-0000-0000-000000000001'::uuid,
-    'd0000000-0000-0000-0000-000000000001'::uuid,
-    5,
-    'Marcus is hands down the best barber in town. Flawless fade and the beard oil smelled amazing.'
-  ),
-  (
-    'f0000000-0000-0000-0000-000000000002'::uuid,
-    'a0000000-0000-0000-0000-000000000002'::uuid,
-    'd0000000-0000-0000-0000-000000000003'::uuid,
-    5,
-    'Cleanest skin fade I have had in years. Great attention to detail and zero wait time.'
-  ),
-  (
-    'f0000000-0000-0000-0000-000000000003'::uuid,
-    'a0000000-0000-0000-0000-000000000005'::uuid,
-    'd0000000-0000-0000-0000-000000000002'::uuid,
-    5,
-    'The hot towel shave was ultra relaxing. Very gentle on sensitive skin. Highly recommend David!'
-  ),
-  (
-    'f0000000-0000-0000-0000-000000000004'::uuid,
-    'a0000000-0000-0000-0000-000000000009'::uuid,
-    'd0000000-0000-0000-0000-000000000007'::uuid,
-    5,
-    'Alex did wonders with scissor work. My hair holds shape perfectly without needing heavy wax.'
-  ),
-  (
-    'f0000000-0000-0000-0000-000000000005'::uuid,
-    'a0000000-0000-0000-0000-000000000012'::uuid,
-    'd0000000-0000-0000-0000-000000000006'::uuid,
-    5,
-    'Sarah is fantastic. The scalp massage relieved a week worth of stress. Definitely booking regularly.'
-  ),
-  (
-    'f0000000-0000-0000-0000-000000000006'::uuid,
-    'a0000000-0000-0000-0000-000000000014'::uuid,
-    'd0000000-0000-0000-0000-000000000007'::uuid,
-    5,
-    'Liam was so patient with my 6yo son. Best kid haircut experience we have ever had.'
-  )
-on conflict (appointment_id, customer_id) do update
-set rating = excluded.rating,
-    comments = excluded.comments;
+  ('t0000001-0000-0000-0000-000000000000'::uuid, 'a0000001-0000-0000-0000-000000000000'::uuid, 27.00, 25.00, 0.00, 2.00, 0.00, 'cash', 'completed', (current_date + interval '-25 days' + time '11:15:00') at time zone 'Asia/Singapore'),
+  ('t0000002-0000-0000-0000-000000000000'::uuid, 'a0000002-0000-0000-0000-000000000000'::uuid, 42.80, 35.00, 5.00, 2.80, 0.00, 'card', 'completed', (current_date + interval '-24 days' + time '12:15:00') at time zone 'Asia/Singapore'),
+  ('t0000003-0000-0000-0000-000000000000'::uuid, 'a0000003-0000-0000-0000-000000000000'::uuid, 19.44, 18.00, 0.00, 1.44, 0.00, 'gcash', 'completed', (current_date + interval '-24 days' + time '13:15:00') at time zone 'Asia/Singapore'),
+  ('t0000004-0000-0000-0000-000000000000'::uuid, 'a0000004-0000-0000-0000-000000000000'::uuid, 48.20, 40.00, 5.00, 3.20, 0.00, 'bank_transfer', 'completed', (current_date + interval '-23 days' + time '14:15:00') at time zone 'Asia/Singapore'),
+  ('t0000005-0000-0000-0000-000000000000'::uuid, 'a0000005-0000-0000-0000-000000000000'::uuid, 19.44, 18.00, 0.00, 1.44, 0.00, 'card', 'completed', (current_date + interval '-23 days' + time '15:15:00') at time zone 'Asia/Singapore'),
+  ('t0000006-0000-0000-0000-000000000000'::uuid, 'a0000006-0000-0000-0000-000000000000'::uuid, 35.24, 28.00, 5.00, 2.24, 0.00, 'cash', 'completed', (current_date + interval '-22 days' + time '16:15:00') at time zone 'Asia/Singapore'),
+  ('t0000007-0000-0000-0000-000000000000'::uuid, 'a0000007-0000-0000-0000-000000000000'::uuid, 21.60, 20.00, 0.00, 1.60, 0.00, 'cash', 'completed', (current_date + interval '-22 days' + time '17:15:00') at time zone 'Asia/Singapore'),
+  ('t0000008-0000-0000-0000-000000000000'::uuid, 'a0000008-0000-0000-0000-000000000000'::uuid, 53.60, 45.00, 5.00, 3.60, 0.00, 'card', 'completed', (current_date + interval '-21 days' + time '10:15:00') at time zone 'Asia/Singapore'),
+  ('t0000009-0000-0000-0000-000000000000'::uuid, 'a0000009-0000-0000-0000-000000000000'::uuid, 34.56, 32.00, 0.00, 2.56, 0.00, 'gcash', 'completed', (current_date + interval '-21 days' + time '11:15:00') at time zone 'Asia/Singapore'),
+  ('t0000010-0000-0000-0000-000000000000'::uuid, 'a0000010-0000-0000-0000-000000000000'::uuid, 30.92, 24.00, 5.00, 1.92, 0.00, 'bank_transfer', 'completed', (current_date + interval '-20 days' + time '12:15:00') at time zone 'Asia/Singapore'),
+  ('t0000011-0000-0000-0000-000000000000'::uuid, 'a0000011-0000-0000-0000-000000000000'::uuid, 75.60, 70.00, 0.00, 5.60, 0.00, 'card', 'completed', (current_date + interval '-20 days' + time '13:15:00') at time zone 'Asia/Singapore'),
+  ('t0000012-0000-0000-0000-000000000000'::uuid, 'a0000012-0000-0000-0000-000000000000'::uuid, 61.16, 52.00, 5.00, 4.16, 0.00, 'cash', 'completed', (current_date + interval '-19 days' + time '14:15:00') at time zone 'Asia/Singapore'),
+  ('t0000013-0000-0000-0000-000000000000'::uuid, 'a0000013-0000-0000-0000-000000000000'::uuid, 32.40, 30.00, 0.00, 2.40, 0.00, 'cash', 'completed', (current_date + interval '-19 days' + time '15:15:00') at time zone 'Asia/Singapore'),
+  ('t0000014-0000-0000-0000-000000000000'::uuid, 'a0000014-0000-0000-0000-000000000000'::uuid, 26.60, 20.00, 5.00, 1.60, 0.00, 'card', 'completed', (current_date + interval '-18 days' + time '16:15:00') at time zone 'Asia/Singapore'),
+  ('t0000015-0000-0000-0000-000000000000'::uuid, 'a0000015-0000-0000-0000-000000000000'::uuid, 27.00, 25.00, 0.00, 2.00, 0.00, 'gcash', 'completed', (current_date + interval '-18 days' + time '17:15:00') at time zone 'Asia/Singapore'),
+  ('t0000016-0000-0000-0000-000000000000'::uuid, 'a0000016-0000-0000-0000-000000000000'::uuid, 17.96, 12.00, 5.00, 0.96, 0.00, 'bank_transfer', 'completed', (current_date + interval '-17 days' + time '10:15:00') at time zone 'Asia/Singapore'),
+  ('t0000017-0000-0000-0000-000000000000'::uuid, 'a0000017-0000-0000-0000-000000000000'::uuid, 34.56, 32.00, 0.00, 2.56, 0.00, 'card', 'completed', (current_date + interval '-17 days' + time '11:15:00') at time zone 'Asia/Singapore'),
+  ('t0000018-0000-0000-0000-000000000000'::uuid, 'a0000018-0000-0000-0000-000000000000'::uuid, 28.76, 22.00, 5.00, 1.76, 0.00, 'cash', 'completed', (current_date + interval '-16 days' + time '12:15:00') at time zone 'Asia/Singapore'),
+  ('t0000019-0000-0000-0000-000000000000'::uuid, 'a0000019-0000-0000-0000-000000000000'::uuid, 15.12, 14.00, 0.00, 1.12, 0.00, 'cash', 'completed', (current_date + interval '-16 days' + time '13:15:00') at time zone 'Asia/Singapore'),
+  ('t0000020-0000-0000-0000-000000000000'::uuid, 'a0000020-0000-0000-0000-000000000000'::uuid, 28.76, 22.00, 5.00, 1.76, 0.00, 'card', 'completed', (current_date + interval '-15 days' + time '14:15:00') at time zone 'Asia/Singapore'),
+  ('t0000021-0000-0000-0000-000000000000'::uuid, 'a0000021-0000-0000-0000-000000000000'::uuid, 21.60, 20.00, 0.00, 1.60, 0.00, 'gcash', 'completed', (current_date + interval '-15 days' + time '15:15:00') at time zone 'Asia/Singapore'),
+  ('t0000022-0000-0000-0000-000000000000'::uuid, 'a0000022-0000-0000-0000-000000000000'::uuid, 53.60, 45.00, 5.00, 3.60, 0.00, 'bank_transfer', 'completed', (current_date + interval '-14 days' + time '16:15:00') at time zone 'Asia/Singapore'),
+  ('t0000023-0000-0000-0000-000000000000'::uuid, 'a0000023-0000-0000-0000-000000000000'::uuid, 30.24, 28.00, 0.00, 2.24, 0.00, 'card', 'completed', (current_date + interval '-14 days' + time '17:15:00') at time zone 'Asia/Singapore'),
+  ('t0000024-0000-0000-0000-000000000000'::uuid, 'a0000024-0000-0000-0000-000000000000'::uuid, 75.20, 65.00, 5.00, 5.20, 0.00, 'cash', 'completed', (current_date + interval '-13 days' + time '10:15:00') at time zone 'Asia/Singapore'),
+  ('t0000025-0000-0000-0000-000000000000'::uuid, 'a0000025-0000-0000-0000-000000000000'::uuid, 86.40, 80.00, 0.00, 6.40, 0.00, 'cash', 'completed', (current_date + interval '-13 days' + time '11:15:00') at time zone 'Asia/Singapore'),
+  ('t0000026-0000-0000-0000-000000000000'::uuid, 'a0000026-0000-0000-0000-000000000000'::uuid, 46.04, 38.00, 5.00, 3.04, 0.00, 'card', 'completed', (current_date + interval '-12 days' + time '12:15:00') at time zone 'Asia/Singapore'),
+  ('t0000027-0000-0000-0000-000000000000'::uuid, 'a0000027-0000-0000-0000-000000000000'::uuid, 37.80, 35.00, 0.00, 2.80, 0.00, 'gcash', 'completed', (current_date + interval '-12 days' + time '13:15:00') at time zone 'Asia/Singapore'),
+  ('t0000028-0000-0000-0000-000000000000'::uuid, 'a0000028-0000-0000-0000-000000000000'::uuid, 39.56, 32.00, 5.00, 2.56, 0.00, 'bank_transfer', 'completed', (current_date + interval '-11 days' + time '14:15:00') at time zone 'Asia/Singapore'),
+  ('t0000029-0000-0000-0000-000000000000'::uuid, 'a0000029-0000-0000-0000-000000000000'::uuid, 36.72, 34.00, 0.00, 2.72, 0.00, 'card', 'completed', (current_date + interval '-11 days' + time '15:15:00') at time zone 'Asia/Singapore'),
+  ('t0000030-0000-0000-0000-000000000000'::uuid, 'a0000030-0000-0000-0000-000000000000'::uuid, 43.88, 36.00, 5.00, 2.88, 0.00, 'cash', 'completed', (current_date + interval '-10 days' + time '16:15:00') at time zone 'Asia/Singapore'),
+  ('t0000031-0000-0000-0000-000000000000'::uuid, 'a0000031-0000-0000-0000-000000000000'::uuid, 30.24, 28.00, 0.00, 2.24, 0.00, 'cash', 'completed', (current_date + interval '-10 days' + time '17:15:00') at time zone 'Asia/Singapore'),
+  ('t0000032-0000-0000-0000-000000000000'::uuid, 'a0000032-0000-0000-0000-000000000000'::uuid, 107.60, 95.00, 5.00, 7.60, 0.00, 'card', 'completed', (current_date + interval '-9 days' + time '10:15:00') at time zone 'Asia/Singapore'),
+  ('t0000033-0000-0000-0000-000000000000'::uuid, 'a0000033-0000-0000-0000-000000000000'::uuid, 194.40, 180.00, 0.00, 14.40, 0.00, 'gcash', 'completed', (current_date + interval '-9 days' + time '11:15:00') at time zone 'Asia/Singapore'),
+  ('t0000034-0000-0000-0000-000000000000'::uuid, 'a0000034-0000-0000-0000-000000000000'::uuid, 17.96, 12.00, 5.00, 0.96, 0.00, 'bank_transfer', 'completed', (current_date + interval '-8 days' + time '12:15:00') at time zone 'Asia/Singapore'),
+  ('t0000035-0000-0000-0000-000000000000'::uuid, 'a0000035-0000-0000-0000-000000000000'::uuid, 21.60, 20.00, 0.00, 1.60, 0.00, 'card', 'completed', (current_date + interval '-8 days' + time '13:15:00') at time zone 'Asia/Singapore'),
+  ('t0000036-0000-0000-0000-000000000000'::uuid, 'a0000036-0000-0000-0000-000000000000'::uuid, 96.80, 85.00, 5.00, 6.80, 0.00, 'cash', 'completed', (current_date + interval '-7 days' + time '14:15:00') at time zone 'Asia/Singapore'),
+  ('t0000037-0000-0000-0000-000000000000'::uuid, 'a0000037-0000-0000-0000-000000000000'::uuid, 37.80, 35.00, 0.00, 2.80, 0.00, 'cash', 'completed', (current_date + interval '-7 days' + time '15:15:00') at time zone 'Asia/Singapore'),
+  ('t0000038-0000-0000-0000-000000000000'::uuid, 'a0000038-0000-0000-0000-000000000000'::uuid, 43.88, 36.00, 5.00, 2.88, 0.00, 'card', 'completed', (current_date + interval '-6 days' + time '16:15:00') at time zone 'Asia/Singapore'),
+  ('t0000039-0000-0000-0000-000000000000'::uuid, 'a0000039-0000-0000-0000-000000000000'::uuid, 23.76, 22.00, 0.00, 1.76, 0.00, 'gcash', 'completed', (current_date + interval '-6 days' + time '17:15:00') at time zone 'Asia/Singapore'),
+  ('t0000040-0000-0000-0000-000000000000'::uuid, 'a0000040-0000-0000-0000-000000000000'::uuid, 21.20, 15.00, 5.00, 1.20, 0.00, 'bank_transfer', 'completed', (current_date + interval '-5 days' + time '10:15:00') at time zone 'Asia/Singapore'),
+  ('t0000041-0000-0000-0000-000000000000'::uuid, 'a0000041-0000-0000-0000-000000000000'::uuid, 30.24, 28.00, 0.00, 2.24, 0.00, 'card', 'completed', (current_date + interval '-5 days' + time '11:15:00') at time zone 'Asia/Singapore'),
+  ('t0000042-0000-0000-0000-000000000000'::uuid, 'a0000042-0000-0000-0000-000000000000'::uuid, 41.72, 34.00, 5.00, 2.72, 0.00, 'cash', 'completed', (current_date + interval '-4 days' + time '12:15:00') at time zone 'Asia/Singapore'),
+  ('t0000043-0000-0000-0000-000000000000'::uuid, 'a0000043-0000-0000-0000-000000000000'::uuid, 59.40, 55.00, 0.00, 4.40, 0.00, 'cash', 'completed', (current_date + interval '-4 days' + time '13:15:00') at time zone 'Asia/Singapore'),
+  ('t0000044-0000-0000-0000-000000000000'::uuid, 'a0000044-0000-0000-0000-000000000000'::uuid, 82.76, 72.00, 5.00, 5.76, 0.00, 'card', 'completed', (current_date + interval '-3 days' + time '14:15:00') at time zone 'Asia/Singapore'),
+  ('t0000045-0000-0000-0000-000000000000'::uuid, 'a0000045-0000-0000-0000-000000000000'::uuid, 64.80, 60.00, 0.00, 4.80, 0.00, 'gcash', 'completed', (current_date + interval '-3 days' + time '15:15:00') at time zone 'Asia/Singapore'),
+  ('t0000046-0000-0000-0000-000000000000'::uuid, 'a0000046-0000-0000-0000-000000000000'::uuid, 24.44, 18.00, 5.00, 1.44, 0.00, 'bank_transfer', 'pending', (current_date + interval '-2 days' + time '16:15:00') at time zone 'Asia/Singapore'),
+  ('t0000047-0000-0000-0000-000000000000'::uuid, 'a0000047-0000-0000-0000-000000000000'::uuid, 25.92, 24.00, 0.00, 1.92, 0.00, 'card', 'pending', (current_date + interval '-2 days' + time '17:15:00') at time zone 'Asia/Singapore'),
+  ('t0000048-0000-0000-0000-000000000000'::uuid, 'a0000048-0000-0000-0000-000000000000'::uuid, 56.84, 48.00, 5.00, 3.84, 0.00, 'cash', 'pending', (current_date + interval '-1 days' + time '10:15:00') at time zone 'Asia/Singapore'),
+  ('t0000049-0000-0000-0000-000000000000'::uuid, 'a0000049-0000-0000-0000-000000000000'::uuid, 45.36, 42.00, 0.00, 3.36, 0.00, 'cash', 'pending', (current_date + interval '-1 days' + time '11:15:00') at time zone 'Asia/Singapore'),
+  ('t0000050-0000-0000-0000-000000000000'::uuid, 'a0000050-0000-0000-0000-000000000000'::uuid, 134.60, 120.00, 5.00, 9.60, 0.00, 'card', 'pending', (current_date + interval '0 days' + time '12:15:00') at time zone 'Asia/Singapore')
+on conflict (id) do update set total_amount = excluded.total_amount, subtotal = excluded.subtotal, tip_amount = excluded.tip_amount, tax_amount = excluded.tax_amount, payment_method = excluded.payment_method, payment_status = excluded.payment_status, processed_at = excluded.processed_at;
+
+-- ============================================================================
+-- 7. 50 CUSTOMER FEEDBACK / REVIEWS
+-- ============================================================================
+insert into public.feedback (id, appointment_id, customer_id, rating, comments, created_at)
+values
+  ('f0000001-0000-0000-0000-000000000000'::uuid, 'a0000001-0000-0000-0000-000000000000'::uuid, 'd0000001-0000-0000-0000-000000000000'::uuid, 5, 'Absolutely legendary cut! Marcus gave the cleanest skin fade I''''ve ever had.', (current_date + interval '-25 days' + time '14:30:00') at time zone 'Asia/Singapore'),
+  ('f0000002-0000-0000-0000-000000000000'::uuid, 'a0000002-0000-0000-0000-000000000000'::uuid, 'd0000002-0000-0000-0000-000000000000'::uuid, 5, 'Best barbershop experience in town. Hot towel shave was so relaxing!', (current_date + interval '-24 days' + time '14:30:00') at time zone 'Asia/Singapore'),
+  ('f0000003-0000-0000-0000-000000000000'::uuid, 'a0000003-0000-0000-0000-000000000000'::uuid, 'd0000003-0000-0000-0000-000000000000'::uuid, 5, 'Took my son here for his haircut, barber was super patient and kind.', (current_date + interval '-24 days' + time '14:30:00') at time zone 'Asia/Singapore'),
+  ('f0000004-0000-0000-0000-000000000000'::uuid, 'a0000004-0000-0000-0000-000000000000'::uuid, 'd0000004-0000-0000-0000-000000000000'::uuid, 5, 'Clean lines, great pomade styling, and fast service without feeling rushed.', (current_date + interval '-23 days' + time '14:30:00') at time zone 'Asia/Singapore'),
+  ('f0000005-0000-0000-0000-000000000000'::uuid, 'a0000005-0000-0000-0000-000000000000'::uuid, 'd0000005-0000-0000-0000-000000000000'::uuid, 4, 'Great haircut and crisp beard shapeup. Friendly vibe in the shop.', (current_date + interval '-23 days' + time '14:30:00') at time zone 'Asia/Singapore'),
+  ('f0000006-0000-0000-0000-000000000000'::uuid, 'a0000006-0000-0000-0000-000000000000'::uuid, 'd0000006-0000-0000-0000-000000000000'::uuid, 5, 'The scalp massage during the treatment was incredible. Highly recommended!', (current_date + interval '-22 days' + time '14:30:00') at time zone 'Asia/Singapore'),
+  ('f0000007-0000-0000-0000-000000000000'::uuid, 'a0000007-0000-0000-0000-000000000000'::uuid, 'd0000007-0000-0000-0000-000000000000'::uuid, 5, 'Top notch service and luxury ambiance. Will be a regular customer for sure.', (current_date + interval '-22 days' + time '14:30:00') at time zone 'Asia/Singapore'),
+  ('f0000008-0000-0000-0000-000000000000'::uuid, 'a0000008-0000-0000-0000-000000000000'::uuid, 'd0000008-0000-0000-0000-000000000000'::uuid, 4, 'Sharp fade and great scissor work on top. Nice complimentary drinks too.', (current_date + interval '-21 days' + time '14:30:00') at time zone 'Asia/Singapore'),
+  ('f0000009-0000-0000-0000-000000000000'::uuid, 'a0000009-0000-0000-0000-000000000000'::uuid, 'd0000009-0000-0000-0000-000000000000'::uuid, 5, 'Marcus is a master of his craft. The beard lineup was perfection.', (current_date + interval '-21 days' + time '14:30:00') at time zone 'Asia/Singapore'),
+  ('f0000010-0000-0000-0000-000000000000'::uuid, 'a0000010-0000-0000-0000-000000000000'::uuid, 'd0000010-0000-0000-0000-000000000000'::uuid, 5, 'Booked the Father & Son package. Quality time and top-notch haircuts!', (current_date + interval '-20 days' + time '14:30:00') at time zone 'Asia/Singapore'),
+  ('f0000011-0000-0000-0000-000000000000'::uuid, 'a0000011-0000-0000-0000-000000000000'::uuid, 'd0000011-0000-0000-0000-000000000000'::uuid, 4, 'Quick, clean, and professional. Modern booking system makes it very easy.', (current_date + interval '-20 days' + time '14:30:00') at time zone 'Asia/Singapore'),
+  ('f0000012-0000-0000-0000-000000000000'::uuid, 'a0000012-0000-0000-0000-000000000000'::uuid, 'd0000012-0000-0000-0000-000000000000'::uuid, 5, 'Loved the eucalyptus steam towel after my razor shave. 10/10 service!', (current_date + interval '-19 days' + time '14:30:00') at time zone 'Asia/Singapore'),
+  ('f0000013-0000-0000-0000-000000000000'::uuid, 'a0000013-0000-0000-0000-000000000000'::uuid, 'd0000013-0000-0000-0000-000000000000'::uuid, 5, 'Best skin fade taper in the city. Lineup was laser sharp.', (current_date + interval '-19 days' + time '14:30:00') at time zone 'Asia/Singapore'),
+  ('f0000014-0000-0000-0000-000000000000'::uuid, 'a0000014-0000-0000-0000-000000000000'::uuid, 'd0000014-0000-0000-0000-000000000000'::uuid, 4, 'Great attention to detail and good styling advice for my hair type.', (current_date + interval '-18 days' + time '14:30:00') at time zone 'Asia/Singapore'),
+  ('f0000015-0000-0000-0000-000000000000'::uuid, 'a0000015-0000-0000-0000-000000000000'::uuid, 'd0000015-0000-0000-0000-000000000000'::uuid, 5, 'Always consistent and on time. Best barber team hands down!', (current_date + interval '-18 days' + time '14:30:00') at time zone 'Asia/Singapore'),
+  ('f0000016-0000-0000-0000-000000000000'::uuid, 'a0000016-0000-0000-0000-000000000000'::uuid, 'd0000016-0000-0000-0000-000000000000'::uuid, 5, 'Absolutely legendary cut! Marcus gave the cleanest skin fade I''''ve ever had.', (current_date + interval '-17 days' + time '14:30:00') at time zone 'Asia/Singapore'),
+  ('f0000017-0000-0000-0000-000000000000'::uuid, 'a0000017-0000-0000-0000-000000000000'::uuid, 'd0000017-0000-0000-0000-000000000000'::uuid, 5, 'Best barbershop experience in town. Hot towel shave was so relaxing!', (current_date + interval '-17 days' + time '14:30:00') at time zone 'Asia/Singapore'),
+  ('f0000018-0000-0000-0000-000000000000'::uuid, 'a0000018-0000-0000-0000-000000000000'::uuid, 'd0000018-0000-0000-0000-000000000000'::uuid, 5, 'Took my son here for his haircut, barber was super patient and kind.', (current_date + interval '-16 days' + time '14:30:00') at time zone 'Asia/Singapore'),
+  ('f0000019-0000-0000-0000-000000000000'::uuid, 'a0000019-0000-0000-0000-000000000000'::uuid, 'd0000019-0000-0000-0000-000000000000'::uuid, 5, 'Clean lines, great pomade styling, and fast service without feeling rushed.', (current_date + interval '-16 days' + time '14:30:00') at time zone 'Asia/Singapore'),
+  ('f0000020-0000-0000-0000-000000000000'::uuid, 'a0000020-0000-0000-0000-000000000000'::uuid, 'd0000020-0000-0000-0000-000000000000'::uuid, 4, 'Great haircut and crisp beard shapeup. Friendly vibe in the shop.', (current_date + interval '-15 days' + time '14:30:00') at time zone 'Asia/Singapore'),
+  ('f0000021-0000-0000-0000-000000000000'::uuid, 'a0000021-0000-0000-0000-000000000000'::uuid, 'd0000021-0000-0000-0000-000000000000'::uuid, 5, 'The scalp massage during the treatment was incredible. Highly recommended!', (current_date + interval '-15 days' + time '14:30:00') at time zone 'Asia/Singapore'),
+  ('f0000022-0000-0000-0000-000000000000'::uuid, 'a0000022-0000-0000-0000-000000000000'::uuid, 'd0000022-0000-0000-0000-000000000000'::uuid, 5, 'Top notch service and luxury ambiance. Will be a regular customer for sure.', (current_date + interval '-14 days' + time '14:30:00') at time zone 'Asia/Singapore'),
+  ('f0000023-0000-0000-0000-000000000000'::uuid, 'a0000023-0000-0000-0000-000000000000'::uuid, 'd0000023-0000-0000-0000-000000000000'::uuid, 4, 'Sharp fade and great scissor work on top. Nice complimentary drinks too.', (current_date + interval '-14 days' + time '14:30:00') at time zone 'Asia/Singapore'),
+  ('f0000024-0000-0000-0000-000000000000'::uuid, 'a0000024-0000-0000-0000-000000000000'::uuid, 'd0000024-0000-0000-0000-000000000000'::uuid, 5, 'Marcus is a master of his craft. The beard lineup was perfection.', (current_date + interval '-13 days' + time '14:30:00') at time zone 'Asia/Singapore'),
+  ('f0000025-0000-0000-0000-000000000000'::uuid, 'a0000025-0000-0000-0000-000000000000'::uuid, 'd0000025-0000-0000-0000-000000000000'::uuid, 5, 'Booked the Father & Son package. Quality time and top-notch haircuts!', (current_date + interval '-13 days' + time '14:30:00') at time zone 'Asia/Singapore'),
+  ('f0000026-0000-0000-0000-000000000000'::uuid, 'a0000026-0000-0000-0000-000000000000'::uuid, 'd0000026-0000-0000-0000-000000000000'::uuid, 4, 'Quick, clean, and professional. Modern booking system makes it very easy.', (current_date + interval '-12 days' + time '14:30:00') at time zone 'Asia/Singapore'),
+  ('f0000027-0000-0000-0000-000000000000'::uuid, 'a0000027-0000-0000-0000-000000000000'::uuid, 'd0000027-0000-0000-0000-000000000000'::uuid, 5, 'Loved the eucalyptus steam towel after my razor shave. 10/10 service!', (current_date + interval '-12 days' + time '14:30:00') at time zone 'Asia/Singapore'),
+  ('f0000028-0000-0000-0000-000000000000'::uuid, 'a0000028-0000-0000-0000-000000000000'::uuid, 'd0000028-0000-0000-0000-000000000000'::uuid, 5, 'Best skin fade taper in the city. Lineup was laser sharp.', (current_date + interval '-11 days' + time '14:30:00') at time zone 'Asia/Singapore'),
+  ('f0000029-0000-0000-0000-000000000000'::uuid, 'a0000029-0000-0000-0000-000000000000'::uuid, 'd0000029-0000-0000-0000-000000000000'::uuid, 4, 'Great attention to detail and good styling advice for my hair type.', (current_date + interval '-11 days' + time '14:30:00') at time zone 'Asia/Singapore'),
+  ('f0000030-0000-0000-0000-000000000000'::uuid, 'a0000030-0000-0000-0000-000000000000'::uuid, 'd0000030-0000-0000-0000-000000000000'::uuid, 5, 'Always consistent and on time. Best barber team hands down!', (current_date + interval '-10 days' + time '14:30:00') at time zone 'Asia/Singapore'),
+  ('f0000031-0000-0000-0000-000000000000'::uuid, 'a0000031-0000-0000-0000-000000000000'::uuid, 'd0000031-0000-0000-0000-000000000000'::uuid, 5, 'Absolutely legendary cut! Marcus gave the cleanest skin fade I''''ve ever had.', (current_date + interval '-10 days' + time '14:30:00') at time zone 'Asia/Singapore'),
+  ('f0000032-0000-0000-0000-000000000000'::uuid, 'a0000032-0000-0000-0000-000000000000'::uuid, 'd0000032-0000-0000-0000-000000000000'::uuid, 5, 'Best barbershop experience in town. Hot towel shave was so relaxing!', (current_date + interval '-9 days' + time '14:30:00') at time zone 'Asia/Singapore'),
+  ('f0000033-0000-0000-0000-000000000000'::uuid, 'a0000033-0000-0000-0000-000000000000'::uuid, 'd0000033-0000-0000-0000-000000000000'::uuid, 5, 'Took my son here for his haircut, barber was super patient and kind.', (current_date + interval '-9 days' + time '14:30:00') at time zone 'Asia/Singapore'),
+  ('f0000034-0000-0000-0000-000000000000'::uuid, 'a0000034-0000-0000-0000-000000000000'::uuid, 'd0000034-0000-0000-0000-000000000000'::uuid, 5, 'Clean lines, great pomade styling, and fast service without feeling rushed.', (current_date + interval '-8 days' + time '14:30:00') at time zone 'Asia/Singapore'),
+  ('f0000035-0000-0000-0000-000000000000'::uuid, 'a0000035-0000-0000-0000-000000000000'::uuid, 'd0000035-0000-0000-0000-000000000000'::uuid, 4, 'Great haircut and crisp beard shapeup. Friendly vibe in the shop.', (current_date + interval '-8 days' + time '14:30:00') at time zone 'Asia/Singapore'),
+  ('f0000036-0000-0000-0000-000000000000'::uuid, 'a0000036-0000-0000-0000-000000000000'::uuid, 'd0000036-0000-0000-0000-000000000000'::uuid, 5, 'The scalp massage during the treatment was incredible. Highly recommended!', (current_date + interval '-7 days' + time '14:30:00') at time zone 'Asia/Singapore'),
+  ('f0000037-0000-0000-0000-000000000000'::uuid, 'a0000037-0000-0000-0000-000000000000'::uuid, 'd0000037-0000-0000-0000-000000000000'::uuid, 5, 'Top notch service and luxury ambiance. Will be a regular customer for sure.', (current_date + interval '-7 days' + time '14:30:00') at time zone 'Asia/Singapore'),
+  ('f0000038-0000-0000-0000-000000000000'::uuid, 'a0000038-0000-0000-0000-000000000000'::uuid, 'd0000038-0000-0000-0000-000000000000'::uuid, 4, 'Sharp fade and great scissor work on top. Nice complimentary drinks too.', (current_date + interval '-6 days' + time '14:30:00') at time zone 'Asia/Singapore'),
+  ('f0000039-0000-0000-0000-000000000000'::uuid, 'a0000039-0000-0000-0000-000000000000'::uuid, 'd0000039-0000-0000-0000-000000000000'::uuid, 5, 'Marcus is a master of his craft. The beard lineup was perfection.', (current_date + interval '-6 days' + time '14:30:00') at time zone 'Asia/Singapore'),
+  ('f0000040-0000-0000-0000-000000000000'::uuid, 'a0000040-0000-0000-0000-000000000000'::uuid, 'd0000040-0000-0000-0000-000000000000'::uuid, 5, 'Booked the Father & Son package. Quality time and top-notch haircuts!', (current_date + interval '-5 days' + time '14:30:00') at time zone 'Asia/Singapore'),
+  ('f0000041-0000-0000-0000-000000000000'::uuid, 'a0000041-0000-0000-0000-000000000000'::uuid, 'd0000041-0000-0000-0000-000000000000'::uuid, 4, 'Quick, clean, and professional. Modern booking system makes it very easy.', (current_date + interval '-5 days' + time '14:30:00') at time zone 'Asia/Singapore'),
+  ('f0000042-0000-0000-0000-000000000000'::uuid, 'a0000042-0000-0000-0000-000000000000'::uuid, 'd0000042-0000-0000-0000-000000000000'::uuid, 5, 'Loved the eucalyptus steam towel after my razor shave. 10/10 service!', (current_date + interval '-4 days' + time '14:30:00') at time zone 'Asia/Singapore'),
+  ('f0000043-0000-0000-0000-000000000000'::uuid, 'a0000043-0000-0000-0000-000000000000'::uuid, 'd0000043-0000-0000-0000-000000000000'::uuid, 5, 'Best skin fade taper in the city. Lineup was laser sharp.', (current_date + interval '-4 days' + time '14:30:00') at time zone 'Asia/Singapore'),
+  ('f0000044-0000-0000-0000-000000000000'::uuid, 'a0000044-0000-0000-0000-000000000000'::uuid, 'd0000044-0000-0000-0000-000000000000'::uuid, 4, 'Great attention to detail and good styling advice for my hair type.', (current_date + interval '-3 days' + time '14:30:00') at time zone 'Asia/Singapore'),
+  ('f0000045-0000-0000-0000-000000000000'::uuid, 'a0000045-0000-0000-0000-000000000000'::uuid, 'd0000045-0000-0000-0000-000000000000'::uuid, 5, 'Always consistent and on time. Best barber team hands down!', (current_date + interval '-3 days' + time '14:30:00') at time zone 'Asia/Singapore'),
+  ('f0000046-0000-0000-0000-000000000000'::uuid, 'a0000046-0000-0000-0000-000000000000'::uuid, 'd0000046-0000-0000-0000-000000000000'::uuid, 5, 'Absolutely legendary cut! Marcus gave the cleanest skin fade I''''ve ever had.', (current_date + interval '-2 days' + time '14:30:00') at time zone 'Asia/Singapore'),
+  ('f0000047-0000-0000-0000-000000000000'::uuid, 'a0000047-0000-0000-0000-000000000000'::uuid, 'd0000047-0000-0000-0000-000000000000'::uuid, 5, 'Best barbershop experience in town. Hot towel shave was so relaxing!', (current_date + interval '-2 days' + time '14:30:00') at time zone 'Asia/Singapore'),
+  ('f0000048-0000-0000-0000-000000000000'::uuid, 'a0000048-0000-0000-0000-000000000000'::uuid, 'd0000048-0000-0000-0000-000000000000'::uuid, 5, 'Took my son here for his haircut, barber was super patient and kind.', (current_date + interval '-1 days' + time '14:30:00') at time zone 'Asia/Singapore'),
+  ('f0000049-0000-0000-0000-000000000000'::uuid, 'a0000049-0000-0000-0000-000000000000'::uuid, 'd0000049-0000-0000-0000-000000000000'::uuid, 5, 'Clean lines, great pomade styling, and fast service without feeling rushed.', (current_date + interval '-1 days' + time '14:30:00') at time zone 'Asia/Singapore'),
+  ('f0000050-0000-0000-0000-000000000000'::uuid, 'a0000050-0000-0000-0000-000000000000'::uuid, 'd0000050-0000-0000-0000-000000000000'::uuid, 4, 'Great haircut and crisp beard shapeup. Friendly vibe in the shop.', (current_date + interval '0 days' + time '14:30:00') at time zone 'Asia/Singapore')
+on conflict (id) do update set rating = excluded.rating, comments = excluded.comments, created_at = excluded.created_at;
 
 commit;
