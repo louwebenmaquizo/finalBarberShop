@@ -55,25 +55,28 @@ class _LoginScreenState extends State<LoginScreen> {
         // Navigate based on role
         if (role == 'admin' || role == 'manager' || role == 'cashier') {
           final username = user?['username'] as String?;
-          Navigator.pushReplacement(
+          Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(
               builder: (context) => AdminHomeScreen(username: username),
             ),
+            (route) => false,
           );
         } else if (role == 'barber' || role == 'staff') {
-          Navigator.pushReplacement(
+          Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(
               builder: (context) => BarberHomeScreen(barberData: user),
             ),
+            (route) => false,
           );
         } else if (role == 'customer') {
-          Navigator.pushReplacement(
+          Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(
               builder: (context) => CustomerNavigationScreen(userData: user),
             ),
+            (route) => false,
           );
         } else {
           // Unknown role - show error

@@ -498,7 +498,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                                 : 2,
                         mainAxisSpacing: 14,
                         crossAxisSpacing: 14,
-                        childAspectRatio: 0.80,
+                        childAspectRatio: 0.95,
                       ),
                       itemCount: _services.length,
                       itemBuilder: (context, index) {
@@ -1000,8 +1000,9 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     return 'assets/catalog/1.png';
   }
 
-  Widget _buildCustomerServiceImage(String? photo, {String? serviceName, String? categoryName}) {
-    const double imgHeight = 108.0;
+  Widget _buildCustomerServiceImage(String? photo,
+      {String? serviceName, String? categoryName}) {
+    const double imgHeight = 90.0;
     String? clean = photo?.trim();
     if (clean == null || clean.isEmpty) {
       clean = getDefaultCatalogImage(serviceName, categoryName);

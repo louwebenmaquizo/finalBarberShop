@@ -304,7 +304,7 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
                                         : 2,
                             crossAxisSpacing: 14,
                             mainAxisSpacing: 14,
-                            childAspectRatio: 0.80,
+                            childAspectRatio: 0.95,
                           ),
                           itemCount: _filteredServices.length,
                           itemBuilder: (context, index) {
@@ -784,7 +784,7 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
   }
 
   Widget _buildCustomerCatalogImage(String? photo, {String? serviceName, String? categoryName}) {
-    const double imgHeight = 108.0;
+    const double imgHeight = 90.0;
     String? clean = photo?.trim();
     if (clean == null || clean.isEmpty) {
       clean = getDefaultCatalogImage(serviceName, categoryName);

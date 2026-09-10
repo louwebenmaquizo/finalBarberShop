@@ -809,66 +809,72 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey[50],
-      body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: _loadAppointments,
-          child: Column(
-            children: [
-              _buildBarberHeader(),
-              Expanded(
-                child: ListView(
-                  children: [
-                    _buildStatsRow(),
-                    _buildFilterChips(),
-                    const SizedBox(height: 12),
-                    if (_isLoading)
-                      const Padding(
-                        padding: EdgeInsets.all(40.0),
-                        child: Center(child: CircularProgressIndicator()),
-                      )
-                    else if (_appointments.isEmpty)
-                      Container(
-                        padding: const EdgeInsets.all(40),
-                        alignment: Alignment.center,
-                        child: Column(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(20),
-                              decoration: BoxDecoration(
-                                color: Colors.blue.withOpacity(0.08),
-                                shape: BoxShape.circle,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+      },
+      child: Scaffold(
+        backgroundColor: Colors.grey[50],
+        body: SafeArea(
+          child: RefreshIndicator(
+            onRefresh: _loadAppointments,
+            child: Column(
+              children: [
+                _buildBarberHeader(),
+                Expanded(
+                  child: ListView(
+                    children: [
+                      _buildStatsRow(),
+                      _buildFilterChips(),
+                      const SizedBox(height: 12),
+                      if (_isLoading)
+                        const Padding(
+                          padding: EdgeInsets.all(40.0),
+                          child: Center(child: CircularProgressIndicator()),
+                        )
+                      else if (_appointments.isEmpty)
+                        Container(
+                          padding: const EdgeInsets.all(40),
+                          alignment: Alignment.center,
+                          child: Column(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(20),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue.withOpacity(0.08),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.content_cut,
+                                    size: 48, color: Color(0xFF1E88E5)),
                               ),
-                              child: const Icon(Icons.content_cut,
-                                  size: 48, color: Color(0xFF1E88E5)),
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'No Cuts in Queue',
-                              style: GoogleFonts.manrope(
-                                  fontSize: 18, fontWeight: FontWeight.bold),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              _selectedFilter == 'today'
-                                  ? 'No customers scheduled for cuts today.'
-                                  : 'No appointments found for this filter.',
-                              style: GoogleFonts.manrope(
-                                  color: Colors.grey[600], fontSize: 13),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        ),
-                      )
-                    else
-                      ..._appointments.map(
-                          (appointment) => _buildAppointmentCard(appointment)),
-                    const SizedBox(height: 24),
-                  ],
+                              const SizedBox(height: 16),
+                              Text(
+                                'No Cuts in Queue',
+                                style: GoogleFonts.manrope(
+                                    fontSize: 18, fontWeight: FontWeight.bold),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                _selectedFilter == 'today'
+                                    ? 'No customers scheduled for cuts today.'
+                                    : 'No appointments found for this filter.',
+                                style: GoogleFonts.manrope(
+                                    color: Colors.grey[600], fontSize: 13),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        )
+                      else
+                        ..._appointments.map(
+                            (appointment) => _buildAppointmentCard(appointment)),
+                      const SizedBox(height: 24),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

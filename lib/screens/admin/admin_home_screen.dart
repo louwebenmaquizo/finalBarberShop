@@ -70,21 +70,32 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            // Header
-            _buildHeader(),
-            // Body
-            Expanded(
-              child: _getBodyContent(),
-            ),
-            // Footer Navigation
-            _buildFooter(),
-          ],
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (_selectedIndex != 0) {
+          setState(() {
+            _selectedIndex = 0;
+          });
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              // Header
+              _buildHeader(),
+              // Body
+              Expanded(
+                child: _getBodyContent(),
+              ),
+              // Footer Navigation
+              _buildFooter(),
+            ],
+          ),
         ),
       ),
     );
