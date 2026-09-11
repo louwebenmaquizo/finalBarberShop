@@ -350,14 +350,17 @@ class _CatalogScreenState extends State<CatalogScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showAddMenu,
-        backgroundColor: Colors.black,
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: Text(
-          'Add',
-          style: GoogleFonts.manrope(
-              color: Colors.white, fontWeight: FontWeight.bold),
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 68.0),
+        child: FloatingActionButton.extended(
+          onPressed: _showAddMenu,
+          backgroundColor: Colors.black,
+          icon: const Icon(Icons.add, color: Colors.white),
+          label: Text(
+            'Add Catalog',
+            style: GoogleFonts.manrope(
+                color: Colors.white, fontWeight: FontWeight.bold),
+          ),
         ),
       ),
       body: RefreshIndicator(

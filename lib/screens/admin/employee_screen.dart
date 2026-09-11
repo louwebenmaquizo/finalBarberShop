@@ -464,25 +464,28 @@ class _EmployeeScreenState extends State<EmployeeScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final result = await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const AddEmployeeScreen(),
-            ),
-          );
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 68.0),
+        child: FloatingActionButton(
+          onPressed: () async {
+            final result = await Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const AddEmployeeScreen(),
+              ),
+            );
 
-          // Refresh list if employee was added
-          if (result == true) {
-            _loadEmployees();
-          }
-        },
-        backgroundColor: Colors.black,
-        shape: const CircleBorder(),
-        child: const Icon(
-          Icons.add,
-          color: Colors.white,
+            // Refresh list if employee was added
+            if (result == true) {
+              _loadEmployees();
+            }
+          },
+          backgroundColor: Colors.black,
+          shape: const CircleBorder(),
+          child: const Icon(
+            Icons.add,
+            color: Colors.white,
+          ),
         ),
       ),
     );

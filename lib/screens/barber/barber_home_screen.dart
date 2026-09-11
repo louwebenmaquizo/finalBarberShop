@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../services/auth_session_service.dart';
 import '../../services/booking_service.dart';
+import '../../services/notification_service.dart';
 import '../../widgets/notifications_modal.dart';
-import '../auth/login_screen.dart';
 import '../onboarding.dart';
 
 class BarberHomeScreen extends StatefulWidget {
@@ -298,10 +298,51 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
             ),
           ),
           // Actions
-          IconButton(
-            icon:
-                const Icon(Icons.notifications_outlined, color: Colors.black87),
-            onPressed: () => showNotificationsModal(context, isAdmin: false),
+          ValueListenableBuilder<int>(
+            valueListenable: NotificationService.unreadCountNotifier,
+            builder: (context, unreadCount, _) {
+              return IconButton(
+                icon: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    const Icon(Icons.notifications_outlined,
+                        color: Colors.black87),
+                    if (unreadCount > 0)
+                      Positioned(
+                        right: -2,
+                        top: -2,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 4, vertical: 1),
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF1E88E5),
+                            shape: BoxShape.circle,
+                          ),
+                          constraints: const BoxConstraints(
+                            minWidth: 14,
+                            minHeight: 14,
+                          ),
+                          child: Center(
+                            child: Text(
+                              unreadCount > 9 ? '9+' : '$unreadCount',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                onPressed: () => showNotificationsModal(
+                  context,
+                  isAdmin: false,
+                  staffId: _staffId,
+                ),
+              );
+            },
           ),
           IconButton(
             icon: const Icon(Icons.logout, color: Colors.red),

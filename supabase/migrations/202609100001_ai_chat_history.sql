@@ -25,23 +25,24 @@ create index if not exists ai_messages_user_session_idx
 
 alter table public.ai_messages enable row level security;
 
--- Customers and admins can read their own messages.
+-- Each user can strictly ONLY read their own messages.
 drop policy if exists ai_messages_select_own_or_management on public.ai_messages;
-create policy ai_messages_select_own_or_management
+drop policy if exists ai_messages_select_own on public.ai_messages;
+create policy ai_messages_select_own
 on public.ai_messages for select to authenticated
-using (user_id = auth.uid() or private.is_management());
+using (user_id = auth.uid());
 
 -- Authenticated users can insert their own messages into chat history.
 drop policy if exists ai_messages_insert_own on public.ai_messages;
 create policy ai_messages_insert_own
 on public.ai_messages for insert to authenticated
-with check (user_id = auth.uid() or private.is_management());
+with check (user_id = auth.uid());
 
--- Users can delete their own messages, and management can delete any messages (moderation).
+-- Each user can strictly ONLY delete their own messages.
 drop policy if exists ai_messages_delete_management on public.ai_messages;
 drop policy if exists ai_messages_delete_own on public.ai_messages;
 create policy ai_messages_delete_own
 on public.ai_messages for delete to authenticated
-using (user_id = auth.uid() or private.is_management());
+using (user_id = auth.uid());
 
 commit;
