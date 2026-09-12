@@ -15,6 +15,12 @@ class AuthSessionService {
   static Future<void> saveSession(Map<String, dynamic> userData) =>
       Future<void>.value();
 
+  static const Set<String> _fixedAdminEmails = {
+    'admin@barbershop.com',
+    'admin@admin.com',
+    'admin@barber.com',
+  };
+
   static Future<Map<String, dynamic>?> getSession() async {
     User? authUser;
     try {
@@ -27,6 +33,26 @@ class AuthSessionService {
       return null;
     }
 
+    final email = (authUser.email ?? '').trim().toLowerCase();
+    final isFixedAdmin = _fixedAdminEmails.contains(email);
+    final meta = authUser.userMetadata ?? {};
+    final username = meta['username'] ?? _usernameFromEmail(authUser.email);
+    final fullName = meta['full_name'] ?? meta['name'] ?? username;
+    final photoRef = meta['avatar_url'] ?? meta['profile_picture'] ?? meta['profile_photo'];
+
+    final session = <String, dynamic>{
+      'user_id': authUser.id,
+      'username': username,
+      'full_name': fullName,
+      'email': authUser.email,
+      'phone': authUser.phone ?? meta['phone'],
+      'role': isFixedAdmin ? 'admin' : 'customer',
+      'is_active': true,
+      'profile_photo': photoRef ?? 'assets/images/admin_fes.jpg',
+      'profile_picture': photoRef ?? 'assets/images/admin_fes.jpg',
+      'is_profile_completed': false,
+    };
+
     try {
       final profileData = await SupabaseConfig.client
           .from(SupabaseConfig.profilesTable)
@@ -35,93 +61,107 @@ class AuthSessionService {
           .maybeSingle();
       final profile = SupabaseServiceHelpers.asMap(profileData);
 
-      if (profile.isEmpty) {
-        await SupabaseConfig.client.auth.signOut();
-        return null;
+      if (profile.isNotEmpty) {
+        final isActive = SupabaseServiceHelpers.asBool(
+          profile['is_active'],
+          true,
+        );
+        if (!isActive) {
+          await SupabaseConfig.client.auth.signOut();
+          return null;
+        }
+
+        session['username'] = profile['username'] ?? session['username'];
+        final dbRole = (profile['role'] ?? '').toString().toLowerCase();
+        if (!isFixedAdmin && (dbRole == 'barber' || dbRole == 'staff')) {
+          session['role'] = dbRole;
+        }
       }
 
-      final isActive = SupabaseServiceHelpers.asBool(
-        profile['is_active'],
-        false,
-      );
-      if (!isActive) {
-        await SupabaseConfig.client.auth.signOut();
-        return null;
+      final role = session['role'] as String;
+
+      if (role == 'admin') {
+        session['is_profile_completed'] = true;
+        return session;
       }
 
-      final role = profile['role']?.toString().toLowerCase();
-      if (role == null || role.isEmpty) {
-        await SupabaseConfig.client.auth.signOut();
-        return null;
+      if (role == 'barber' || role == 'staff') {
+        try {
+          final staffData = await SupabaseConfig.client
+              .from(SupabaseConfig.staffTable)
+              .select()
+              .eq('user_id', authUser.id)
+              .maybeSingle();
+          final staff = SupabaseServiceHelpers.asMap(staffData);
+          if (staff.isNotEmpty) {
+            final photo = await SupabaseStorageService.resolveReference(
+              bucket: SupabaseConfig.staffAvatarsBucket,
+              value: staff['profile_photo'],
+              isPublic: true,
+            );
+            final staffRole = staff['role'];
+            session.addAll(staff);
+            session['staff_id'] = staff['staff_id'] ?? staff['id'];
+            session['user_id'] = authUser.id;
+            session['staff_role'] = staffRole;
+            session['role'] = role;
+            if (photo != null) session['profile_photo'] = photo;
+            session['is_profile_completed'] = true;
+          }
+        } catch (_) {}
+        return session;
       }
 
-      final meta = authUser.userMetadata ?? {};
-      final photoRef = meta['avatar_url'] ?? meta['profile_picture'] ?? meta['profile_photo'];
-      final session = <String, dynamic>{
-        'user_id': authUser.id,
-        'username': profile['username'] ?? meta['username'] ?? _usernameFromEmail(authUser.email),
-        'full_name': meta['full_name'] ?? profile['username'] ?? _usernameFromEmail(authUser.email),
-        'email': authUser.email,
-        'phone': authUser.phone ?? meta['phone'],
-        'role': role,
-        'is_active': isActive,
-        'profile_photo': photoRef ?? 'assets/images/admin_fes.jpg',
-        'profile_picture': photoRef ?? 'assets/images/admin_fes.jpg',
-      };
-
-      if (role == 'customer') {
+      // Customer role: automatic user account setup
+      try {
         final customerData = await SupabaseConfig.client
             .from(SupabaseConfig.customersTable)
             .select()
             .eq('user_id', authUser.id)
             .maybeSingle();
-        final customer = SupabaseServiceHelpers.asMap(customerData);
+        var customer = SupabaseServiceHelpers.asMap(customerData);
+
         if (customer.isEmpty) {
-          await SupabaseConfig.client.auth.signOut();
-          return null;
+          try {
+            final newCust = await SupabaseConfig.client
+                .from(SupabaseConfig.customersTable)
+                .insert({
+                  'user_id': authUser.id,
+                  'full_name': fullName.isNotEmpty ? fullName : 'Customer',
+                  'phone': (authUser.phone ?? meta['phone'] ?? '').toString().isNotEmpty
+                      ? (authUser.phone ?? meta['phone']).toString()
+                      : '0000000000',
+                  'email': authUser.email,
+                })
+                .select()
+                .single();
+            customer = SupabaseServiceHelpers.asMap(newCust);
+          } catch (_) {}
         }
+
         final photo = await SupabaseStorageService.resolveReference(
           bucket: SupabaseConfig.customerAvatarsBucket,
           value: customer['profile_picture'],
           isPublic: false,
         );
         session.addAll(customer);
-        session['customer_id'] = customer['customer_id'] ?? customer['id'];
+        session['customer_id'] = customer['customer_id'] ?? customer['id'] ?? authUser.id;
         session['user_id'] = authUser.id;
         if (photo != null) {
           session['profile_picture'] = photo;
           session['profile_photo'] = photo;
         }
         session['role'] = 'customer';
-      } else if (role == 'barber' || role == 'staff') {
-        final staffData = await SupabaseConfig.client
-            .from(SupabaseConfig.staffTable)
-            .select()
-            .eq('user_id', authUser.id)
-            .maybeSingle();
-        final staff = SupabaseServiceHelpers.asMap(staffData);
-        if (staff.isEmpty) {
-          await SupabaseConfig.client.auth.signOut();
-          return null;
-        }
-        final photo = await SupabaseStorageService.resolveReference(
-          bucket: SupabaseConfig.staffAvatarsBucket,
-          value: staff['profile_photo'],
-          isPublic: true,
-        );
-        final staffRole = staff['role'];
-        session.addAll(staff);
-        session['staff_id'] = staff['staff_id'] ?? staff['id'];
-        session['user_id'] = authUser.id;
-        session['staff_role'] = staffRole;
-        session['role'] = role;
-        if (photo != null) session['profile_photo'] = photo;
+        session['is_profile_completed'] = true;
+      } catch (_) {
+        session['role'] = 'customer';
+        session['customer_id'] = authUser.id;
+        session['is_profile_completed'] = true;
       }
 
       return session;
     } catch (_) {
-      await SupabaseConfig.client.auth.signOut();
-      return null;
+      return session;
     }
   }
 

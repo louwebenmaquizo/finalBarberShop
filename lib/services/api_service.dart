@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/api_config.dart';
 import 'auth_session_service.dart';
 import 'supabase_service_helpers.dart';
@@ -8,6 +10,129 @@ import 'supabase_service_helpers.dart';
 /// the old PHP response shapes so the UI can be migrated independently.
 class ApiService {
   ApiService._();
+
+  static Future<Map<String, dynamic>> signInWithGoogle() async {
+    try {
+      await SupabaseConfig.client.auth.signInWithOAuth(
+        OAuthProvider.google,
+        redirectTo: kIsWeb ? 'http://localhost:3000' : null,
+        scopes: 'email profile',
+      );
+      return {'success': true};
+    } catch (error) {
+      return SupabaseServiceHelpers.failure(error);
+    }
+  }
+
+  static Future<Map<String, dynamic>> completeCustomerProfile(
+    Map<String, dynamic> customerData,
+  ) async {
+    final user = SupabaseConfig.client.auth.currentUser;
+    if (user == null) {
+      return {'success': false, 'message': 'No authenticated user found.'};
+    }
+
+    final fullName = (customerData['full_name'] ?? '').toString().trim();
+    final phone = (customerData['phone'] ?? '').toString().trim();
+    if (fullName.isEmpty || phone.isEmpty) {
+      return {
+        'success': false,
+        'message': 'Full name and phone number are required.',
+      };
+    }
+
+    try {
+      final username = (customerData['username'] ??
+              user.userMetadata?['username'] ??
+              (user.email != null && user.email!.contains('@')
+                  ? user.email!.split('@').first
+                  : 'User'))
+          .toString()
+          .trim();
+
+      // 1. Upsert profile
+      await SupabaseConfig.client.from(SupabaseConfig.profilesTable).upsert({
+        'id': user.id,
+        'username': username,
+        'role': 'customer',
+        'is_active': true,
+      });
+
+      // 2. Check if customer record exists
+      final existing = await SupabaseConfig.client
+          .from(SupabaseConfig.customersTable)
+          .select('id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+      String? customerId = existing != null ? existing['id']?.toString() : null;
+
+      // 3. Handle profile picture upload if needed
+      String? profilePicturePath;
+      final rawPicture = customerData['profile_picture'];
+      if (rawPicture != null && SupabaseStorageService.isDataImage(rawPicture)) {
+        try {
+          profilePicturePath = await SupabaseStorageService.uploadDataImage(
+            bucket: SupabaseConfig.customerAvatarsBucket,
+            ownerId: customerId ?? user.id,
+            dataUri: rawPicture.toString(),
+          );
+        } catch (_) {}
+      }
+
+      final customerPayload = <String, dynamic>{
+        'user_id': user.id,
+        'full_name': fullName,
+        'phone': phone,
+        'email': user.email ?? customerData['email'],
+        if (customerData['gender'] != null) 'gender': customerData['gender'],
+        if (customerData['date_of_birth'] != null)
+          'date_of_birth': customerData['date_of_birth'],
+        if (customerData['notes'] != null) 'notes': customerData['notes'],
+        if (profilePicturePath != null) 'profile_picture': profilePicturePath,
+      };
+
+      Map<String, dynamic> savedCustomer;
+      if (customerId != null) {
+        final res = await SupabaseConfig.client
+            .from(SupabaseConfig.customersTable)
+            .update(customerPayload)
+            .eq('id', customerId)
+            .select()
+            .single();
+        savedCustomer = SupabaseServiceHelpers.asMap(res);
+      } else {
+        final res = await SupabaseConfig.client
+            .from(SupabaseConfig.customersTable)
+            .insert(customerPayload)
+            .select()
+            .single();
+        savedCustomer = SupabaseServiceHelpers.asMap(res);
+      }
+
+      // Update auth user metadata
+      try {
+        await SupabaseConfig.client.auth.updateUser(
+          UserAttributes(
+            data: {
+              'full_name': fullName,
+              'phone': phone,
+              'username': username,
+            },
+          ),
+        );
+      } catch (_) {}
+
+      final session = await AuthSessionService.getSession();
+      return {
+        'success': true,
+        'customer': savedCustomer,
+        'user': session,
+      };
+    } catch (error) {
+      return SupabaseServiceHelpers.failure(error);
+    }
+  }
 
   static Future<Map<String, dynamic>> login(
     String username,
@@ -57,6 +182,33 @@ class ApiService {
     } catch (error) {
       return SupabaseServiceHelpers.failure(error);
     }
+  }
+
+  /// Checks if an email is already registered in the system.
+  static Future<bool> checkEmailExists(String email) async {
+    final normalized = email.trim().toLowerCase();
+    if (normalized.isEmpty || !normalized.contains('@')) return false;
+
+    try {
+      final res = await SupabaseConfig.client.rpc(
+        'check_email_registered',
+        params: {'p_email': normalized},
+      );
+      if (res is bool) return res;
+    } catch (_) {
+      // If RPC is not deployed yet, check fallback in customer table
+      try {
+        final existing = await SupabaseConfig.client
+            .from(SupabaseConfig.customersTable)
+            .select('id')
+            .eq('email', normalized)
+            .maybeSingle();
+        if (existing != null && existing.isNotEmpty) {
+          return true;
+        }
+      } catch (_) {}
+    }
+    return false;
   }
 
   static Future<Map<String, dynamic>?> register(

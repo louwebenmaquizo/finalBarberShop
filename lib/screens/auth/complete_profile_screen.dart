@@ -5,31 +5,31 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../config/countries.dart';
 import '../../services/api_service.dart';
+import '../../services/auth_session_service.dart';
 import '../../services/employee_service.dart';
 import '../../widgets/terms_modal.dart';
+import '../customer/customer_navigation_screen.dart';
 import 'login_screen.dart';
 
-class RegisterScreen extends StatefulWidget {
-  final String? initialEmail;
+class CompleteProfileScreen extends StatefulWidget {
+  final Map<String, dynamic>? userData;
 
-  const RegisterScreen({super.key, this.initialEmail});
+  const CompleteProfileScreen({super.key, this.userData});
 
   @override
-  State<RegisterScreen> createState() => _RegisterScreenState();
+  State<CompleteProfileScreen> createState() => _CompleteProfileScreenState();
 }
 
-class _RegisterScreenState extends State<RegisterScreen> {
+class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
   final PageController _pageController = PageController();
   int _currentStep = 0;
 
   // Form controllers
   final TextEditingController _fullNameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _dateOfBirthController = TextEditingController();
 
-  bool _obscurePassword = true;
   Country _selectedCountry = getDefaultCountry();
   String? _selectedBarber;
   String? _selectedAvailability;
@@ -41,15 +41,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _isLoading = false;
   final _formKey = GlobalKey<FormState>();
 
-  // Real system barbers
   List<Map<String, dynamic>> _barbers = [];
   bool _isLoadingBarbers = true;
 
   @override
   void initState() {
     super.initState();
-    if (widget.initialEmail != null && widget.initialEmail!.trim().isNotEmpty) {
-      _emailController.text = widget.initialEmail!.trim();
+    final data = widget.userData ?? {};
+    final existingName = (data['full_name'] ?? data['name'] ?? data['username'] ?? '').toString();
+    if (existingName.isNotEmpty && !existingName.contains('@') && existingName.toLowerCase() != 'user') {
+      _fullNameController.text = existingName;
+    }
+    final existingEmail = (data['email'] ?? '').toString();
+    if (existingEmail.isNotEmpty) {
+      _emailController.text = existingEmail;
+    }
+    final existingPhone = (data['phone'] ?? '').toString();
+    if (existingPhone.isNotEmpty) {
+      _phoneController.text = existingPhone;
     }
     _loadBarbers();
   }
@@ -59,16 +68,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
       final employees = await EmployeeService.getAllEmployees();
       if (mounted) {
         setState(() {
-          // Filter active barbers/staff
           _barbers = employees.where((e) {
             final isActive = e['is_active'];
             bool active = false;
-            if (isActive is bool)
-              active = isActive;
-            else if (isActive is int)
-              active = isActive == 1;
-            else if (isActive is String)
-              active = isActive == '1' || isActive.toLowerCase() == 'true';
+            if (isActive is bool) active = isActive;
+            else if (isActive is int) active = isActive == 1;
+            else if (isActive is String) active = isActive == '1' || isActive.toLowerCase() == 'true';
             return active;
           }).toList();
           _isLoadingBarbers = false;
@@ -88,14 +93,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _pageController.dispose();
     _fullNameController.dispose();
     _emailController.dispose();
-    _passwordController.dispose();
     _phoneController.dispose();
     _dateOfBirthController.dispose();
     super.dispose();
   }
 
   void _nextStep() {
-    // Validate step 1 (Personal Information) before proceeding
     if (_currentStep == 0) {
       if (!_formKey.currentState!.validate()) {
         return;
@@ -113,10 +116,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
-  Future<void> _handleRegister() async {
+  void _previousStep() {
+    if (_currentStep > 0) {
+      _pageController.previousPage(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+      setState(() {
+        _currentStep--;
+      });
+    }
+  }
+
+  Future<void> _handleCompleteProfile() async {
     final fullName = _fullNameController.text.trim();
-    final email = _emailController.text.trim();
-    final password = _passwordController.text;
     final phone = _phoneController.text.trim();
 
     if (fullName.isEmpty) {
@@ -129,33 +142,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
-    if (email.isEmpty || !email.contains('@')) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content:
-              Text('Please enter a valid email', style: GoogleFonts.manrope()),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    if (password.length < 8) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Password must be at least 8 characters',
-              style: GoogleFonts.manrope()),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
     if (phone.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content:
-              Text('Phone number is required', style: GoogleFonts.manrope()),
+          content: Text('Phone number is required', style: GoogleFonts.manrope()),
           backgroundColor: Colors.red,
         ),
       );
@@ -180,31 +170,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
     });
 
     try {
-      // Combine country code with phone number
-      final phoneNumber =
-          '${_selectedCountry.dialCode}${_phoneController.text.trim()}';
+      final phoneNumber = '${_selectedCountry.dialCode}${_phoneController.text.trim()}';
 
-      // Prepare registration data
-      final registrationData = {
-        'full_name': _fullNameController.text.trim(),
+      final customerData = <String, dynamic>{
+        'full_name': fullName,
         'email': _emailController.text.trim(),
-        'password': _passwordController.text,
         'phone': phoneNumber,
       };
 
-      // Add optional fields if available
       if (_selectedGender != null && _selectedGender!.isNotEmpty) {
-        registrationData['gender'] = _selectedGender!;
+        customerData['gender'] = _selectedGender!;
       }
 
       if (_selectedDateOfBirth != null) {
-        // Store the date in PostgreSQL's ISO date format.
-        registrationData['date_of_birth'] =
+        customerData['date_of_birth'] =
             '${_selectedDateOfBirth!.year}-${_selectedDateOfBirth!.month.toString().padLeft(2, '0')}-${_selectedDateOfBirth!.day.toString().padLeft(2, '0')}';
       }
 
       if (_base64Image != null && _base64Image!.isNotEmpty) {
-        registrationData['profile_picture'] = _base64Image!;
+        customerData['profile_picture'] = _base64Image!;
       }
 
       final notesParts = <String>[];
@@ -217,86 +201,41 @@ class _RegisterScreenState extends State<RegisterScreen> {
         notesParts.add('Availability: $_selectedAvailability');
       }
       if (notesParts.isNotEmpty) {
-        registrationData['notes'] = notesParts.join(' | ');
+        customerData['notes'] = notesParts.join(' | ');
       }
 
-      final result = await ApiService.register(registrationData);
+      final result = await ApiService.completeCustomerProfile(customerData);
 
       if (mounted) {
         setState(() {
           _isLoading = false;
         });
 
-        if (result != null) {
-          // Registration successful - customer has been added to schema
-          // Show success dialog prompting user to log in
-          await showDialog(
-            context: context,
-            barrierDismissible: false,
-            builder: (BuildContext context) {
-              return AlertDialog(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                title: Row(
-                  children: [
-                    Icon(Icons.check_circle, color: Colors.green, size: 28),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        'Registration Successful!',
-                        style: GoogleFonts.manrope(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                content: Text(
-                  'Your account has been created. Check your email to confirm '
-                  'the account, then log in with your email and password.',
-                  style: GoogleFonts.manrope(
-                    fontSize: 14,
-                    color: Colors.grey[700],
-                  ),
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () {
-                      Navigator.of(context).pop(); // Close dialog
-                      // Navigate to login screen
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const LoginScreen(),
-                        ),
-                      );
-                    },
-                    child: Text(
-                      'Go to Login',
-                      style: GoogleFonts.manrope(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: const Color(0xB25BBCFF),
-                      ),
-                    ),
-                  ),
-                ],
-              );
-            },
-          );
+        if (result['success'] == true) {
+          final updatedUser = result['user'] as Map<String, dynamic>? ??
+              await AuthSessionService.getSession() ??
+              widget.userData;
+
+          if (updatedUser != null) {
+            await AuthSessionService.saveSession(updatedUser);
+          }
+
+          if (mounted) {
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(
+                builder: (context) =>
+                    CustomerNavigationScreen(userData: updatedUser),
+              ),
+              (route) => false,
+            );
+          }
         } else {
-          // Registration failed
+          final errorMsg = result['message'] ?? 'Failed to save profile. Please try again.';
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(
-                'Registration failed. Please check your information and try again.',
-                style: GoogleFonts.manrope(),
-              ),
+              content: Text(errorMsg, style: GoogleFonts.manrope()),
               backgroundColor: Colors.red,
-              duration: const Duration(seconds: 4),
             ),
           );
         }
@@ -306,469 +245,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
         setState(() {
           _isLoading = false;
         });
-
-        // Extract error message (remove "Exception: " prefix if present)
-        String errorMessage = e.toString();
-        if (errorMessage.startsWith('Exception: ')) {
-          errorMessage = errorMessage.substring(11);
-        }
-
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              errorMessage,
+              'Error saving profile: $e',
               style: GoogleFonts.manrope(),
             ),
             backgroundColor: Colors.red,
-            duration: const Duration(seconds: 5),
           ),
         );
       }
     }
-  }
-
-  void _previousStep() {
-    if (_currentStep > 0) {
-      _pageController.previousPage(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
-      setState(() {
-        _currentStep--;
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      resizeToAvoidBottomInset:
-          false, // Prevent screen from resizing when keyboard opens
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () {
-            if (_currentStep > 0) {
-              _previousStep();
-            } else {
-              Navigator.pop(context);
-            }
-          },
-        ),
-      ),
-      body: Column(
-        children: [
-          // Progress indicator with icons
-          _buildProgressIndicator(),
-
-          // Page view for steps
-          Expanded(
-            child: PageView(
-              controller: _pageController,
-              physics: const NeverScrollableScrollPhysics(),
-              children: [
-                _buildPersonalInformationStep(),
-                _buildUploadPictureStep(),
-                _buildPreferenceStep(),
-                _buildTermsStep(),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProgressIndicator() {
-    return Padding(
-      padding: const EdgeInsets.all(24.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          _buildProgressIcon(0, Icons.person),
-          _buildProgressLine(0),
-          _buildProgressIcon(1, Icons.camera_alt),
-          _buildProgressLine(1),
-          _buildProgressIcon(2, Icons.settings),
-          _buildProgressLine(2),
-          _buildProgressIcon(3, Icons.check_circle),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProgressIcon(int step, IconData icon) {
-    final isActive = step <= _currentStep;
-    return Container(
-      width: 40,
-      height: 40,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: isActive ? const Color(0xB25BBCFF) : Colors.grey[300],
-      ),
-      child: Icon(
-        icon,
-        color: isActive ? Colors.white : Colors.grey[600],
-        size: 20,
-      ),
-    );
-  }
-
-  Widget _buildProgressLine(int step) {
-    final isActive = step < _currentStep;
-    return Expanded(
-      child: Container(
-        height: 2,
-        color: isActive ? const Color(0xB25BBCFF) : Colors.grey[300],
-      ),
-    );
-  }
-
-  // Step 1: Personal Information
-  Widget _buildPersonalInformationStep() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24.0),
-      child: Form(
-        key: _formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Personal Information',
-              style: GoogleFonts.manrope(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
-              ),
-            ),
-            const SizedBox(height: 32),
-
-            // Full Name
-            TextFormField(
-              controller: _fullNameController,
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Full name is required';
-                }
-                return null;
-              },
-              decoration: InputDecoration(
-                labelText: 'Full Name',
-                labelStyle: GoogleFonts.manrope(color: Colors.grey[600]),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Colors.grey),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Colors.grey),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Colors.blue, width: 2),
-                ),
-                filled: true,
-                fillColor: Colors.grey[50],
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-              ),
-              style: GoogleFonts.manrope(),
-            ),
-            const SizedBox(height: 24),
-
-            // Email
-            TextFormField(
-              controller: _emailController,
-              keyboardType: TextInputType.emailAddress,
-              autofillHints: const [AutofillHints.email],
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Email is required';
-                }
-                if (!value.contains('@') || !value.contains('.')) {
-                  return 'Please enter a valid email';
-                }
-                return null;
-              },
-              decoration: InputDecoration(
-                labelText: 'Email',
-                labelStyle: GoogleFonts.manrope(color: Colors.grey[600]),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Colors.grey),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Colors.grey),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Colors.blue, width: 2),
-                ),
-                filled: true,
-                fillColor: Colors.grey[50],
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-              ),
-              style: GoogleFonts.manrope(),
-            ),
-            const SizedBox(height: 24),
-
-            // Password
-            TextFormField(
-              controller: _passwordController,
-              obscureText: _obscurePassword,
-              autofillHints: const [AutofillHints.newPassword],
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Password is required';
-                }
-                if (value.length < 8) {
-                  return 'Password must be at least 8 characters';
-                }
-                return null;
-              },
-              decoration: InputDecoration(
-                labelText: 'Password',
-                labelStyle: GoogleFonts.manrope(color: Colors.grey[600]),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Colors.grey),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Colors.grey),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Colors.blue, width: 2),
-                ),
-                filled: true,
-                fillColor: Colors.grey[50],
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                    color: Colors.grey[600],
-                  ),
-                  onPressed: () {
-                    setState(() {
-                      _obscurePassword = !_obscurePassword;
-                    });
-                  },
-                ),
-              ),
-              style: GoogleFonts.manrope(),
-            ),
-            const SizedBox(height: 24),
-
-            // Phone Number with Integrated Country Code and Flag Picker
-            TextFormField(
-              controller: _phoneController,
-              keyboardType: TextInputType.phone,
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Phone number is required';
-                }
-                return null;
-              },
-              decoration: InputDecoration(
-                labelText: 'Phone Number',
-                labelStyle: GoogleFonts.manrope(color: Colors.grey[600]),
-                prefixIcon: Padding(
-                  padding: const EdgeInsets.only(left: 12, right: 8),
-                  child: InkWell(
-                    onTap: () {
-                      showCountryPickerModal(
-                        context,
-                        selectedCountry: _selectedCountry,
-                        onSelect: (country) {
-                          setState(() {
-                            _selectedCountry = country;
-                          });
-                        },
-                      );
-                    },
-                    borderRadius: BorderRadius.circular(8),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          _selectedCountry.flag,
-                          style: const TextStyle(fontSize: 20),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          _selectedCountry.dialCode,
-                          style: GoogleFonts.manrope(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        const SizedBox(width: 2),
-                        const Icon(
-                          Icons.arrow_drop_down,
-                          color: Colors.grey,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          width: 1,
-                          height: 24,
-                          color: Colors.grey[300],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Colors.grey),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Colors.grey),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Colors.blue, width: 2),
-                ),
-                filled: true,
-                fillColor: Colors.grey[50],
-                contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 16),
-              ),
-              style: GoogleFonts.manrope(),
-            ),
-            const SizedBox(height: 24),
-
-            // Gender Dropdown
-            DropdownButtonFormField<String>(
-              value: _selectedGender,
-              decoration: InputDecoration(
-                labelText: 'Gender',
-                labelStyle: GoogleFonts.manrope(color: Colors.grey[600]),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Colors.grey),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Colors.grey),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Colors.blue, width: 2),
-                ),
-                filled: true,
-                fillColor: Colors.grey[50],
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-              ),
-              items: ['Male', 'Female', 'Other']
-                  .map((gender) => DropdownMenuItem(
-                        value: gender,
-                        child: Text(gender, style: GoogleFonts.manrope()),
-                      ))
-                  .toList(),
-              onChanged: (value) {
-                setState(() {
-                  _selectedGender = value;
-                });
-              },
-            ),
-            const SizedBox(height: 24),
-
-            // Date of Birth
-            TextFormField(
-              controller: _dateOfBirthController,
-              readOnly: true,
-              onTap: () async {
-                final DateTime? picked = await showDatePicker(
-                  context: context,
-                  initialDate:
-                      DateTime.now().subtract(const Duration(days: 365 * 18)),
-                  firstDate: DateTime(1900),
-                  lastDate: DateTime.now(),
-                  builder: (context, child) {
-                    return Theme(
-                      data: Theme.of(context).copyWith(
-                        colorScheme: const ColorScheme.light(
-                          primary: Color(0xB25BBCFF),
-                          onPrimary: Colors.white,
-                          onSurface: Colors.black,
-                        ),
-                      ),
-                      child: child!,
-                    );
-                  },
-                );
-                if (picked != null) {
-                  setState(() {
-                    _selectedDateOfBirth = picked;
-                    _dateOfBirthController.text =
-                        '${picked.day.toString().padLeft(2, '0')}/${picked.month.toString().padLeft(2, '0')}/${picked.year}';
-                  });
-                }
-              },
-              decoration: InputDecoration(
-                labelText: 'Date of Birth',
-                labelStyle: GoogleFonts.manrope(color: Colors.grey[600]),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Colors.grey),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Colors.grey),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Colors.blue, width: 2),
-                ),
-                filled: true,
-                fillColor: Colors.grey[50],
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                prefixIcon:
-                    const Icon(Icons.calendar_today, color: Colors.grey),
-              ),
-              style: GoogleFonts.manrope(),
-            ),
-            const SizedBox(height: 48),
-
-            // Next Button
-            SizedBox(
-              width: double.infinity,
-              height: 55,
-              child: ElevatedButton(
-                onPressed: _nextStep,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xB25BBCFF),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  elevation: 0,
-                ),
-                child: Text(
-                  'Next',
-                  style: GoogleFonts.manrope(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   Future<void> _pickImage(ImageSource source) async {
@@ -910,7 +397,437 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  // Step 2: Upload Your Picture
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      resizeToAvoidBottomInset: false,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () {
+            if (_currentStep > 0) {
+              _previousStep();
+            } else {
+              _confirmSignOut();
+            }
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: _confirmSignOut,
+            child: Text(
+              'Sign Out',
+              style: GoogleFonts.manrope(
+                color: Colors.grey[600],
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+              ),
+            ),
+          ),
+        ],
+      ),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 520),
+          child: Column(
+            children: [
+              _buildProgressIndicator(),
+              Expanded(
+                child: PageView(
+                  controller: _pageController,
+                  physics: const NeverScrollableScrollPhysics(),
+                  children: [
+                    _buildPersonalInformationStep(),
+                    _buildUploadPictureStep(),
+                    _buildPreferenceStep(),
+                    _buildTermsStep(),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _confirmSignOut() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Sign Out?', style: GoogleFonts.manrope(fontWeight: FontWeight.bold)),
+        content: Text(
+          'Are you sure you want to exit setup and sign out?',
+          style: GoogleFonts.manrope(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Cancel', style: GoogleFonts.manrope()),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await AuthSessionService.clearSession();
+              if (mounted) {
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  (route) => false,
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: Text('Sign Out', style: GoogleFonts.manrope()),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProgressIndicator() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          _buildProgressIcon(0, Icons.person),
+          _buildProgressLine(0),
+          _buildProgressIcon(1, Icons.camera_alt),
+          _buildProgressLine(1),
+          _buildProgressIcon(2, Icons.settings),
+          _buildProgressLine(2),
+          _buildProgressIcon(3, Icons.check_circle),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProgressIcon(int step, IconData icon) {
+    final isActive = step <= _currentStep;
+    return Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: isActive ? const Color(0xB25BBCFF) : Colors.grey[300],
+      ),
+      child: Icon(
+        icon,
+        color: isActive ? Colors.white : Colors.grey[600],
+        size: 20,
+      ),
+    );
+  }
+
+  Widget _buildProgressLine(int step) {
+    final isActive = step < _currentStep;
+    return Expanded(
+      child: Container(
+        height: 2,
+        color: isActive ? const Color(0xB25BBCFF) : Colors.grey[300],
+      ),
+    );
+  }
+
+  // Step 1: Personal Information
+  Widget _buildPersonalInformationStep() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24.0),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Complete Your Profile',
+              style: GoogleFonts.manrope(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Please provide a few personal details to set up your customer account.',
+              style: GoogleFonts.manrope(
+                fontSize: 14,
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 28),
+
+            // Full Name
+            TextFormField(
+              controller: _fullNameController,
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Full name is required';
+                }
+                return null;
+              },
+              decoration: InputDecoration(
+                labelText: 'Full Name',
+                labelStyle: GoogleFonts.manrope(color: Colors.grey[600]),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Colors.grey),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Colors.grey),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Colors.blue, width: 2),
+                ),
+                filled: true,
+                fillColor: Colors.grey[50],
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              ),
+              style: GoogleFonts.manrope(),
+            ),
+            const SizedBox(height: 20),
+
+            // Email (read-only/pre-filled)
+            TextFormField(
+              controller: _emailController,
+              readOnly: true,
+              keyboardType: TextInputType.emailAddress,
+              decoration: InputDecoration(
+                labelText: 'Email Address',
+                labelStyle: GoogleFonts.manrope(color: Colors.grey[600]),
+                suffixIcon: const Icon(Icons.lock_outline, size: 18, color: Colors.grey),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey[300]!),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey[300]!),
+                ),
+                filled: true,
+                fillColor: Colors.grey[100],
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              ),
+              style: GoogleFonts.manrope(color: Colors.black87),
+            ),
+            const SizedBox(height: 20),
+
+            // Phone Number with Country Picker
+            TextFormField(
+              controller: _phoneController,
+              keyboardType: TextInputType.phone,
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Phone number is required';
+                }
+                return null;
+              },
+              decoration: InputDecoration(
+                labelText: 'Phone Number',
+                labelStyle: GoogleFonts.manrope(color: Colors.grey[600]),
+                prefixIcon: Padding(
+                  padding: const EdgeInsets.only(left: 12, right: 8),
+                  child: InkWell(
+                    onTap: () {
+                      showCountryPickerModal(
+                        context,
+                        selectedCountry: _selectedCountry,
+                        onSelect: (country) {
+                          setState(() {
+                            _selectedCountry = country;
+                          });
+                        },
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(8),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          _selectedCountry.flag,
+                          style: const TextStyle(fontSize: 20),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          _selectedCountry.dialCode,
+                          style: GoogleFonts.manrope(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(width: 2),
+                        const Icon(
+                          Icons.arrow_drop_down,
+                          color: Colors.grey,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          width: 1,
+                          height: 24,
+                          color: Colors.grey[300],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Colors.grey),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Colors.grey),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Colors.blue, width: 2),
+                ),
+                filled: true,
+                fillColor: Colors.grey[50],
+                contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16, vertical: 16),
+              ),
+              style: GoogleFonts.manrope(),
+            ),
+            const SizedBox(height: 20),
+
+            // Gender Dropdown
+            DropdownButtonFormField<String>(
+              value: _selectedGender,
+              decoration: InputDecoration(
+                labelText: 'Gender',
+                labelStyle: GoogleFonts.manrope(color: Colors.grey[600]),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Colors.grey),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Colors.grey),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Colors.blue, width: 2),
+                ),
+                filled: true,
+                fillColor: Colors.grey[50],
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              ),
+              items: ['Male', 'Female', 'Other']
+                  .map((gender) => DropdownMenuItem(
+                        value: gender,
+                        child: Text(gender, style: GoogleFonts.manrope()),
+                      ))
+                  .toList(),
+              onChanged: (value) {
+                setState(() {
+                  _selectedGender = value;
+                });
+              },
+            ),
+            const SizedBox(height: 20),
+
+            // Date of Birth
+            TextFormField(
+              controller: _dateOfBirthController,
+              readOnly: true,
+              onTap: () async {
+                final DateTime? picked = await showDatePicker(
+                  context: context,
+                  initialDate:
+                      DateTime.now().subtract(const Duration(days: 365 * 18)),
+                  firstDate: DateTime(1900),
+                  lastDate: DateTime.now(),
+                  builder: (context, child) {
+                    return Theme(
+                      data: Theme.of(context).copyWith(
+                        colorScheme: const ColorScheme.light(
+                          primary: Color(0xB25BBCFF),
+                          onPrimary: Colors.white,
+                          onSurface: Colors.black,
+                        ),
+                      ),
+                      child: child!,
+                    );
+                  },
+                );
+                if (picked != null) {
+                  setState(() {
+                    _selectedDateOfBirth = picked;
+                    _dateOfBirthController.text =
+                        '${picked.day.toString().padLeft(2, '0')}/${picked.month.toString().padLeft(2, '0')}/${picked.year}';
+                  });
+                }
+              },
+              decoration: InputDecoration(
+                labelText: 'Date of Birth',
+                labelStyle: GoogleFonts.manrope(color: Colors.grey[600]),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Colors.grey),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Colors.grey),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Colors.blue, width: 2),
+                ),
+                filled: true,
+                fillColor: Colors.grey[50],
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                prefixIcon:
+                    const Icon(Icons.calendar_today, color: Colors.grey),
+              ),
+              style: GoogleFonts.manrope(),
+            ),
+            const SizedBox(height: 36),
+
+            // Next Button
+            SizedBox(
+              width: double.infinity,
+              height: 55,
+              child: ElevatedButton(
+                onPressed: _nextStep,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xB25BBCFF),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 0,
+                ),
+                child: Text(
+                  'Next',
+                  style: GoogleFonts.manrope(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Step 2: Upload Picture
   Widget _buildUploadPictureStep() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24.0),
@@ -935,7 +852,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
           const SizedBox(height: 36),
 
-          // Choose File Button
           Center(
             child: GestureDetector(
               onTap: _showImagePickerOptions,
@@ -1039,7 +955,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
           const SizedBox(height: 36),
 
-          // Next Button
           SizedBox(
             width: double.infinity,
             height: 55,
@@ -1084,7 +999,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
           const SizedBox(height: 32),
 
-          // Preferred Barber Dropdown
           Container(
             decoration: BoxDecoration(
               color: Colors.grey[50],
@@ -1133,8 +1047,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           children: [
                             Container(
                               padding: const EdgeInsets.all(6),
-                              decoration: BoxDecoration(
-                                color: const Color(0x1A5BBCFF),
+                              decoration: const BoxDecoration(
+                                color: Color(0x1A5BBCFF),
                                 shape: BoxShape.circle,
                               ),
                               child: const Icon(Icons.people_outline,
@@ -1191,7 +1105,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
           const SizedBox(height: 24),
 
-          // Your Availability Dropdown
           Container(
             decoration: BoxDecoration(
               color: Colors.grey[50],
@@ -1240,7 +1153,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
           const SizedBox(height: 48),
 
-          // Next Button
           SizedBox(
             width: double.infinity,
             height: 55,
@@ -1295,7 +1207,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               children: [
                 const TextSpan(
                   text:
-                      'You are one step away from completing the registration. To wrap this up, you can agree to our ',
+                      'You are one step away from completing your account setup. To wrap this up, please review and agree to our ',
                 ),
                 TextSpan(
                   text: 'Terms & Conditions',
@@ -1306,26 +1218,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                 ),
                 const TextSpan(
-                  text: '.\n\nWe publish the ',
-                ),
-                TextSpan(
-                  text: 'Company name Terms & Conditions',
-                  style: GoogleFonts.manrope(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                  ),
-                ),
-                const TextSpan(
-                  text:
-                      ' so that you know what to expect as you use our services.\n\nBy checking the box below, you agree to these terms.',
+                  text: '.\n\nBy checking the box below, you agree to these terms.',
                 ),
               ],
             ),
           ),
           const SizedBox(height: 24),
 
-          // Terms & Conditions Checkbox
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -1368,13 +1267,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
           const SizedBox(height: 48),
 
-          // Register Button
           SizedBox(
             width: double.infinity,
             height: 55,
             child: ElevatedButton(
               onPressed:
-                  (_agreeToTerms && !_isLoading) ? _handleRegister : null,
+                  (_agreeToTerms && !_isLoading) ? _handleCompleteProfile : null,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xB25BBCFF),
                 disabledBackgroundColor: Colors.grey[300],
@@ -1393,7 +1291,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                     )
                   : Text(
-                      'Register',
+                      'Complete & Get Started',
                       style: GoogleFonts.manrope(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
