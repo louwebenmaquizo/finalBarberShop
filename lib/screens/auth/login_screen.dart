@@ -38,6 +38,9 @@ class _LoginScreenState extends State<LoginScreen> {
     if (widget.initialEmail != null && widget.initialEmail!.trim().isNotEmpty) {
       _emailController.text = widget.initialEmail!.trim();
     }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkUrlForAuthError();
+    });
     _authSubscription = SupabaseConfig.client.auth.onAuthStateChange.listen((state) async {
       if (!mounted || _isNavigating) return;
       if (state.event == AuthChangeEvent.signedIn) {
@@ -47,6 +50,26 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       }
     });
+  }
+
+  void _checkUrlForAuthError() {
+    final query = Uri.base.queryParameters;
+    String? errorDesc = query['error_description'] ?? query['error'];
+    if (errorDesc == null && Uri.base.hasFragment) {
+      try {
+        final frag = Uri.splitQueryString(Uri.base.fragment);
+        errorDesc = frag['error_description'] ?? frag['error'];
+      } catch (_) {}
+    }
+    if (errorDesc != null && errorDesc.isNotEmpty && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Sign-in error: $errorDesc'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
+        ),
+      );
+    }
   }
 
   @override
