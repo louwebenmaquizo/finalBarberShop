@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -9,6 +10,21 @@ import '../services/api_service.dart';
 import '../services/auth_session_service.dart';
 import '../services/catalog_service.dart';
 import '../services/employee_service.dart';
+
+// Modern Executive Brand Palette (Liem Barber & Store Operations)
+const Color _primaryBlue = Color(0xFF5BBCFF); // App brand primary seed
+const Color _primaryDeep = Color(0xFF1E88E5); // Rich royal blue
+const Color _surfaceDark = Color(0xFF18181B); // Deep slate / Zinc 900
+const Color _surfaceBorder = Color(0xFFE4E4E7); // Subtle hairline border / Zinc 200
+const Color _surfaceLight = Color(0xFFF4F4F5); // Clean light neutral fill / Zinc 100
+const Color _textPrimary = Color(0xFF18181B);
+const Color _textSecondary = Color(0xFF71717A); // Neutral slate / Zinc 500
+const Color _accentOnline = Color(0xFF10B981); // Emerald green for online badge
+const LinearGradient _brandGradient = LinearGradient(
+  colors: [Color(0xFF5BBCFF), Color(0xFF1E88E5)],
+  begin: Alignment.topLeft,
+  end: Alignment.bottomRight,
+);
 
 /// Full-screen AI chat page with interactive Hairstyle Previews and Direct In-Chat Booking.
 ///
@@ -27,7 +43,7 @@ class AiChatScreen extends StatefulWidget {
 }
 
 class _AiChatScreenState extends State<AiChatScreen>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final FocusNode _focusNode = FocusNode();
@@ -42,17 +58,12 @@ class _AiChatScreenState extends State<AiChatScreen>
 
   List<Map<String, dynamic>> _catalogServices = [];
   List<Map<String, dynamic>> _availableBarbers = [];
+  List<Map<String, dynamic>> _catalogCategories = [];
+  final Set<String> _confirmedActions = {};
+  final Set<String> _submittingActions = {};
 
   late final AnimationController _dotController;
 
-  // Colour constants
-  static const Color _c1 = Color(0xFF5BBCFF);
-  static const Color _c2 = Color(0xFF9B8DFF);
-  static const LinearGradient _grad = LinearGradient(
-    colors: [_c1, _c2],
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-  );
 
   static const _customerSuggestions = [
     '💈  Provide all names of barbers',
@@ -65,17 +76,19 @@ class _AiChatScreenState extends State<AiChatScreen>
   ];
 
   static const _adminSuggestions = [
-    '👥  How many barbers do we have?',
-    '📅  Show today\'s appointments',
-    '💰  What is today\'s revenue?',
-    '📊  Show this month\'s stats',
-    '➕  Add a new barber',
-    '📋  List all services',
+    '📊  How many bookings in the past 3 days?',
+    '📅  Show today\'s appointment schedule',
+    '💰  What is today\'s revenue & stats?',
+    '✂️  Add a hairstyle to catalog',
+    '👥  Add a new barber to staff',
+    '📋  List all catalog services',
   ];
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    AiHistoryStorage.recordActivity();
     _sessionId = _generateUuidV4();
     _dotController = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 900))
@@ -85,8 +98,50 @@ class _AiChatScreenState extends State<AiChatScreen>
     _restoreActiveSession();
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.detached) {
+      AiHistoryStorage.recordActivity();
+    } else if (state == AppLifecycleState.resumed) {
+      _checkInactivityAndResetIfNeeded();
+    }
+  }
+
+  Future<void> _checkInactivityAndResetIfNeeded() async {
+    final expired = await AiHistoryStorage.hasInactivityExpired();
+    if (expired && mounted) {
+      await AiHistoryStorage.clearActiveSession();
+      setState(() {
+        _sessionId = _generateUuidV4();
+        _messages.clear();
+        _errorText = null;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'New conversation started after 10 minutes of inactivity.',
+              style: GoogleFonts.manrope(fontSize: 13, color: Colors.white),
+            ),
+            backgroundColor: _surfaceDark,
+            duration: const Duration(seconds: 3),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
   Future<void> _restoreActiveSession() async {
     try {
+      final expired = await AiHistoryStorage.hasInactivityExpired();
+      if (expired) {
+        await AiHistoryStorage.clearActiveSession();
+        return;
+      }
+
       final active = await AiHistoryStorage.getActiveSession();
       if (active != null && active.messages.isNotEmpty && mounted) {
         setState(() {
@@ -147,8 +202,9 @@ class _AiChatScreenState extends State<AiChatScreen>
   Future<void> _loadCatalogAndBarbers() async {
     try {
       final results = await Future.wait([
-        CatalogService.getAllServices(),
-        EmployeeService.getAllEmployees(),
+        CatalogService.getAllServices(forceRefresh: true),
+        EmployeeService.getAllEmployees(forceRefresh: true),
+        CatalogService.getAllCategories(forceRefresh: true),
       ]);
       if (mounted) {
         setState(() {
@@ -157,6 +213,7 @@ class _AiChatScreenState extends State<AiChatScreen>
             final role = (e['role'] ?? '').toString().toLowerCase();
             return !role.contains('admin') && !role.contains('cashier');
           }).toList();
+          _catalogCategories = results[2];
         });
       }
     } catch (_) {}
@@ -164,6 +221,8 @@ class _AiChatScreenState extends State<AiChatScreen>
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    AiHistoryStorage.recordActivity();
     _controller.dispose();
     _scrollController.dispose();
     _focusNode.dispose();
@@ -215,6 +274,7 @@ class _AiChatScreenState extends State<AiChatScreen>
       final reply = await AiService.sendMessage(
         messages: _messages,
         sessionId: _sessionId,
+        userRole: _userRole ?? 'customer',
       );
       if (!mounted) return;
       final aiMsg = AiMessage(
@@ -267,12 +327,34 @@ class _AiChatScreenState extends State<AiChatScreen>
       _userRole == 'admin' || _userRole == 'manager' || _userRole == 'cashier';
 
   /// Extracts any matching services from the shop's catalog referenced in text
+  /// Extracts any matching services from the shop's catalog referenced in text
   List<Map<String, dynamic>> _findRecommendedServices(
     String text, {
     String? userPrompt,
   }) {
     if (_catalogServices.isEmpty) return [];
     final lower = text.toLowerCase();
+    final lowerPrompt = (userPrompt ?? '').toLowerCase();
+
+    // If the user specifically asked for barbers/staff and did NOT ask for hairstyles/services, suppress services
+    if (lowerPrompt.isNotEmpty) {
+      final askedForBarbers = lowerPrompt.contains('barber') ||
+          lowerPrompt.contains('stylist') ||
+          lowerPrompt.contains('who works') ||
+          lowerPrompt.contains('staff') ||
+          lowerPrompt.contains('team') ||
+          lowerPrompt.contains('who can cut');
+      final askedForServices = lowerPrompt.contains('hairstyle') ||
+          lowerPrompt.contains('haircut') ||
+          lowerPrompt.contains('service') ||
+          lowerPrompt.contains('cut') ||
+          lowerPrompt.contains('style') ||
+          lowerPrompt.contains('catalog');
+      if (askedForBarbers && !askedForServices) {
+        return [];
+      }
+    }
+
     final matched = <Map<String, dynamic>>[];
     for (final s in _catalogServices) {
       final name = (s['name'] ?? '').toString().toLowerCase();
@@ -345,6 +427,34 @@ class _AiChatScreenState extends State<AiChatScreen>
   }) {
     if (_availableBarbers.isEmpty) return [];
     final lower = text.toLowerCase();
+    final lowerPrompt = (userPrompt ?? '').toLowerCase();
+
+    // If the user specifically asked for hairstyles/services and NOT barbers, suppress barbers
+    if (lowerPrompt.isNotEmpty) {
+      final askedForServices = lowerPrompt.contains('hairstyle') ||
+          lowerPrompt.contains('haircut') ||
+          lowerPrompt.contains('service') ||
+          lowerPrompt.contains('cut') ||
+          lowerPrompt.contains('style') ||
+          lowerPrompt.contains('price') ||
+          lowerPrompt.contains('catalog');
+      final askedForBarbers = lowerPrompt.contains('barber') ||
+          lowerPrompt.contains('stylist') ||
+          lowerPrompt.contains('who works') ||
+          lowerPrompt.contains('staff') ||
+          lowerPrompt.contains('team') ||
+          lowerPrompt.contains('who can cut');
+      if (askedForServices && !askedForBarbers) {
+        return [];
+      }
+    }
+
+    // Strip shop brand name so "Liem Barber Shop" doesn't falsely trigger general query
+    final textWithoutShop = lower
+        .replaceAll('liem barber shop', '')
+        .replaceAll('liem barbershop', '')
+        .replaceAll('barber shop', '')
+        .replaceAll('barbershop', '');
 
     final matched = <Map<String, dynamic>>[];
     for (final b in _availableBarbers) {
@@ -358,14 +468,14 @@ class _AiChatScreenState extends State<AiChatScreen>
     if (matched.isNotEmpty) {
       resultList = matched;
     } else {
-      final isGeneralQuery = lower.contains('barber') ||
-          lower.contains('staff') ||
-          lower.contains('who works') ||
-          lower.contains('stylist') ||
-          lower.contains('our team') ||
-          lower.contains('all barber') ||
-          lower.contains('names of barber') ||
-          lower.contains('list of barber');
+      final isGeneralQuery = textWithoutShop.contains('barber') ||
+          textWithoutShop.contains('staff') ||
+          textWithoutShop.contains('who works') ||
+          textWithoutShop.contains('stylist') ||
+          textWithoutShop.contains('our team') ||
+          textWithoutShop.contains('all barber') ||
+          textWithoutShop.contains('names of barber') ||
+          textWithoutShop.contains('list of barber');
 
       if (isGeneralQuery) {
         resultList = List.from(_availableBarbers);
@@ -425,67 +535,122 @@ class _AiChatScreenState extends State<AiChatScreen>
   // ── App bar ───────────────────────────────────────────────────────────────
   Widget _buildAppBar() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-      decoration: BoxDecoration(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      decoration: const BoxDecoration(
         color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        border: Border(
+          bottom: BorderSide(color: _surfaceBorder, width: 1),
+        ),
       ),
       child: Row(
         children: [
           IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new, size: 20),
+            icon: const Icon(Icons.arrow_back_ios_new, size: 18, color: _surfaceDark),
             onPressed: () => Navigator.of(context).pop(),
+            splashRadius: 20,
           ),
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              gradient: _grad,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(Icons.auto_awesome_rounded,
-                color: Colors.white, size: 20),
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  gradient: _brandGradient,
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: [
+                    BoxShadow(
+                      color: _primaryBlue.withValues(alpha: 0.35),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.auto_awesome_rounded,
+                  color: Colors.white,
+                  size: 19,
+                ),
+              ),
+              Positioned(
+                bottom: -1,
+                right: -1,
+                child: Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: _accentOnline,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2),
+                  ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'AI Assistant',
+                  _isAdmin ? 'Executive AI Assistant' : 'Liem AI Concierge',
                   style: GoogleFonts.manrope(
                     fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                    fontWeight: FontWeight.w700,
+                    color: _surfaceDark,
+                    letterSpacing: -0.2,
                   ),
                 ),
+                const SizedBox(height: 1),
                 Text(
                   _isAdmin
-                      ? 'Admin mode · Powered by Gemini'
-                      : 'Powered by Gemini 3.6',
-                  style: GoogleFonts.manrope(fontSize: 11, color: Colors.grey),
+                      ? 'Liem Operations · Online'
+                      : 'Liem Barber Shop · Online',
+                  style: GoogleFonts.manrope(
+                    fontSize: 11.5,
+                    color: _textSecondary,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ],
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.history_rounded, size: 22, color: Colors.black87),
+            icon: const Icon(Icons.history_rounded, size: 21, color: _surfaceDark),
             tooltip: 'Chat History',
             onPressed: _showHistorySheet,
+            splashRadius: 20,
           ),
-          if (_messages.isNotEmpty)
-            TextButton.icon(
-              onPressed: _startNewChat,
-              icon: const Icon(Icons.refresh_rounded, size: 16),
-              label: Text('New', style: GoogleFonts.manrope(fontSize: 12)),
-              style: TextButton.styleFrom(foregroundColor: _c1),
+          if (_messages.isNotEmpty) ...[
+            const SizedBox(width: 4),
+            InkWell(
+              onTap: _startNewChat,
+              borderRadius: BorderRadius.circular(16),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  border: Border.all(color: _surfaceBorder),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.add_rounded, size: 14, color: _surfaceDark),
+                    const SizedBox(width: 4),
+                    Text(
+                      'New',
+                      style: GoogleFonts.manrope(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: _surfaceDark,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
+          ],
         ],
       ),
     );
@@ -495,41 +660,55 @@ class _AiChatScreenState extends State<AiChatScreen>
   Widget _buildEmptyState() {
     final suggestions = _isAdmin ? _adminSuggestions : _customerSuggestions;
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
       child: Column(
         children: [
           Container(
-            width: 80,
-            height: 80,
+            width: 56,
+            height: 56,
             decoration: BoxDecoration(
-              gradient: _grad,
-              borderRadius: BorderRadius.circular(24),
+              gradient: _brandGradient,
+              borderRadius: BorderRadius.circular(18),
               boxShadow: [
                 BoxShadow(
-                  color: _c1.withValues(alpha: 0.35),
-                  blurRadius: 20,
-                  offset: const Offset(0, 8),
+                  color: _primaryBlue.withValues(alpha: 0.35),
+                  blurRadius: 14,
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
-            child: const Icon(Icons.auto_awesome_rounded,
-                color: Colors.white, size: 36),
+            child: const Icon(
+              Icons.auto_awesome_rounded,
+              color: Colors.white,
+              size: 28,
+            ),
           ),
           const SizedBox(height: 20),
           Text(
-            'Hi${_userName != null ? ", $_userName" : ""}! 👋',
+            'Good day${_userName != null ? ", $_userName" : ""}',
             style: GoogleFonts.manrope(
-                fontSize: 22, fontWeight: FontWeight.bold),
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
+              color: _surfaceDark,
+              letterSpacing: -0.5,
+            ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Text(
-            'How can I help you today?',
-            style: GoogleFonts.manrope(fontSize: 15, color: Colors.grey[600]),
+            _isAdmin
+                ? 'Store operations, bookings analysis & database management'
+                : 'How can we assist your grooming style today?',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.manrope(
+              fontSize: 14,
+              color: _textSecondary,
+              height: 1.4,
+            ),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 30),
           Wrap(
-            spacing: 10,
-            runSpacing: 10,
+            spacing: 8,
+            runSpacing: 8,
             alignment: WrapAlignment.center,
             children: suggestions
                 .map((s) => _SuggestionChip(label: s, onTap: () => _send(s)))
@@ -564,56 +743,147 @@ class _AiChatScreenState extends State<AiChatScreen>
 
   Widget _buildBubble(AiMessage msg, {String? previousUserPrompt}) {
     final isUser = msg.role == 'user';
-    final recommendedServices = !isUser
+    final hasAdminServiceAction =
+        !isUser && msg.content.contains('[ADMIN_ACTION:CREATE_SERVICE:');
+    final hasAdminStaffAction =
+        !isUser && msg.content.contains('[ADMIN_ACTION:CREATE_STAFF:');
+
+    var displayContent = msg.content;
+    if (hasAdminServiceAction) {
+      displayContent = displayContent
+          .replaceAll(
+              RegExp(r'\[ADMIN_ACTION:CREATE_SERVICE:[^\]]+\]'), '')
+          .trim();
+    }
+    if (hasAdminStaffAction) {
+      displayContent = displayContent
+          .replaceAll(
+              RegExp(r'\[ADMIN_ACTION:CREATE_STAFF:[^\]]+\]'), '')
+          .trim();
+    }
+    if (displayContent.isEmpty) {
+      displayContent = hasAdminServiceAction
+          ? 'I have prepared the new catalog service for your review:'
+          : 'I have prepared the new staff profile for your review:';
+    }
+
+    final recommendedServices = (!isUser &&
+            !_isAdmin &&
+            !hasAdminServiceAction &&
+            !hasAdminStaffAction)
         ? _findRecommendedServices(msg.content, userPrompt: previousUserPrompt)
         : <Map<String, dynamic>>[];
-    final recommendedBarbers = !isUser
+    final recommendedBarbers = (!isUser &&
+            !_isAdmin &&
+            !hasAdminServiceAction &&
+            !hasAdminStaffAction)
         ? _findRecommendedBarbers(msg.content, userPrompt: previousUserPrompt)
         : <Map<String, dynamic>>[];
 
-    return Column(
-      crossAxisAlignment:
-          isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+    return TweenAnimationBuilder<double>(
+      key: ValueKey('bubble_${msg.createdAt?.millisecondsSinceEpoch ?? msg.content.hashCode}_${msg.role}'),
+      tween: Tween<double>(begin: 0.0, end: 1.0),
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOutCubic,
+      builder: (context, anim, child) {
+        return Opacity(
+          opacity: anim,
+          child: Transform.translate(
+            offset: Offset(0, (1.0 - anim) * 8),
+            child: child,
+          ),
+        );
+      },
+      child: Column(
+        crossAxisAlignment:
+            isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
       children: [
         Align(
           alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
           child: Container(
             margin: EdgeInsets.only(
-              top: 4,
-              bottom: 4,
-              left: isUser ? 60 : 0,
-              right: isUser ? 0 : 60,
+              top: 5,
+              bottom: 5,
+              left: isUser ? 50 : 0,
+              right: isUser ? 0 : 50,
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              gradient: isUser ? _grad : null,
-              color: isUser ? null : Colors.grey.shade100,
+              color: isUser ? null : Colors.white,
+              gradient: isUser ? _brandGradient : null,
               borderRadius: BorderRadius.only(
-                topLeft: const Radius.circular(18),
-                topRight: const Radius.circular(18),
-                bottomLeft: Radius.circular(isUser ? 18 : 4),
-                bottomRight: Radius.circular(isUser ? 4 : 18),
+                topLeft: const Radius.circular(16),
+                topRight: const Radius.circular(16),
+                bottomLeft: Radius.circular(isUser ? 16 : 4),
+                bottomRight: Radius.circular(isUser ? 4 : 16),
               ),
-              boxShadow: isUser
-                  ? [
-                      BoxShadow(
-                        color: _c1.withValues(alpha: 0.25),
-                        blurRadius: 8,
-                        offset: const Offset(0, 3),
+              border: isUser ? null : Border.all(color: _surfaceBorder, width: 1),
+              boxShadow: [
+                BoxShadow(
+                  color: isUser
+                      ? _primaryBlue.withValues(alpha: 0.35)
+                      : Colors.black.withValues(alpha: 0.03),
+                  blurRadius: isUser ? 8 : 4,
+                  offset: isUser ? const Offset(0, 3) : const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: isUser
+                ? Text(
+                    displayContent,
+                    style: GoogleFonts.manrope(
+                      fontSize: 14,
+                      height: 1.45,
+                      color: Colors.white,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 6),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.auto_awesome_rounded,
+                              size: 11.5,
+                              color: _primaryDeep,
+                            ),
+                            const SizedBox(width: 4.5),
+                            Text(
+                              _isAdmin ? 'AI OPERATIONS' : 'LIEM AI CONCIERGE',
+                              style: GoogleFonts.manrope(
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.8,
+                                color: _primaryDeep,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ]
-                  : null,
-            ),
-            child: Text(
-              msg.content,
-              style: GoogleFonts.manrope(
-                fontSize: 14,
-                height: 1.45,
-                color: isUser ? Colors.white : Colors.black87,
-              ),
-            ),
+                      _FormattedMessageText(
+                        text: displayContent,
+                        baseStyle: GoogleFonts.manrope(
+                          fontSize: 14,
+                          height: 1.5,
+                          color: _textPrimary,
+                        ),
+                        boldColor: _surfaceDark,
+                      ),
+                    ],
+                  ),
           ),
         ),
+
+        // Admin interactive action cards
+        if (hasAdminServiceAction)
+          _buildAdminServiceActionCard(msg.content),
+        if (hasAdminStaffAction)
+          _buildAdminStaffActionCard(msg.content),
 
         // If this assistant message recommends haircut styles, render interactive cards!
         if (recommendedServices.isNotEmpty)
@@ -626,14 +896,14 @@ class _AiChatScreenState extends State<AiChatScreen>
                   padding: const EdgeInsets.only(left: 4, bottom: 6),
                   child: Row(
                     children: [
-                      const Icon(Icons.content_cut, size: 13, color: Color(0xFF5BBCFF)),
+                      const Icon(Icons.content_cut_rounded, size: 13, color: _surfaceDark),
                       const SizedBox(width: 5),
                       Text(
                         'Recommended Styles:',
                         style: GoogleFonts.manrope(
                           fontSize: 11.5,
                           fontWeight: FontWeight.bold,
-                          color: Colors.grey[700],
+                          color: _surfaceDark,
                           letterSpacing: 0.3,
                         ),
                       ),
@@ -656,14 +926,14 @@ class _AiChatScreenState extends State<AiChatScreen>
                   padding: const EdgeInsets.only(left: 4, bottom: 6),
                   child: Row(
                     children: [
-                      const Icon(Icons.badge_outlined, size: 14, color: Color(0xFF9B8DFF)),
+                      const Icon(Icons.badge_outlined, size: 14, color: _surfaceDark),
                       const SizedBox(width: 5),
                       Text(
                         'Our Barbers & Stylists:',
                         style: GoogleFonts.manrope(
                           fontSize: 11.5,
                           fontWeight: FontWeight.bold,
-                          color: Colors.grey[700],
+                          color: _surfaceDark,
                           letterSpacing: 0.3,
                         ),
                       ),
@@ -675,6 +945,7 @@ class _AiChatScreenState extends State<AiChatScreen>
             ),
           ),
       ],
+      ),
     );
   }
 
@@ -692,12 +963,12 @@ class _AiChatScreenState extends State<AiChatScreen>
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF5BBCFF).withValues(alpha: 0.3), width: 1.2),
+        border: Border.all(color: _surfaceBorder, width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -737,24 +1008,25 @@ class _AiChatScreenState extends State<AiChatScreen>
                         style: GoogleFonts.manrope(
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                          color: _surfaceDark,
                         ),
                       ),
-                      const SizedBox(height: 3),
+                      const SizedBox(height: 4),
                       Row(
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF5BBCFF).withValues(alpha: 0.15),
+                              color: _surfaceLight,
                               borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: _surfaceBorder),
                             ),
                             child: Text(
                               price,
                               style: GoogleFonts.manrope(
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
-                                color: const Color(0xFF0288D1),
+                                color: _surfaceDark,
                               ),
                             ),
                           ),
@@ -763,7 +1035,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                             '• $duration',
                             style: GoogleFonts.manrope(
                               fontSize: 12,
-                              color: Colors.grey[600],
+                              color: _textSecondary,
                             ),
                           ),
                         ],
@@ -776,7 +1048,7 @@ class _AiChatScreenState extends State<AiChatScreen>
           ),
 
           // Divider
-          Divider(height: 1, color: Colors.grey[200]),
+          const Divider(height: 1, color: _surfaceBorder),
 
           // Action buttons: "View Hairstyle" and "Book Now"
           Row(
@@ -791,14 +1063,14 @@ class _AiChatScreenState extends State<AiChatScreen>
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.remove_red_eye_outlined, size: 16, color: Color(0xFF5BBCFF)),
+                        const Icon(Icons.remove_red_eye_outlined, size: 15, color: _surfaceDark),
                         const SizedBox(width: 6),
                         Text(
-                          'View Hairstyle',
+                          'View Style',
                           style: GoogleFonts.manrope(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
-                            color: const Color(0xFF5BBCFF),
+                            color: _surfaceDark,
                           ),
                         ),
                       ],
@@ -807,7 +1079,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                 ),
               ),
 
-              Container(height: 30, width: 1, color: Colors.grey[200]),
+              Container(height: 28, width: 1, color: _surfaceBorder),
 
               // Book Now button
               Expanded(
@@ -819,14 +1091,14 @@ class _AiChatScreenState extends State<AiChatScreen>
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.calendar_month_rounded, size: 16, color: Color(0xFF9B8DFF)),
+                        const Icon(Icons.calendar_month_rounded, size: 15, color: _surfaceDark),
                         const SizedBox(width: 6),
                         Text(
                           'Book This',
                           style: GoogleFonts.manrope(
                             fontSize: 13,
                             fontWeight: FontWeight.bold,
-                            color: const Color(0xFF7E6BF5),
+                            color: _surfaceDark,
                           ),
                         ),
                       ],
@@ -845,8 +1117,8 @@ class _AiChatScreenState extends State<AiChatScreen>
     return Container(
       width: 54,
       height: 54,
-      color: const Color(0xFF5BBCFF).withValues(alpha: 0.2),
-      child: const Icon(Icons.content_cut, color: Color(0xFF5BBCFF), size: 24),
+      color: _surfaceLight,
+      child: const Icon(Icons.content_cut_rounded, color: _surfaceDark, size: 22),
     );
   }
 
@@ -944,7 +1216,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                           _showInChatBookingModal(service: service);
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: _c1,
+                          backgroundColor: _surfaceDark,
                           elevation: 0,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                         ),
@@ -981,14 +1253,14 @@ class _AiChatScreenState extends State<AiChatScreen>
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: const Color(0xFF9B8DFF).withValues(alpha: 0.35),
-          width: 1.2,
+          color: _surfaceBorder,
+          width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -1000,7 +1272,7 @@ class _AiChatScreenState extends State<AiChatScreen>
             padding: const EdgeInsets.all(12),
             child: Row(
               children: [
-                // Profile Avatar with high-res photo or stylized gradient initials
+                // Profile Avatar with high-res photo or stylized initials
                 _buildBarberAvatar(name, photoUrl, size: 54),
                 const SizedBox(width: 12),
                 Expanded(
@@ -1015,7 +1287,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                               style: GoogleFonts.manrope(
                                 fontSize: 15,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.black87,
+                                color: _surfaceDark,
                               ),
                             ),
                           ),
@@ -1023,16 +1295,16 @@ class _AiChatScreenState extends State<AiChatScreen>
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 7, vertical: 2.5),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF9B8DFF)
-                                  .withValues(alpha: 0.15),
+                              color: _surfaceLight,
                               borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: _surfaceBorder),
                             ),
                             child: Text(
                               role,
                               style: GoogleFonts.manrope(
                                 fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: const Color(0xFF7E6BF5),
+                                fontWeight: FontWeight.w600,
+                                color: _surfaceDark,
                               ),
                             ),
                           ),
@@ -1042,8 +1314,8 @@ class _AiChatScreenState extends State<AiChatScreen>
                         const SizedBox(height: 4),
                         Row(
                           children: [
-                            Icon(Icons.auto_awesome,
-                                size: 12, color: Colors.amber.shade700),
+                            const Icon(Icons.workspace_premium_outlined,
+                                size: 13, color: _textSecondary),
                             const SizedBox(width: 4),
                             Expanded(
                               child: Text(
@@ -1052,7 +1324,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                                 overflow: TextOverflow.ellipsis,
                                 style: GoogleFonts.manrope(
                                   fontSize: 12,
-                                  color: Colors.grey[600],
+                                  color: _textSecondary,
                                 ),
                               ),
                             ),
@@ -1067,7 +1339,7 @@ class _AiChatScreenState extends State<AiChatScreen>
           ),
 
           // Divider
-          Divider(height: 1, color: Colors.grey[200]),
+          const Divider(height: 1, color: _surfaceBorder),
 
           // Action buttons: "View Profile" and "Book Barber"
           Row(
@@ -1084,14 +1356,14 @@ class _AiChatScreenState extends State<AiChatScreen>
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         const Icon(Icons.person_outline_rounded,
-                            size: 16, color: Color(0xFF5BBCFF)),
+                            size: 15, color: _surfaceDark),
                         const SizedBox(width: 6),
                         Text(
                           'View Profile',
                           style: GoogleFonts.manrope(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
-                            color: const Color(0xFF5BBCFF),
+                            color: _surfaceDark,
                           ),
                         ),
                       ],
@@ -1100,7 +1372,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                 ),
               ),
 
-              Container(height: 30, width: 1, color: Colors.grey[200]),
+              Container(height: 28, width: 1, color: _surfaceBorder),
 
               // Book with Barber
               Expanded(
@@ -1114,14 +1386,14 @@ class _AiChatScreenState extends State<AiChatScreen>
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         const Icon(Icons.calendar_month_rounded,
-                            size: 16, color: Color(0xFF9B8DFF)),
+                            size: 15, color: _surfaceDark),
                         const SizedBox(width: 6),
                         Text(
                           'Book Barber',
                           style: GoogleFonts.manrope(
                             fontSize: 13,
                             fontWeight: FontWeight.bold,
-                            color: const Color(0xFF7E6BF5),
+                            color: _surfaceDark,
                           ),
                         ),
                       ],
@@ -1166,19 +1438,19 @@ class _AiChatScreenState extends State<AiChatScreen>
       width: size,
       height: size,
       decoration: BoxDecoration(
-        gradient: _grad,
+        color: _surfaceDark,
         borderRadius: BorderRadius.circular(size / 3.5),
         boxShadow: [
           BoxShadow(
-            color: _c1.withValues(alpha: 0.25),
-            blurRadius: 6,
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 4,
             offset: const Offset(0, 2),
           ),
         ],
       ),
       alignment: Alignment.center,
       child: Text(
-        initials.isNotEmpty ? initials : '💈',
+        initials.isNotEmpty ? initials : '✂️',
         style: GoogleFonts.manrope(
           color: Colors.white,
           fontWeight: FontWeight.bold,
@@ -1217,15 +1489,16 @@ class _AiChatScreenState extends State<AiChatScreen>
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF9B8DFF).withValues(alpha: 0.15),
+                        color: _surfaceLight,
                         borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: _surfaceBorder),
                       ),
                       child: Text(
                         'Barber Profile',
                         style: GoogleFonts.manrope(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
-                          color: const Color(0xFF7E6BF5),
+                          color: _surfaceDark,
                         ),
                       ),
                     ),
@@ -1246,7 +1519,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                   style: GoogleFonts.manrope(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                    color: _surfaceDark,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -1254,7 +1527,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                   role,
                   style: GoogleFonts.manrope(
                     fontSize: 14,
-                    color: const Color(0xFF7E6BF5),
+                    color: _textSecondary,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -1274,15 +1547,15 @@ class _AiChatScreenState extends State<AiChatScreen>
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.auto_awesome,
-                              size: 16, color: Colors.amber.shade700),
+                          const Icon(Icons.workspace_premium_outlined,
+                              size: 16, color: _surfaceDark),
                           const SizedBox(width: 6),
                           Text(
                             'Specialties & Skills',
                             style: GoogleFonts.manrope(
                               fontSize: 13,
                               fontWeight: FontWeight.bold,
-                              color: Colors.black87,
+                              color: _surfaceDark,
                             ),
                           ),
                         ],
@@ -1338,7 +1611,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                       ),
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF9B8DFF),
+                      backgroundColor: _surfaceDark,
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14)),
                       elevation: 0,
@@ -1470,19 +1743,33 @@ class _AiChatScreenState extends State<AiChatScreen>
       alignment: Alignment.centerLeft,
       child: Container(
         margin: const EdgeInsets.only(top: 4, bottom: 4, right: 60),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: Colors.grey.shade100,
+          color: Colors.white,
           borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(18),
-            topRight: Radius.circular(18),
+            topLeft: Radius.circular(16),
+            topRight: Radius.circular(16),
             bottomLeft: Radius.circular(4),
-            bottomRight: Radius.circular(18),
+            bottomRight: Radius.circular(16),
           ),
+          border: Border.all(color: _surfaceBorder, width: 1),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
+            const Icon(
+              Icons.auto_awesome_rounded,
+              size: 13,
+              color: _primaryDeep,
+            ),
+            const SizedBox(width: 8),
             _AnimatedDot(controller: _dotController, delay: 0.0),
             const SizedBox(width: 4),
             _AnimatedDot(controller: _dotController, delay: 0.25),
@@ -1528,75 +1815,665 @@ class _AiChatScreenState extends State<AiChatScreen>
         16,
         10,
         16,
-        10 + MediaQuery.of(context).viewInsets.bottom,
+        12 + MediaQuery.of(context).viewInsets.bottom,
       ),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.07),
-            blurRadius: 12,
-            offset: const Offset(0, -3),
-          ),
-        ],
+        border: Border(
+          top: BorderSide(color: _surfaceBorder, width: 1),
+        ),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: TextField(
-                controller: _controller,
-                focusNode: _focusNode,
-                maxLines: 5,
-                minLines: 1,
-                textInputAction: TextInputAction.send,
-                onSubmitted: _send,
-                style: GoogleFonts.manrope(fontSize: 14),
-                decoration: InputDecoration(
-                  hintText: 'Ask me anything...',
-                  hintStyle: GoogleFonts.manrope(color: Colors.grey, fontSize: 14),
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          GestureDetector(
-            onTap: () => _send(_controller.text),
-            child: Container(
-              width: 46,
-              height: 46,
-              decoration: BoxDecoration(
-                gradient: _grad,
-                borderRadius: BorderRadius.circular(23),
-                boxShadow: [
-                  BoxShadow(
-                    color: _c1.withValues(alpha: 0.4),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
+          // Operational shortcuts for Admin Copilot
+          if (_isAdmin)
+            Container(
+              height: 34,
+              margin: const EdgeInsets.only(bottom: 10),
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                children: [
+                  _buildAdminQuickChip(
+                    icon: Icons.analytics_outlined,
+                    label: 'Past 3 Days Bookings',
+                    onTap: () => _send('How many bookings in the past 3 days?'),
+                  ),
+                  _buildAdminQuickChip(
+                    icon: Icons.calendar_today_outlined,
+                    label: 'Today\'s Schedule',
+                    onTap: () => _send('Show today\'s appointment schedule'),
+                  ),
+                  _buildAdminQuickChip(
+                    icon: Icons.payments_outlined,
+                    label: 'Revenue Summary',
+                    onTap: () => _send('What is today\'s revenue & stats?'),
+                  ),
+                  _buildAdminQuickChip(
+                    icon: Icons.add_circle_outline_rounded,
+                    label: 'Add Hairstyle',
+                    onTap: () {
+                      _controller.text = 'Add a hairstyle to catalog: ';
+                      _controller.selection = TextSelection.fromPosition(
+                        TextPosition(offset: _controller.text.length),
+                      );
+                      _focusNode.requestFocus();
+                    },
+                  ),
+                  _buildAdminQuickChip(
+                    icon: Icons.person_add_alt_1_outlined,
+                    label: 'Add Barber',
+                    onTap: () {
+                      _controller.text = 'Add a barber named ';
+                      _controller.selection = TextSelection.fromPosition(
+                        TextPosition(offset: _controller.text.length),
+                      );
+                      _focusNode.requestFocus();
+                    },
                   ),
                 ],
               ),
-              child: _isLoading
-                  ? const Padding(
-                      padding: EdgeInsets.all(12),
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2.5,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+            ),
+
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: _surfaceLight,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: _surfaceBorder, width: 1),
+                  ),
+                  child: TextField(
+                    controller: _controller,
+                    focusNode: _focusNode,
+                    maxLines: 5,
+                    minLines: 1,
+                    textInputAction: TextInputAction.send,
+                    onSubmitted: _send,
+                    style: GoogleFonts.manrope(
+                      fontSize: 14,
+                      color: _surfaceDark,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: _isAdmin
+                          ? 'Ask bookings, revenue, or store tasks...'
+                          : 'Ask anything about services & barbers...',
+                      hintStyle: GoogleFonts.manrope(
+                        color: _textSecondary,
+                        fontSize: 13.5,
                       ),
-                    )
-                  : const Icon(Icons.send_rounded, color: Colors.white, size: 20),
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 18,
+                        vertical: 11,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: () => _send(_controller.text),
+                child: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    gradient: _brandGradient,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: _primaryBlue.withValues(alpha: 0.4),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: _isLoading
+                      ? const Padding(
+                          padding: EdgeInsets.all(12),
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : const Icon(
+                          Icons.arrow_upward_rounded,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAdminQuickChip({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(right: 8),
+      child: ActionChip(
+        avatar: Icon(icon, size: 13, color: _surfaceDark),
+        label: Text(
+          label,
+          style: GoogleFonts.manrope(
+            fontSize: 11.5,
+            fontWeight: FontWeight.w600,
+            color: _surfaceDark,
+          ),
+        ),
+        backgroundColor: _surfaceLight,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: _surfaceBorder, width: 1),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        onPressed: onTap,
+      ),
+    );
+  }
+
+  Map<String, dynamic>? _extractAdminActionPayload(String content, String tag) {
+    try {
+      final startTag = '[$tag:';
+      final startIdx = content.indexOf(startTag);
+      if (startIdx == -1) return null;
+      final jsonStart = startIdx + startTag.length;
+      final jsonEnd = content.indexOf(']', jsonStart);
+      if (jsonEnd == -1) return null;
+      final jsonStr = content.substring(jsonStart, jsonEnd).trim();
+      return jsonDecode(jsonStr) as Map<String, dynamic>;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Widget _buildAdminServiceActionCard(String rawContent) {
+    final data = _extractAdminActionPayload(rawContent, 'ADMIN_ACTION:CREATE_SERVICE');
+    if (data == null) return const SizedBox.shrink();
+
+    final name = (data['name'] ?? 'New Hairstyle').toString();
+    final price = data['price'] != null ? '₱${data['price']}' : '₱250';
+    final duration = data['duration_minutes'] != null ? '${data['duration_minutes']} min' : '30 min';
+    final category = (data['category_name'] ?? 'Haircuts').toString();
+    final description = (data['description'] ?? 'Professional haircut style').toString();
+
+    final actionKey = 'service_${name}_${data['price']}';
+    final isConfirmed = _confirmedActions.contains(actionKey);
+    final isSubmitting = _submittingActions.contains(actionKey);
+
+    return Container(
+      margin: const EdgeInsets.only(top: 8, bottom: 8, right: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isConfirmed ? Colors.green.shade400 : _surfaceBorder,
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header Badge
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              color: isConfirmed
+                  ? Colors.green.shade50
+                  : _surfaceLight,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  isConfirmed ? Icons.check_circle_rounded : Icons.inventory_2_outlined,
+                  size: 16,
+                  color: isConfirmed ? Colors.green.shade700 : _surfaceDark,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  isConfirmed ? 'SERVICE ADDED TO DATABASE' : 'PROPOSED CATALOG SERVICE',
+                  style: GoogleFonts.manrope(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                    color: isConfirmed ? Colors.green.shade800 : _surfaceDark,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Body Content
+          Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  style: GoogleFonts.manrope(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  children: [
+                    _buildParamBadge(Icons.payments_outlined, price, const Color(0xFF2E7D32)),
+                    _buildParamBadge(Icons.timer_outlined, duration, Colors.black87),
+                    _buildParamBadge(Icons.category_outlined, category, Colors.black87),
+                  ],
+                ),
+                if (description.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    description,
+                    style: GoogleFonts.manrope(fontSize: 12.5, color: Colors.grey[700]),
+                  ),
+                ],
+                const SizedBox(height: 12),
+
+                // Buttons or Confirmed State
+                if (isConfirmed)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.green.shade50,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Center(
+                      child: Text(
+                        '✓ Saved to Catalog. Visible to customers.',
+                        style: GoogleFonts.manrope(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.green.shade800,
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: isSubmitting
+                              ? null
+                              : () => _executeAddService(data, actionKey),
+                          icon: isSubmitting
+                              ? const SizedBox(
+                                  width: 14,
+                                  height: 14,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Icon(Icons.check_rounded, size: 16),
+                          label: Text(
+                            isSubmitting ? 'Saving...' : 'Confirm & Add to Catalog',
+                            style: GoogleFonts.manrope(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.black87,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 11),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+              ],
             ),
           ),
         ],
       ),
     );
+  }
+
+  Widget _buildAdminStaffActionCard(String rawContent) {
+    final data = _extractAdminActionPayload(rawContent, 'ADMIN_ACTION:CREATE_STAFF');
+    if (data == null) return const SizedBox.shrink();
+
+    final name = (data['name'] ?? 'New Barber').toString();
+    final role = (data['role'] ?? 'Barber').toString();
+    final phone = (data['phone'] ?? '').toString();
+    final email = (data['email'] ?? '').toString();
+    final specialties = (data['specialties'] ?? 'General Barbering').toString();
+
+    final actionKey = 'staff_${name}_$phone';
+    final isConfirmed = _confirmedActions.contains(actionKey);
+    final isSubmitting = _submittingActions.contains(actionKey);
+
+    return Container(
+      margin: const EdgeInsets.only(top: 8, bottom: 8, right: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isConfirmed ? Colors.green.shade400 : _surfaceBorder,
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header Badge
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              color: isConfirmed
+                  ? Colors.green.shade50
+                  : _surfaceLight,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  isConfirmed ? Icons.check_circle_rounded : Icons.person_add_alt_1_rounded,
+                  size: 16,
+                  color: isConfirmed ? Colors.green.shade700 : _surfaceDark,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  isConfirmed ? 'STAFF CREATED IN DATABASE' : 'PROPOSED STAFF PROFILE',
+                  style: GoogleFonts.manrope(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                    color: isConfirmed ? Colors.green.shade800 : _surfaceDark,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Body Content
+          Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  style: GoogleFonts.manrope(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  children: [
+                    _buildParamBadge(Icons.badge_outlined, role, _surfaceDark),
+                    if (phone.isNotEmpty)
+                      _buildParamBadge(Icons.phone_outlined, phone, Colors.black87),
+                    if (email.isNotEmpty)
+                      _buildParamBadge(Icons.email_outlined, email, Colors.black87),
+                    _buildParamBadge(Icons.lock_outline_rounded, 'Pass: Barber@1234', Colors.grey.shade700),
+                  ],
+                ),
+                if (specialties.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'Skills: $specialties',
+                    style: GoogleFonts.manrope(fontSize: 12.5, color: Colors.grey[700]),
+                  ),
+                ],
+                const SizedBox(height: 12),
+
+                // Buttons or Confirmed State
+                if (isConfirmed)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.green.shade50,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Center(
+                      child: Text(
+                        '✓ Staff Account Active (Default pass: Barber@1234)',
+                        style: GoogleFonts.manrope(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.green.shade800,
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: isSubmitting
+                              ? null
+                              : () => _executeAddStaff(data, actionKey),
+                          icon: isSubmitting
+                              ? const SizedBox(
+                                  width: 14,
+                                  height: 14,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Icon(Icons.check_rounded, size: 16),
+                          label: Text(
+                            isSubmitting ? 'Creating...' : 'Confirm & Add Staff',
+                            style: GoogleFonts.manrope(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.black87,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 11),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildParamBadge(IconData icon, String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: Colors.grey.shade300, width: 0.6),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: color),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: GoogleFonts.manrope(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _executeAddService(Map<String, dynamic> data, String actionKey) async {
+    setState(() {
+      _submittingActions.add(actionKey);
+    });
+
+    try {
+      String? categoryId;
+      final catName = (data['category_name'] ?? 'Haircuts').toString().toLowerCase();
+      for (final c in _catalogCategories) {
+        final name = (c['name'] ?? '').toString().toLowerCase();
+        if (name.contains(catName) || catName.contains(name)) {
+          categoryId = (c['category_id'] ?? c['id'])?.toString();
+          break;
+        }
+      }
+      if (categoryId == null && _catalogCategories.isNotEmpty) {
+        categoryId = (_catalogCategories.first['category_id'] ?? _catalogCategories.first['id'])?.toString();
+      }
+
+      final servicePayload = {
+        'name': data['name'],
+        'price': (data['price'] as num?)?.toDouble() ?? 250.0,
+        'duration_minutes': (data['duration_minutes'] as num?)?.toInt() ?? 30,
+        'category_id': categoryId,
+        'description': data['description'] ?? 'Professional haircut service',
+        'is_active': 1,
+      };
+
+      final res = await CatalogService.createService(servicePayload);
+      if (res['success'] == true) {
+        if (!mounted) return;
+        setState(() {
+          _confirmedActions.add(actionKey);
+          _submittingActions.remove(actionKey);
+        });
+        await _loadCatalogAndBarbers();
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✓ Service "${data['name']}" added to catalog!'),
+            backgroundColor: Colors.green[700],
+          ),
+        );
+      } else {
+        if (!mounted) return;
+        setState(() {
+          _submittingActions.remove(actionKey);
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(res['message'] ?? 'Failed to add service.'),
+            backgroundColor: Colors.red[700],
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _submittingActions.remove(actionKey);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red[700],
+        ),
+      );
+    }
+  }
+
+  Future<void> _executeAddStaff(Map<String, dynamic> data, String actionKey) async {
+    setState(() {
+      _submittingActions.add(actionKey);
+    });
+
+    try {
+      final staffPayload = {
+        'name': data['name'],
+        'role': data['role'] ?? 'Barber',
+        'phone': data['phone'] ?? '',
+        'email': data['email'] ?? '',
+        'password': 'Barber@1234',
+        'skills': data['specialties'] ?? 'General Barbering',
+      };
+
+      final res = await EmployeeService.createEmployee(staffPayload);
+      if (res['success'] == true) {
+        if (!mounted) return;
+        setState(() {
+          _confirmedActions.add(actionKey);
+          _submittingActions.remove(actionKey);
+        });
+        await _loadCatalogAndBarbers();
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✓ Staff member "${data['name']}" created! (Password: Barber@1234)'),
+            backgroundColor: Colors.green[700],
+          ),
+        );
+      } else {
+        if (!mounted) return;
+        setState(() {
+          _submittingActions.remove(actionKey);
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(res['message'] ?? 'Failed to add staff member.'),
+            backgroundColor: Colors.red[700],
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _submittingActions.remove(actionKey);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red[700],
+        ),
+      );
+    }
   }
 }
 
@@ -1772,7 +2649,7 @@ class _InChatBookingSheetState extends State<_InChatBookingSheet> {
     final initial = name.trim().isNotEmpty ? name.trim()[0].toUpperCase() : 'B';
     return CircleAvatar(
       radius: 17,
-      backgroundColor: const Color(0xFF9B8DFF),
+      backgroundColor: _surfaceDark,
       child: Text(
         initial,
         style: const TextStyle(
@@ -1826,7 +2703,7 @@ class _InChatBookingSheetState extends State<_InChatBookingSheet> {
                         style: GoogleFonts.manrope(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
-                          color: const Color(0xFF5BBCFF),
+                          color: _surfaceDark,
                         ),
                       ),
                       Text(
@@ -1844,15 +2721,16 @@ class _InChatBookingSheetState extends State<_InChatBookingSheet> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF5BBCFF).withValues(alpha: 0.15),
+                    color: _surfaceLight,
                     borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: _surfaceBorder),
                   ),
                   child: Text(
                     '$price • $duration',
                     style: GoogleFonts.manrope(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
-                      color: const Color(0xFF0288D1),
+                      color: _surfaceDark,
                     ),
                   ),
                 ),
@@ -1886,18 +2764,17 @@ class _InChatBookingSheetState extends State<_InChatBookingSheet> {
                           fontSize: 12,
                           fontWeight:
                               isSel ? FontWeight.bold : FontWeight.normal,
-                          color: isSel ? const Color(0xFF0288D1) : Colors.black87,
+                          color: isSel ? Colors.white : _surfaceDark,
                         ),
                       ),
                       selected: isSel,
                       onSelected: (_) => setState(() => _selectedService = s),
-                      selectedColor:
-                          const Color(0xFF5BBCFF).withValues(alpha: 0.2),
-                      backgroundColor: Colors.grey.shade100,
+                      selectedColor: _surfaceDark,
+                      backgroundColor: _surfaceLight,
                       side: BorderSide(
                         color: isSel
-                            ? const Color(0xFF5BBCFF)
-                            : Colors.grey.shade300,
+                            ? _surfaceDark
+                            : _surfaceBorder,
                       ),
                     );
                   },
@@ -1931,12 +2808,12 @@ class _InChatBookingSheetState extends State<_InChatBookingSheet> {
                           horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
                         color: isSelected
-                            ? const Color(0xFF9B8DFF).withValues(alpha: 0.15)
-                            : Colors.grey[100],
+                            ? _surfaceLight
+                            : Colors.white,
                         border: Border.all(
                           color: isSelected
-                              ? const Color(0xFF7E6BF5)
-                              : Colors.transparent,
+                              ? _surfaceDark
+                              : _surfaceBorder,
                           width: 1.5,
                         ),
                         borderRadius: BorderRadius.circular(14),
@@ -1955,15 +2832,13 @@ class _InChatBookingSheetState extends State<_InChatBookingSheet> {
                                 style: GoogleFonts.manrope(
                                   fontSize: 13,
                                   fontWeight: FontWeight.bold,
-                                  color: isSelected
-                                      ? const Color(0xFF7E6BF5)
-                                      : Colors.black87,
+                                  color: _surfaceDark,
                                 ),
                               ),
                               Text(
                                 (barber['role'] ?? 'Barber').toString(),
                                 style: GoogleFonts.manrope(
-                                    fontSize: 10, color: Colors.grey[600]),
+                                    fontSize: 10, color: _textSecondary),
                               ),
                             ],
                           ),
@@ -2021,9 +2896,12 @@ class _InChatBookingSheetState extends State<_InChatBookingSheet> {
                         horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
                       color: isSelected
-                          ? const Color(0xFF5BBCFF)
-                          : Colors.grey[100],
+                          ? _surfaceDark
+                          : _surfaceLight,
                       borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: isSelected ? _surfaceDark : _surfaceBorder,
+                      ),
                     ),
                     child: Text(
                       _formatTimeSlot(time),
@@ -2031,7 +2909,7 @@ class _InChatBookingSheetState extends State<_InChatBookingSheet> {
                         fontSize: 12,
                         fontWeight:
                             isSelected ? FontWeight.bold : FontWeight.normal,
-                        color: isSelected ? Colors.white : Colors.black87,
+                        color: isSelected ? Colors.white : _surfaceDark,
                       ),
                     ),
                   ),
@@ -2057,7 +2935,7 @@ class _InChatBookingSheetState extends State<_InChatBookingSheet> {
               child: ElevatedButton(
                 onPressed: _isSubmitting ? null : _confirmBooking,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF5BBCFF),
+                  backgroundColor: _surfaceDark,
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14)),
                   elevation: 0,
@@ -2086,6 +2964,212 @@ class _InChatBookingSheetState extends State<_InChatBookingSheet> {
 // Suggestion Chip & Animated Dot
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Rich Formatted Message Text (Markdown renderer: bold, lists, headers)
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _FormattedMessageText extends StatelessWidget {
+  final String text;
+  final TextStyle baseStyle;
+  final Color? boldColor;
+
+  const _FormattedMessageText({
+    required this.text,
+    required this.baseStyle,
+    this.boldColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final lines = text.split('\n');
+    final List<Widget> widgets = [];
+
+    for (int i = 0; i < lines.length; i++) {
+      final line = lines[i];
+      final trimmed = line.trim();
+
+      if (trimmed.isEmpty) {
+        widgets.add(const SizedBox(height: 6));
+        continue;
+      }
+
+      if (trimmed.startsWith('### ')) {
+        widgets.add(
+          Padding(
+            padding: const EdgeInsets.only(top: 8, bottom: 4),
+            child: Text(
+              trimmed.substring(4),
+              style: baseStyle.copyWith(
+                fontSize: (baseStyle.fontSize ?? 14) + 1.5,
+                fontWeight: FontWeight.w700,
+                color: boldColor ?? baseStyle.color,
+              ),
+            ),
+          ),
+        );
+        continue;
+      } else if (trimmed.startsWith('## ')) {
+        widgets.add(
+          Padding(
+            padding: const EdgeInsets.only(top: 10, bottom: 5),
+            child: Text(
+              trimmed.substring(3),
+              style: baseStyle.copyWith(
+                fontSize: (baseStyle.fontSize ?? 14) + 2.5,
+                fontWeight: FontWeight.w800,
+                color: boldColor ?? baseStyle.color,
+              ),
+            ),
+          ),
+        );
+        continue;
+      }
+
+      final isBullet = trimmed.startsWith('• ') ||
+          trimmed.startsWith('- ') ||
+          (trimmed.startsWith('* ') && !trimmed.startsWith('**'));
+      if (isBullet) {
+        final content = trimmed.substring(2);
+        widgets.add(
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 2.5),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: 1, right: 6),
+                  child: Text(
+                    '•',
+                    style: baseStyle.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: boldColor ?? baseStyle.color,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Text.rich(
+                    _buildInlineSpans(content, baseStyle, boldColor),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+        continue;
+      }
+
+      final numMatch = RegExp(r'^(\d+)\.\s+(.*)').firstMatch(trimmed);
+      if (numMatch != null) {
+        final number = numMatch.group(1)!;
+        final content = numMatch.group(2)!;
+        widgets.add(
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 2.5),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: 22,
+                  child: Text(
+                    '$number.',
+                    style: baseStyle.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: boldColor ?? baseStyle.color,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Text.rich(
+                    _buildInlineSpans(content, baseStyle, boldColor),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+        continue;
+      }
+
+      widgets.add(
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 1.5),
+          child: Text.rich(
+            _buildInlineSpans(line, baseStyle, boldColor),
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: widgets,
+    );
+  }
+
+  static TextSpan _buildInlineSpans(
+      String text, TextStyle baseStyle, Color? boldColor) {
+    final spans = <InlineSpan>[];
+    final regex = RegExp(r'(\*\*([^*]+)\*\*|\*([^*]+)\*|`([^`]+)`)');
+    int lastMatchEnd = 0;
+
+    for (final match in regex.allMatches(text)) {
+      if (match.start > lastMatchEnd) {
+        spans.add(TextSpan(
+          text: text.substring(lastMatchEnd, match.start),
+          style: baseStyle,
+        ));
+      }
+
+      if (match.group(2) != null) {
+        spans.add(TextSpan(
+          text: match.group(2),
+          style: baseStyle.copyWith(
+            fontWeight: FontWeight.w700,
+            color: boldColor ?? baseStyle.color,
+          ),
+        ));
+      } else if (match.group(3) != null) {
+        spans.add(TextSpan(
+          text: match.group(3),
+          style: baseStyle.copyWith(
+            fontStyle: FontStyle.italic,
+          ),
+        ));
+      } else if (match.group(4) != null) {
+        spans.add(WidgetSpan(
+          alignment: PlaceholderAlignment.middle,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              match.group(4)!,
+              style: baseStyle.copyWith(
+                fontFamily: 'monospace',
+                fontSize: (baseStyle.fontSize ?? 14) * 0.9,
+              ),
+            ),
+          ),
+        ));
+      }
+
+      lastMatchEnd = match.end;
+    }
+
+    if (lastMatchEnd < text.length) {
+      spans.add(TextSpan(
+        text: text.substring(lastMatchEnd),
+        style: baseStyle,
+      ));
+    }
+
+    return TextSpan(children: spans);
+  }
+}
+
 class _SuggestionChip extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
@@ -2096,16 +3180,16 @@ class _SuggestionChip extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFF5BBCFF).withValues(alpha: 0.5)),
+          border: Border.all(color: const Color(0xFFE4E4E7), width: 1),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 6,
-              offset: const Offset(0, 2),
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 4,
+              offset: const Offset(0, 1),
             ),
           ],
         ),
@@ -2113,7 +3197,7 @@ class _SuggestionChip extends StatelessWidget {
           label,
           style: GoogleFonts.manrope(
             fontSize: 13,
-            color: Colors.black87,
+            color: const Color(0xFF18181B),
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -2135,12 +3219,12 @@ class _AnimatedDot extends StatelessWidget {
         final raw = (controller.value - delay) % 1.0;
         final bounce = raw < 0.5 ? raw * 2 : (1.0 - raw) * 2;
         return Transform.translate(
-          offset: Offset(0, -5 * bounce),
+          offset: Offset(0, -4 * bounce),
           child: Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(
-              color: Colors.grey.shade400,
+            width: 7,
+            height: 7,
+            decoration: const BoxDecoration(
+              color: _primaryDeep,
               shape: BoxShape.circle,
             ),
           ),
@@ -2150,33 +3234,81 @@ class _AnimatedDot extends StatelessWidget {
   }
 }
 
-class AiFloatingButton extends StatelessWidget {
+class AiFloatingButton extends StatefulWidget {
   const AiFloatingButton({super.key});
 
   @override
+  State<AiFloatingButton> createState() => _AiFloatingButtonState();
+}
+
+class _AiFloatingButtonState extends State<AiFloatingButton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulseController;
+  late final Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2200),
+    )..repeat(reverse: true);
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.06).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => AiChatScreen.open(context),
-      child: Container(
-        width: 56,
-        height: 56,
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF5BBCFF), Color(0xFF9B8DFF)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF5BBCFF).withValues(alpha: 0.45),
-              blurRadius: 16,
-              spreadRadius: 2,
-              offset: const Offset(0, 6),
+    return AnimatedBuilder(
+      animation: _scaleAnimation,
+      builder: (context, child) {
+        return Transform.scale(
+          scale: _scaleAnimation.value,
+          child: child,
+        );
+      },
+      child: GestureDetector(
+        onTap: () async {
+          final expired = await AiHistoryStorage.hasInactivityExpired();
+          if (expired) {
+            await AiHistoryStorage.clearActiveSession();
+          }
+          if (context.mounted) {
+            AiChatScreen.open(context);
+          }
+        },
+        child: Container(
+          width: 54,
+          height: 54,
+          decoration: BoxDecoration(
+            gradient: _brandGradient,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.35),
+              width: 1.5,
             ),
-          ],
+            boxShadow: [
+              BoxShadow(
+                color: _primaryBlue.withValues(alpha: 0.45),
+                blurRadius: 12,
+                spreadRadius: 1,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: const Icon(
+            Icons.auto_awesome_rounded,
+            color: Colors.white,
+            size: 24,
+          ),
         ),
-        child: const Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 26),
       ),
     );
   }
@@ -2341,10 +3473,11 @@ class _ChatHistorySheetState extends State<_ChatHistorySheet> {
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF5BBCFF).withValues(alpha: 0.15),
+                  color: _surfaceLight,
                   borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: _surfaceBorder),
                 ),
-                child: const Icon(Icons.history_rounded, color: Color(0xFF5BBCFF), size: 20),
+                child: const Icon(Icons.history_rounded, color: _surfaceDark, size: 20),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -2353,7 +3486,7 @@ class _ChatHistorySheetState extends State<_ChatHistorySheet> {
                   style: GoogleFonts.manrope(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                    color: _surfaceDark,
                   ),
                 ),
               ),
@@ -2380,7 +3513,7 @@ class _ChatHistorySheetState extends State<_ChatHistorySheet> {
           // Sessions List
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator(color: Color(0xFF5BBCFF)))
+                ? const Center(child: CircularProgressIndicator(color: _surfaceDark, strokeWidth: 2))
                 : _sessions.isEmpty
                     ? Center(
                         child: Padding(
@@ -2395,16 +3528,16 @@ class _ChatHistorySheetState extends State<_ChatHistorySheet> {
                                 style: GoogleFonts.manrope(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.black87,
+                                  color: _surfaceDark,
                                 ),
                               ),
                               const SizedBox(height: 6),
                               Text(
-                                'Ask the AI a question or get haircut recommendations, and your conversations will be saved here automatically.',
+                                'Your past conversations with the assistant will appear here.',
                                 textAlign: TextAlign.center,
                                 style: GoogleFonts.manrope(
                                   fontSize: 13,
-                                  color: Colors.grey[600],
+                                  color: _textSecondary,
                                 ),
                               ),
                             ],
@@ -2421,7 +3554,7 @@ class _ChatHistorySheetState extends State<_ChatHistorySheet> {
                               '${date.month}/${date.day}/${date.year} • ${date.hour > 12 ? date.hour - 12 : (date.hour == 0 ? 12 : date.hour)}:${date.minute.toString().padLeft(2, '0')} ${date.hour >= 12 ? 'PM' : 'AM'}';
 
                           return Material(
-                            color: Colors.grey[50],
+                            color: Colors.white,
                             borderRadius: BorderRadius.circular(14),
                             child: InkWell(
                               onTap: () => widget.onSelectSession(session),
@@ -2429,7 +3562,7 @@ class _ChatHistorySheetState extends State<_ChatHistorySheet> {
                               child: Container(
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.grey[200]!),
+                                  border: Border.all(color: _surfaceBorder),
                                   borderRadius: BorderRadius.circular(14),
                                 ),
                                 child: Row(
@@ -2438,10 +3571,11 @@ class _ChatHistorySheetState extends State<_ChatHistorySheet> {
                                       width: 38,
                                       height: 38,
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFF9B8DFF).withValues(alpha: 0.15),
+                                        color: _surfaceLight,
                                         borderRadius: BorderRadius.circular(10),
+                                        border: Border.all(color: _surfaceBorder),
                                       ),
-                                      child: const Icon(Icons.forum_outlined, color: Color(0xFF7E6BF5), size: 18),
+                                      child: const Icon(Icons.chat_bubble_outline_rounded, color: _surfaceDark, size: 18),
                                     ),
                                     const SizedBox(width: 12),
                                     Expanded(

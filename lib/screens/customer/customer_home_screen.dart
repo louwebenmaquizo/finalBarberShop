@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../services/api_service.dart';
 import '../../services/catalog_service.dart';
+import '../../services/notification_service.dart';
 import '../../widgets/notifications_modal.dart';
 import 'customer_catalog_screen.dart';
 import 'customer_booking_screen.dart';
@@ -92,6 +93,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
       _loadAppointments(),
       _loadServices(),
     ]);
+    NotificationService.refreshUnreadCount(isAdmin: false, customerId: _customerId);
   }
 
   Future<void> _loadAppointments() async {
@@ -253,11 +255,54 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(color: Colors.grey[200]!),
                             ),
-                            child: IconButton(
-                              icon: const Icon(Icons.notifications_outlined,
-                                  size: 20, color: Colors.black87),
-                              onPressed: () => showNotificationsModal(context,
-                                  isAdmin: false),
+                            child: ValueListenableBuilder<int>(
+                              valueListenable:
+                                  NotificationService.unreadCountNotifier,
+                              builder: (context, unreadCount, _) {
+                                return IconButton(
+                                  icon: Stack(
+                                    clipBehavior: Clip.none,
+                                    children: [
+                                      const Icon(Icons.notifications_outlined,
+                                          size: 20, color: Colors.black87),
+                                      if (unreadCount > 0)
+                                        Positioned(
+                                          right: -2,
+                                          top: -2,
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 4, vertical: 1),
+                                            decoration: const BoxDecoration(
+                                              color: Color(0xFF1E88E5),
+                                              shape: BoxShape.circle,
+                                            ),
+                                            constraints: const BoxConstraints(
+                                              minWidth: 14,
+                                              minHeight: 14,
+                                            ),
+                                            child: Center(
+                                              child: Text(
+                                                unreadCount > 9
+                                                    ? '9+'
+                                                    : '$unreadCount',
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 9,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                  onPressed: () => showNotificationsModal(
+                                    context,
+                                    isAdmin: false,
+                                    customerId: _customerId,
+                                  ),
+                                );
+                              },
                             ),
                           ),
                           const SizedBox(width: 10),

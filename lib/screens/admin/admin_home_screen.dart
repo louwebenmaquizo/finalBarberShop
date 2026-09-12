@@ -8,6 +8,7 @@ import 'booking_screen.dart';
 import 'settings_screen.dart';
 import 'admin_profile_screen.dart';
 import '../../services/auth_session_service.dart';
+import '../../services/notification_service.dart';
 import '../../widgets/notifications_modal.dart';
 import '../ai_chat_screen.dart';
 
@@ -48,6 +49,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       SettingsScreen(),
     ];
     _loadAdminSession();
+    NotificationService.refreshUnreadCount(isAdmin: true);
   }
 
   Future<void> _loadAdminSession() async {
@@ -83,7 +85,10 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       },
       child: Scaffold(
         backgroundColor: Colors.white,
-        floatingActionButton: const AiFloatingButton(),
+        floatingActionButton: const Padding(
+          padding: EdgeInsets.only(bottom: 72.0),
+          child: AiFloatingButton(),
+        ),
         floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
         body: SafeArea(
           bottom: false,
@@ -191,33 +196,51 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                 width: 1,
               ),
             ),
-            child: IconButton(
-              icon: Stack(
-                children: [
-                  const Icon(
-                    Icons.notifications_outlined,
-                    size: 24,
-                    color: Colors.black87,
-                  ),
-                  Positioned(
-                    right: 0,
-                    top: 0,
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: const BoxDecoration(
-                        color: Colors.red,
-                        shape: BoxShape.circle,
+            child: ValueListenableBuilder<int>(
+              valueListenable: NotificationService.unreadCountNotifier,
+              builder: (context, unreadCount, _) {
+                return IconButton(
+                  icon: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      const Icon(
+                        Icons.notifications_outlined,
+                        size: 24,
+                        color: Colors.black87,
                       ),
-                      constraints: const BoxConstraints(
-                        minWidth: 12,
-                        minHeight: 12,
-                      ),
-                    ),
+                      if (unreadCount > 0)
+                        Positioned(
+                          right: -2,
+                          top: -2,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 4, vertical: 1),
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF1E88E5),
+                              shape: BoxShape.circle,
+                            ),
+                            constraints: const BoxConstraints(
+                              minWidth: 14,
+                              minHeight: 14,
+                            ),
+                            child: Center(
+                              child: Text(
+                                unreadCount > 9 ? '9+' : '$unreadCount',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
-                ],
-              ),
-              onPressed: () {
-                showNotificationsModal(context, isAdmin: true);
+                  onPressed: () {
+                    showNotificationsModal(context, isAdmin: true);
+                  },
+                );
               },
             ),
           ),
