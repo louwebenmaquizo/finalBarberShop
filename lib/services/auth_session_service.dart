@@ -33,6 +33,16 @@ class AuthSessionService {
       return null;
     }
 
+    // If email confirmation is required but not yet done, don't create a session
+    final isEmailProvider = authUser.appMetadata['provider'] == 'email' ||
+        (authUser.appMetadata['providers'] as List?)?.contains('email') == true;
+    if (isEmailProvider &&
+        authUser.emailConfirmedAt == null) {
+      // Unconfirmed email — sign out and return null so the UI stays on login
+      try { await SupabaseConfig.client.auth.signOut(); } catch (_) {}
+      return null;
+    }
+
     final email = (authUser.email ?? '').trim().toLowerCase();
     final isFixedAdmin = _fixedAdminEmails.contains(email);
     final meta = authUser.userMetadata ?? {};
@@ -73,7 +83,13 @@ class AuthSessionService {
 
         session['username'] = profile['username'] ?? session['username'];
         final dbRole = (profile['role'] ?? '').toString().toLowerCase();
-        if (!isFixedAdmin && (dbRole == 'barber' || dbRole == 'staff')) {
+        // Promote role from DB: admin, manager, cashier, barber, staff
+        if (!isFixedAdmin &&
+            (dbRole == 'admin' ||
+                dbRole == 'manager' ||
+                dbRole == 'cashier' ||
+                dbRole == 'barber' ||
+                dbRole == 'staff')) {
           session['role'] = dbRole;
         }
       }
@@ -112,51 +128,46 @@ class AuthSessionService {
         return session;
       }
 
-      // Customer role: automatic user account setup
+      // Customer role: check if profile is completed
       try {
         final customerData = await SupabaseConfig.client
             .from(SupabaseConfig.customersTable)
             .select()
             .eq('user_id', authUser.id)
             .maybeSingle();
-        var customer = SupabaseServiceHelpers.asMap(customerData);
+        final customer = SupabaseServiceHelpers.asMap(customerData);
 
-        if (customer.isEmpty) {
-          try {
-            final newCust = await SupabaseConfig.client
-                .from(SupabaseConfig.customersTable)
-                .insert({
-                  'user_id': authUser.id,
-                  'full_name': fullName.isNotEmpty ? fullName : 'Customer',
-                  'phone': (authUser.phone ?? meta['phone'] ?? '').toString().isNotEmpty
-                      ? (authUser.phone ?? meta['phone']).toString()
-                      : '0000000000',
-                  'email': authUser.email,
-                })
-                .select()
-                .single();
-            customer = SupabaseServiceHelpers.asMap(newCust);
-          } catch (_) {}
+        if (customer.isNotEmpty) {
+          final photo = await SupabaseStorageService.resolveReference(
+            bucket: SupabaseConfig.customerAvatarsBucket,
+            value: customer['profile_picture'],
+            isPublic: false,
+          );
+          session.addAll(customer);
+          session['customer_id'] = customer['customer_id'] ?? customer['id'] ?? authUser.id;
+          session['user_id'] = authUser.id;
+          if (photo != null) {
+            session['profile_picture'] = photo;
+            session['profile_photo'] = photo;
+          }
+          session['role'] = 'customer';
+          final phone = (customer['phone'] ?? '').toString().trim();
+          final fullNameVal = (customer['full_name'] ?? '').toString().trim();
+          // Profile is completed only if phone is set and not placeholder
+          session['is_profile_completed'] = phone.isNotEmpty &&
+              phone != '0000000000' &&
+              fullNameVal.isNotEmpty &&
+              fullNameVal != 'Customer';
+        } else {
+          // No customer record exists yet -> first time user!
+          session['role'] = 'customer';
+          session['customer_id'] = authUser.id;
+          session['is_profile_completed'] = false;
         }
-
-        final photo = await SupabaseStorageService.resolveReference(
-          bucket: SupabaseConfig.customerAvatarsBucket,
-          value: customer['profile_picture'],
-          isPublic: false,
-        );
-        session.addAll(customer);
-        session['customer_id'] = customer['customer_id'] ?? customer['id'] ?? authUser.id;
-        session['user_id'] = authUser.id;
-        if (photo != null) {
-          session['profile_picture'] = photo;
-          session['profile_photo'] = photo;
-        }
-        session['role'] = 'customer';
-        session['is_profile_completed'] = true;
       } catch (_) {
         session['role'] = 'customer';
         session['customer_id'] = authUser.id;
-        session['is_profile_completed'] = true;
+        session['is_profile_completed'] = false;
       }
 
       return session;

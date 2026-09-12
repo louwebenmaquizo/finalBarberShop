@@ -52,7 +52,10 @@ class _LoginScreenState extends State<LoginScreen> {
     });
   }
 
+  static bool _hasShownUrlError = false;
+
   void _checkUrlForAuthError() {
+    if (_hasShownUrlError) return;
     final query = Uri.base.queryParameters;
     String? errorDesc = query['error_description'] ?? query['error'];
     if (errorDesc == null && Uri.base.hasFragment) {
@@ -62,11 +65,20 @@ class _LoginScreenState extends State<LoginScreen> {
       } catch (_) {}
     }
     if (errorDesc != null && errorDesc.isNotEmpty && mounted) {
+      _hasShownUrlError = true;
+      String friendlyMessage = errorDesc;
+      if (errorDesc.contains('Unable to exchange external code') ||
+          errorDesc.contains('4/0A')) {
+        friendlyMessage =
+            'Google Sign-In configuration error: Please check that the Supabase Redirect URL '
+            '(https://qpdfscwlrmpuoqrtemwv.supabase.co/auth/v1/callback) is authorized in Google Cloud Console '
+            'and Client Secret matches in Supabase.';
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Sign-in error: $errorDesc'),
+          content: Text(friendlyMessage),
           backgroundColor: Colors.red,
-          duration: const Duration(seconds: 5),
+          duration: const Duration(seconds: 8),
         ),
       );
     }
@@ -74,6 +86,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   void dispose() {
+    _isNavigating = false; // reset flag so no stale state leaks
     _authSubscription?.cancel();
     _emailController.dispose();
     _passwordController.dispose();
@@ -86,32 +99,47 @@ class _LoginScreenState extends State<LoginScreen> {
     final role = (user['role'] ?? 'customer').toString().toLowerCase();
     final isProfileCompleted = user['is_profile_completed'] == true;
 
-    if (role == 'admin' || role == 'manager' || role == 'cashier') {
-      final username = user['username'] as String?;
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(
-          builder: (context) => AdminHomeScreen(username: username),
-        ),
-        (route) => false,
-      );
-    } else if (role == 'barber' || role == 'staff') {
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(
-          builder: (context) => BarberHomeScreen(barberData: user),
-        ),
-        (route) => false,
-      );
-    } else {
-      // Default: Direct automatic login to Customer Dashboard
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(
-          builder: (context) => CustomerNavigationScreen(userData: user),
-        ),
-        (route) => false,
-      );
+    try {
+      if (role == 'admin' || role == 'manager' || role == 'cashier') {
+        final username = user['username'] as String?;
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(
+            builder: (context) => AdminHomeScreen(username: username),
+          ),
+          (route) => false,
+        );
+      } else if (role == 'barber' || role == 'staff') {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(
+            builder: (context) => BarberHomeScreen(barberData: user),
+          ),
+          (route) => false,
+        );
+      } else {
+        // Customer: if first time / profile not completed, go to CompleteProfileScreen
+        if (!isProfileCompleted) {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(
+              builder: (context) => CompleteProfileScreen(userData: user),
+            ),
+            (route) => false,
+          );
+        } else {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(
+              builder: (context) => CustomerNavigationScreen(userData: user),
+            ),
+            (route) => false,
+          );
+        }
+      }
+    } catch (_) {
+      // Reset flag so the user can try again if navigation fails
+      _isNavigating = false;
     }
   }
 

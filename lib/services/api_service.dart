@@ -13,9 +13,19 @@ class ApiService {
 
   static Future<Map<String, dynamic>> signInWithGoogle() async {
     try {
+      // Use the app's current origin so OAuth redirect works regardless of port
+      String? redirectTo;
+      if (kIsWeb) {
+        try {
+          final uri = Uri.base;
+          redirectTo = '${uri.scheme}://${uri.host}${uri.port != 80 && uri.port != 443 ? ':${uri.port}' : ''}';
+        } catch (_) {
+          redirectTo = 'http://localhost:5000';
+        }
+      }
       await SupabaseConfig.client.auth.signInWithOAuth(
         OAuthProvider.google,
-        redirectTo: kIsWeb ? 'http://localhost:3000' : null,
+        redirectTo: redirectTo,
         scopes: 'email profile',
       );
       return {'success': true};
@@ -50,13 +60,17 @@ class ApiService {
           .toString()
           .trim();
 
-      // 1. Upsert profile
-      await SupabaseConfig.client.from(SupabaseConfig.profilesTable).upsert({
-        'id': user.id,
-        'username': username,
-        'role': 'customer',
-        'is_active': true,
-      });
+      // 1. Upsert profile if allowed by RLS (otherwise handled by DB trigger)
+      try {
+        await SupabaseConfig.client.from(SupabaseConfig.profilesTable).upsert({
+          'id': user.id,
+          'username': username,
+          'role': 'customer',
+          'is_active': true,
+        });
+      } catch (_) {
+        // Ignored: profiles table may be managed via trigger or restricted by RLS
+      }
 
       // 2. Check if customer record exists
       final existing = await SupabaseConfig.client
@@ -110,10 +124,12 @@ class ApiService {
         savedCustomer = SupabaseServiceHelpers.asMap(res);
       }
 
-      // Update auth user metadata
+      // Update auth user metadata and password (if provided)
       try {
+        final rawPassword = (customerData['password'] ?? '').toString().trim();
         await SupabaseConfig.client.auth.updateUser(
           UserAttributes(
+            password: rawPassword.isNotEmpty ? rawPassword : null,
             data: {
               'full_name': fullName,
               'phone': phone,
