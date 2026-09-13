@@ -256,6 +256,10 @@ class _CatalogScreenState extends State<CatalogScreen> {
     return Padding(
       padding: const EdgeInsets.only(right: 8),
       child: FilterChip(
+        showCheckmark: false,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        labelPadding: EdgeInsets.zero,
+        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
         label: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -320,6 +324,8 @@ class _CatalogScreenState extends State<CatalogScreen> {
           Padding(
             padding: const EdgeInsets.only(right: 6),
             child: ActionChip(
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
               avatar: const Icon(Icons.add, size: 16, color: Color(0xFF1E88E5)),
               label: Text(
                 'Add Category',

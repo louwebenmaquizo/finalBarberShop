@@ -323,6 +323,10 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
   Widget _buildCategoryChip(String? categoryId, String name) {
     final isSelected = _selectedCategoryId == categoryId;
     return FilterChip(
+      showCheckmark: false,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      labelPadding: EdgeInsets.zero,
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
       label: Text(name),
       selected: isSelected,
       onSelected: (selected) {
@@ -330,11 +334,14 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
           _selectedCategoryId = selected ? categoryId : null;
         });
       },
-      selectedColor: const Color(0xB25BBCFF),
+      selectedColor: const Color(0xFF5BBCFF),
       labelStyle: GoogleFonts.manrope(
         color: isSelected ? Colors.white : Colors.black,
         fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+        fontSize: 12,
       ),
+      backgroundColor: Colors.grey[100],
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
     );
   }
 
