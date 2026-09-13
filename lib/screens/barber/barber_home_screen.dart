@@ -214,12 +214,11 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
                 style: GoogleFonts.manrope(color: Colors.grey[600])),
           ),
           ElevatedButton(
-            onPressed: () async {
+            onPressed: () {
               Navigator.pop(context);
-              await AuthSessionService.clearSession();
+              AuthSessionService.clearSession();
               if (context.mounted) {
-                Navigator.pushAndRemoveUntil(
-                  context,
+                Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
                   MaterialPageRoute(
                       builder: (context) => const OnboardingScreen()),
                   (route) => false,

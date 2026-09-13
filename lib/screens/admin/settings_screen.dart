@@ -234,12 +234,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           ElevatedButton(
-            onPressed: () async {
+            onPressed: () {
               Navigator.pop(context);
-              await AuthSessionService.clearSession();
+              AuthSessionService.clearSession();
               if (mounted) {
-                Navigator.pushAndRemoveUntil(
-                  context,
+                Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
                   MaterialPageRoute(
                     builder: (context) => const OnboardingScreen(),
                   ),

@@ -468,11 +468,11 @@ class _CustomerSettingsScreenState extends State<CustomerSettingsScreen> {
               ),
             ),
             ElevatedButton(
-              onPressed: () async {
+              onPressed: () {
                 Navigator.of(dialogContext).pop();
-                await AuthSessionService.clearSession();
+                AuthSessionService.clearSession();
                 if (context.mounted) {
-                  Navigator.of(context).pushAndRemoveUntil(
+                  Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
                     MaterialPageRoute(
                       builder: (context) => const OnboardingScreen(),
                     ),
