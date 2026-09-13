@@ -29,6 +29,11 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _dateOfBirthController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController = TextEditingController();
+
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
 
   Country _selectedCountry = getDefaultCountry();
   String? _selectedBarber;
@@ -95,12 +100,34 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
     _emailController.dispose();
     _phoneController.dispose();
     _dateOfBirthController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
   void _nextStep() {
     if (_currentStep == 0) {
       if (!_formKey.currentState!.validate()) {
+        return;
+      }
+      final pass = _passwordController.text.trim();
+      final confirm = _confirmPasswordController.text.trim();
+      if (pass.isNotEmpty && pass.length < 8) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Password must be at least 8 characters', style: GoogleFonts.manrope()),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+      if (pass.isNotEmpty && pass != confirm) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Passwords do not match', style: GoogleFonts.manrope()),
+            backgroundColor: Colors.red,
+          ),
+        );
         return;
       }
     }
@@ -177,6 +204,11 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
         'email': _emailController.text.trim(),
         'phone': phoneNumber,
       };
+
+      final passwordVal = _passwordController.text.trim();
+      if (passwordVal.isNotEmpty) {
+        customerData['password'] = passwordVal;
+      }
 
       if (_selectedGender != null && _selectedGender!.isNotEmpty) {
         customerData['gender'] = _selectedGender!;
@@ -596,29 +628,157 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
             ),
             const SizedBox(height: 20),
 
-            // Email (read-only/pre-filled)
+            // Verified Account Email Badge Card
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF0FDF4),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFBBF7D0)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF22C55E),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.check, size: 14, color: Colors.white),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Verified Account Email',
+                          style: GoogleFonts.manrope(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF15803D),
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          _emailController.text.isNotEmpty
+                              ? _emailController.text
+                              : 'Connected via Google',
+                          style: GoogleFonts.manrope(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF1E293B),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Password Field
             TextFormField(
-              controller: _emailController,
-              readOnly: true,
-              keyboardType: TextInputType.emailAddress,
+              controller: _passwordController,
+              obscureText: _obscurePassword,
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Please create a password (minimum 8 characters)';
+                }
+                if (value.trim().length < 8) {
+                  return 'Password must be at least 8 characters';
+                }
+                return null;
+              },
               decoration: InputDecoration(
-                labelText: 'Email Address',
+                labelText: 'Create Password',
+                hintText: 'Minimum 8 characters',
                 labelStyle: GoogleFonts.manrope(color: Colors.grey[600]),
-                suffixIcon: const Icon(Icons.lock_outline, size: 18, color: Colors.grey),
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                    size: 20,
+                    color: Colors.grey[600],
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _obscurePassword = !_obscurePassword;
+                    });
+                  },
+                ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey[300]!),
+                  borderSide: const BorderSide(color: Colors.grey),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey[300]!),
+                  borderSide: const BorderSide(color: Colors.grey),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Colors.blue, width: 2),
                 ),
                 filled: true,
-                fillColor: Colors.grey[100],
+                fillColor: Colors.grey[50],
                 contentPadding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               ),
-              style: GoogleFonts.manrope(color: Colors.black87),
+              style: GoogleFonts.manrope(),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Set a password so you can sign in directly with email & password or via Google.',
+              style: GoogleFonts.manrope(fontSize: 12, color: Colors.grey[600]),
+            ),
+            const SizedBox(height: 20),
+
+            // Confirm Password Field
+            TextFormField(
+              controller: _confirmPasswordController,
+              obscureText: _obscureConfirmPassword,
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Please confirm your password';
+                }
+                if (value.trim() != _passwordController.text.trim()) {
+                  return 'Passwords do not match';
+                }
+                return null;
+              },
+              decoration: InputDecoration(
+                labelText: 'Confirm Password',
+                labelStyle: GoogleFonts.manrope(color: Colors.grey[600]),
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscureConfirmPassword ? Icons.visibility_off : Icons.visibility,
+                    size: 20,
+                    color: Colors.grey[600],
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _obscureConfirmPassword = !_obscureConfirmPassword;
+                    });
+                  },
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Colors.grey),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Colors.grey),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Colors.blue, width: 2),
+                ),
+                filled: true,
+                fillColor: Colors.grey[50],
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              ),
+              style: GoogleFonts.manrope(),
             ),
             const SizedBox(height: 20),
 
