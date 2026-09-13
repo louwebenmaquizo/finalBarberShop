@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../auth/login_screen.dart';
 import '../onboarding.dart';
 import '../../services/auth_session_service.dart';
 import '../../widgets/terms_modal.dart';
@@ -189,6 +188,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
             icon: Icons.palette,
             title: 'Appearance',
             onTap: _showAppearanceDialog,
+          ),
+          const SizedBox(height: 16),
+          _buildSettingsItem(
+            icon: Icons.badge_outlined,
+            title: 'Account Credentials & Role',
+            onTap: _showAccountDetailsDialog,
           ),
           const SizedBox(height: 16),
           _buildSettingsItem(

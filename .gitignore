@@ -16,6 +16,12 @@ migrate_working_dir/
 !.env.example
 supabase*.json
 !supabase.example.json
+*.pem
+*.key
+*.jks
+*.keystore
+*.p12
+*.crt
 
 # Local CLI caches
 .npm-cache/

@@ -1,14 +1,24 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+function getCorsHeaders(request: Request) {
+  const origin = request.headers.get('Origin') ?? '';
+  const isAllowed = !origin ||
+    origin.startsWith('http://localhost:') ||
+    origin.startsWith('http://127.0.0.1:') ||
+    origin.endsWith('.supabase.co') ||
+    origin.endsWith('.vercel.app');
 
-const json = (body: unknown, status = 200) =>
+  return {
+    'Access-Control-Allow-Origin': isAllowed ? (origin || '*') : 'http://localhost:3000',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  };
+}
+
+const json = (body: unknown, status = 200, cors: Record<string, string> = {}) =>
   new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    headers: { ...cors, 'Content-Type': 'application/json' },
   });
 
 interface ChatMessage {
@@ -17,8 +27,9 @@ interface ChatMessage {
 }
 
 Deno.serve(async (request) => {
+  const corsHeaders = getCorsHeaders(request);
   if (request.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
-  if (request.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
+  if (request.method !== 'POST') return json({ error: 'Method not allowed' }, 405, corsHeaders);
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
   const publishableKey =

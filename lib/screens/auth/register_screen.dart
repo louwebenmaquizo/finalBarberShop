@@ -6,6 +6,8 @@ import 'package:image_picker/image_picker.dart';
 import '../../config/countries.dart';
 import '../../services/api_service.dart';
 import '../../services/employee_service.dart';
+import '../../services/rate_limit_service.dart';
+import '../../services/security_sanitizer.dart';
 import '../../widgets/terms_modal.dart';
 import 'login_screen.dart';
 
@@ -175,26 +177,31 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
+    // Anti-spam / Double-submit protection
+    if (!RateLimitService.canPerformAction('user_register')) {
+      return;
+    }
+
     setState(() {
       _isLoading = true;
     });
 
     try {
-      // Combine country code with phone number
-      final phoneNumber =
-          '${_selectedCountry.dialCode}${_phoneController.text.trim()}';
+      // Combine country code with phone number and sanitize
+      final rawPhone = '${_selectedCountry.dialCode}${_phoneController.text.trim()}';
+      final phoneNumber = SecuritySanitizer.sanitizePhone(rawPhone);
 
-      // Prepare registration data
+      // Prepare sanitized registration data
       final registrationData = {
-        'full_name': _fullNameController.text.trim(),
-        'email': _emailController.text.trim(),
+        'full_name': SecuritySanitizer.sanitizeText(_fullNameController.text, maxLength: 100),
+        'email': SecuritySanitizer.sanitizeEmail(_emailController.text),
         'password': _passwordController.text,
         'phone': phoneNumber,
       };
 
       // Add optional fields if available
       if (_selectedGender != null && _selectedGender!.isNotEmpty) {
-        registrationData['gender'] = _selectedGender!;
+        registrationData['gender'] = SecuritySanitizer.sanitizeText(_selectedGender, maxLength: 20);
       }
 
       if (_selectedDateOfBirth != null) {
@@ -211,16 +218,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
       if (_selectedBarber != null &&
           _selectedBarber!.isNotEmpty &&
           _selectedBarber != 'Any Barber') {
-        notesParts.add('Preferred Barber: $_selectedBarber');
+        notesParts.add('Preferred Barber: ${SecuritySanitizer.sanitizeText(_selectedBarber)}');
       }
       if (_selectedAvailability != null && _selectedAvailability!.isNotEmpty) {
-        notesParts.add('Availability: $_selectedAvailability');
+        notesParts.add('Availability: ${SecuritySanitizer.sanitizeText(_selectedAvailability)}');
       }
       if (notesParts.isNotEmpty) {
-        registrationData['notes'] = notesParts.join(' | ');
+        registrationData['notes'] = SecuritySanitizer.sanitizeMultiline(notesParts.join(' | '), maxLength: 500);
       }
 
       final result = await ApiService.register(registrationData);
+      _passwordController.clear();
 
       if (mounted) {
         setState(() {

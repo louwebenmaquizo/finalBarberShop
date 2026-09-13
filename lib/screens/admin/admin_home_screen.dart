@@ -11,6 +11,8 @@ import '../../services/auth_session_service.dart';
 import '../../services/notification_service.dart';
 import '../../widgets/notifications_modal.dart';
 import '../ai_chat_screen.dart';
+import '../onboarding.dart';
+import '../customer/customer_navigation_screen.dart';
 
 class AdminHomeScreen extends StatefulWidget {
   final String? username;
@@ -55,12 +57,40 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
   Future<void> _loadAdminSession() async {
     try {
       final session = await AuthSessionService.getSession();
-      if (session != null && mounted) {
-        setState(() {
-          _username = session['full_name'] ?? session['username'] ?? widget.username ?? 'Admin';
-          _profilePhoto = session['profile_photo'] ?? session['profile_picture'];
-        });
+      if (!mounted) return;
+
+      if (session == null) {
+        // Not authenticated: redirect to onboarding/login
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const OnboardingScreen()),
+          (_) => false,
+        );
+        return;
       }
+
+      final role = (session['role'] ?? '').toString().toLowerCase();
+      if (role != 'admin' && role != 'manager' && role != 'cashier') {
+        // Unauthorized non-admin user: bounce immediately to customer view
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Access Denied: Administrator permissions required.'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 4),
+          ),
+        );
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder: (_) => CustomerNavigationScreen(userData: session),
+          ),
+          (_) => false,
+        );
+        return;
+      }
+
+      setState(() {
+        _username = session['full_name'] ?? session['username'] ?? widget.username ?? 'Admin';
+        _profilePhoto = session['profile_photo'] ?? session['profile_picture'];
+      });
     } catch (_) {}
   }
 
@@ -86,7 +116,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       child: Scaffold(
         backgroundColor: Colors.white,
         floatingActionButton: const Padding(
-          padding: EdgeInsets.only(bottom: 72.0),
+          padding: EdgeInsets.only(bottom: 96.0),
           child: AiFloatingButton(),
         ),
         floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,

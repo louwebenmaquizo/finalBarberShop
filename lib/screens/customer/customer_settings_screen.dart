@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../auth/login_screen.dart';
 import '../onboarding.dart';
 import '../../services/auth_session_service.dart';
 import 'edit_profile_dialog.dart';

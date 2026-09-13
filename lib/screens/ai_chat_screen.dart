@@ -2426,12 +2426,16 @@ class _AiChatScreenState extends State<AiChatScreen>
     });
 
     try {
+      final tempPassword = (data['password'] != null && data['password'].toString().trim().isNotEmpty)
+          ? data['password'].toString().trim()
+          : 'Liem@${DateTime.now().millisecondsSinceEpoch % 900000 + 100000}!';
+
       final staffPayload = {
         'name': data['name'],
         'role': data['role'] ?? 'Barber',
         'phone': data['phone'] ?? '',
         'email': data['email'] ?? '',
-        'password': 'Barber@1234',
+        'password': tempPassword,
         'skills': data['specialties'] ?? 'General Barbering',
       };
 
@@ -2446,8 +2450,9 @@ class _AiChatScreenState extends State<AiChatScreen>
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('✓ Staff member "${data['name']}" created! (Password: Barber@1234)'),
+            content: Text('✓ Staff member "${data['name']}" created! (Temp Password: $tempPassword)'),
             backgroundColor: Colors.green[700],
+            duration: const Duration(seconds: 6),
           ),
         );
       } else {

@@ -6,7 +6,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'config/api_config.dart';
 import 'screens/admin/admin_home_screen.dart';
-import 'screens/auth/complete_profile_screen.dart';
 import 'screens/auth/password_recovery_screen.dart';
 import 'screens/barber/barber_home_screen.dart';
 import 'screens/customer/customer_navigation_screen.dart';
@@ -83,7 +82,6 @@ class _AuthGateState extends State<AuthGate> {
 
       if (user != null) {
         final role = (user['role'] ?? '').toString().toLowerCase();
-        final isProfileCompleted = user['is_profile_completed'] == true;
 
         if (role == 'admin' || role == 'manager' || role == 'cashier') {
           setState(() {

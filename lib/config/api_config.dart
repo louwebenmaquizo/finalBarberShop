@@ -24,12 +24,29 @@ class SupabaseConfig {
   static bool get isConfigured =>
       url.trim().isNotEmpty && publishableKey.trim().isNotEmpty;
 
+  /// Returns a masked string for safe diagnostic logging (e.g. `sb_pub...3iig`).
+  static String maskKey(String key) {
+    final trimmed = key.trim();
+    if (trimmed.length <= 8) return '***';
+    return '${trimmed.substring(0, 6)}...${trimmed.substring(trimmed.length - 4)}';
+  }
+
   static Future<void> initialize() async {
     if (!isConfigured) {
       throw StateError(
         'Supabase is not configured. Run Flutter with '
         '--dart-define=SUPABASE_URL=... and '
         '--dart-define=SUPABASE_PUBLISHABLE_KEY=...',
+      );
+    }
+
+    // Critical security guard: ensure service_role keys are never supplied to the client
+    final lowerKey = publishableKey.toLowerCase();
+    if (lowerKey.contains('service_role') || lowerKey.contains('secret')) {
+      throw StateError(
+        'SECURITY ALERT: A service-role or secret key was detected! '
+        'A service-role key must NEVER be embedded in a client application. '
+        'Use only the public anon/publishable key.',
       );
     }
 

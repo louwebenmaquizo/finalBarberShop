@@ -5,11 +5,12 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../config/api_config.dart';
 import '../../services/api_service.dart';
 import '../../services/auth_session_service.dart';
+import '../../services/rate_limit_service.dart';
+import '../../services/security_sanitizer.dart';
 import '../../widgets/forgot_password_dialog.dart';
 import '../admin/admin_home_screen.dart';
 import '../barber/barber_home_screen.dart';
 import '../customer/customer_navigation_screen.dart';
-import 'complete_profile_screen.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -84,7 +85,6 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted || _isNavigating) return;
     _isNavigating = true;
     final role = (user['role'] ?? 'customer').toString().toLowerCase();
-    final isProfileCompleted = user['is_profile_completed'] == true;
 
     if (role == 'admin' || role == 'manager' || role == 'cashier') {
       final username = user['username'] as String?;
@@ -120,23 +120,47 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
+    final rawIdentifier = _emailController.text.trim();
+    final sanitizedIdentifier = rawIdentifier.contains('@')
+        ? SecuritySanitizer.sanitizeEmail(rawIdentifier)
+        : SecuritySanitizer.sanitizePhone(rawIdentifier);
+
+    // Rate limiting: enforce brute-force protection
+    final remainingCooldown =
+        RateLimitService.getRemainingLockoutSeconds(sanitizedIdentifier);
+    if (remainingCooldown > 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Too many failed attempts. Please wait $remainingCooldown seconds before trying again.',
+          ),
+          backgroundColor: Colors.orange[800],
+          duration: const Duration(seconds: 4),
+        ),
+      );
+      return;
+    }
+
     setState(() {
       _isLoading = true;
     });
 
     try {
-      final email = _emailController.text.trim();
       final password = _passwordController.text;
 
-      final response = await ApiService.login(email, password);
+      final response = await ApiService.login(sanitizedIdentifier, password);
 
       if (response['success'] == true && mounted) {
+        RateLimitService.recordSuccess(sanitizedIdentifier);
+        _passwordController.clear();
         final user = response['user'] as Map<String, dynamic>?;
         if (user != null) {
           await AuthSessionService.saveSession(user);
           _navigateForUser(user);
         }
       } else {
+        RateLimitService.recordFailedAttempt(sanitizedIdentifier);
+        _passwordController.clear();
         if (mounted) {
           final errorMessage =
               response['message'] ?? 'Invalid email or password';
@@ -149,6 +173,8 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       }
     } catch (e) {
+      RateLimitService.recordFailedAttempt(sanitizedIdentifier);
+      _passwordController.clear();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
