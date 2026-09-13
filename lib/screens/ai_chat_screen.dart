@@ -3264,11 +3264,14 @@ class DraggableAiFloatingButton extends StatefulWidget {
 }
 
 class _DraggableAiFloatingButtonState extends State<DraggableAiFloatingButton>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   static Offset? _savedPosition;
 
   late final AnimationController _pulseController;
   late final Animation<double> _scaleAnimation;
+
+  late final AnimationController _snapController;
+  Animation<Offset>? _snapAnimation;
 
   Offset _position = Offset.zero;
   bool _isDragging = false;
@@ -3277,7 +3280,7 @@ class _DraggableAiFloatingButtonState extends State<DraggableAiFloatingButton>
   DateTime? _lastTapTime;
 
   static const double _buttonSize = 54.0;
-  static const double _padding = 16.0;
+  static const double _padding = 12.0;
 
   @override
   void initState() {
@@ -3289,6 +3292,18 @@ class _DraggableAiFloatingButtonState extends State<DraggableAiFloatingButton>
     _scaleAnimation = Tween<double>(begin: 1.0, end: 1.06).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
+
+    _snapController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    )..addListener(() {
+        if (_snapAnimation != null) {
+          setState(() {
+            _position = _snapAnimation!.value;
+            _savedPosition = _position;
+          });
+        }
+      });
   }
 
   @override
@@ -3311,13 +3326,17 @@ class _DraggableAiFloatingButtonState extends State<DraggableAiFloatingButton>
         : (screenSize.height - _buttonSize - _padding);
 
     if (_savedPosition != null) {
+      // Re-dock to nearest edge if restored
+      final double targetX =
+          (_savedPosition!.dx + _buttonSize / 2 >= screenSize.width / 2)
+              ? maxX
+              : minX;
       _position = Offset(
-        _savedPosition!.dx.clamp(minX, maxX),
+        targetX,
         _savedPosition!.dy.clamp(minY, maxY),
       );
     } else {
-      final double defaultX =
-          widget.initialX ?? (screenSize.width - _buttonSize - 20.0);
+      final double defaultX = widget.initialX ?? maxX;
       final double defaultY =
           widget.initialY ?? (screenSize.height - _buttonSize - 140.0);
       _position = Offset(
@@ -3332,6 +3351,7 @@ class _DraggableAiFloatingButtonState extends State<DraggableAiFloatingButton>
   @override
   void dispose() {
     _pulseController.dispose();
+    _snapController.dispose();
     super.dispose();
   }
 
@@ -3352,6 +3372,46 @@ class _DraggableAiFloatingButtonState extends State<DraggableAiFloatingButton>
     }
   }
 
+  void _snapToEdge({
+    required Size screenSize,
+    required EdgeInsets safePadding,
+    required Offset velocity,
+  }) {
+    final double minX = _padding;
+    final double maxX = (screenSize.width - _buttonSize - _padding) < minX
+        ? minX
+        : (screenSize.width - _buttonSize - _padding);
+    final double minY = safePadding.top + _padding;
+    final double maxY = (screenSize.height - _buttonSize - _padding) < minY
+        ? minY
+        : (screenSize.height - _buttonSize - _padding);
+
+    // Chat Heads physics: check horizontal flick velocity, or midpoint
+    final bool snapToRight;
+    if (velocity.dx.abs() > 300) {
+      snapToRight = velocity.dx > 0;
+    } else {
+      final double centerX = _position.dx + (_buttonSize / 2);
+      snapToRight = centerX >= (screenSize.width / 2);
+    }
+
+    final double targetX = snapToRight ? maxX : minX;
+    final double targetY = _position.dy.clamp(minY, maxY);
+    final Offset targetOffset = Offset(targetX, targetY);
+
+    _snapAnimation = Tween<Offset>(
+      begin: _position,
+      end: targetOffset,
+    ).animate(
+      CurvedAnimation(
+        parent: _snapController,
+        curve: Curves.easeOutBack,
+      ),
+    );
+
+    _snapController.forward(from: 0.0);
+  }
+
   @override
   Widget build(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
@@ -3367,7 +3427,7 @@ class _DraggableAiFloatingButtonState extends State<DraggableAiFloatingButton>
         ? minY
         : (screenSize.height - _buttonSize - _padding);
 
-    final double currentX = _position.dx.clamp(minX, maxX);
+    final double currentX = _position.dx.clamp(minX - 5.0, maxX + 5.0);
     final double currentY = _position.dy.clamp(minY, maxY);
 
     return Positioned(
@@ -3381,6 +3441,9 @@ class _DraggableAiFloatingButtonState extends State<DraggableAiFloatingButton>
           onPanStart: (details) {
             _isDragging = false;
             _dragStartGlobal = details.globalPosition;
+            if (_snapController.isAnimating) {
+              _snapController.stop();
+            }
           },
           onPanUpdate: (details) {
             final distance =
@@ -3404,6 +3467,11 @@ class _DraggableAiFloatingButtonState extends State<DraggableAiFloatingButton>
               setState(() {
                 _isDragging = false;
               });
+              _snapToEdge(
+                screenSize: screenSize,
+                safePadding: safePadding,
+                velocity: details.velocity.pixelsPerSecond,
+              );
             }
           },
           onPanCancel: () {
@@ -3411,6 +3479,11 @@ class _DraggableAiFloatingButtonState extends State<DraggableAiFloatingButton>
               setState(() {
                 _isDragging = false;
               });
+              _snapToEdge(
+                screenSize: screenSize,
+                safePadding: safePadding,
+                velocity: Offset.zero,
+              );
             }
           },
           onTap: () {
@@ -3419,7 +3492,7 @@ class _DraggableAiFloatingButtonState extends State<DraggableAiFloatingButton>
             }
           },
           child: Tooltip(
-            message: 'AI Copilot (Drag anywhere)',
+            message: 'AI Copilot (Drag to move, snaps to side)',
             child: AnimatedBuilder(
               animation: _scaleAnimation,
               builder: (context, child) {
