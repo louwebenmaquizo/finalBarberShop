@@ -5,6 +5,7 @@ import '../../services/catalog_service.dart';
 import '../../widgets/category_dialogs.dart';
 import 'service_detail_screen.dart';
 import 'add_service_screen.dart';
+import '../../services/theme_service.dart';
 
 class CatalogScreen extends StatefulWidget {
   const CatalogScreen({super.key});
@@ -295,11 +296,14 @@ class _CatalogScreenState extends State<CatalogScreen> {
         },
         selectedColor: const Color(0xFF5BBCFF),
         labelStyle: GoogleFonts.manrope(
-          color: isSelected ? Colors.white : Colors.black87,
+          color: isSelected ? Colors.white : AppColors.textPrimary(context),
           fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
           fontSize: 12,
         ),
-        backgroundColor: Colors.grey[100],
+        backgroundColor: AppColors.card(context),
+        side: BorderSide(
+          color: isSelected ? Colors.transparent : AppColors.cardBorder(context),
+        ),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       ),
     );
@@ -354,14 +358,15 @@ class _CatalogScreenState extends State<CatalogScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = AppColors.isDark(context);
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background(context),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       floatingActionButton: Padding(
         padding: const EdgeInsets.only(bottom: 12.0, right: 4.0),
         child: FloatingActionButton.extended(
           onPressed: _showAddMenu,
-          backgroundColor: Colors.black,
+          backgroundColor: isDark ? const Color(0xFF1E88E5) : Colors.black,
           elevation: 4,
           icon: const Icon(Icons.add, color: Colors.white, size: 20),
           label: Text(
@@ -390,30 +395,31 @@ class _CatalogScreenState extends State<CatalogScreen> {
               // Header Section
               Container(
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
-                color: Colors.white,
+                color: AppColors.surface(context),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Search Bar
                     Container(
                       decoration: BoxDecoration(
-                        color: Colors.grey[50],
+                        color: AppColors.inputBackground(context),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey[300]!),
+                        border: Border.all(color: AppColors.inputBorder(context)),
                       ),
                       child: TextField(
                         controller: _searchController,
                         decoration: InputDecoration(
                           hintText: 'Search services, categories...',
-                          hintStyle:
-                              GoogleFonts.manrope(color: Colors.grey[500]),
-                          prefixIcon:
-                              const Icon(Icons.search, color: Colors.grey),
+                          hintStyle: GoogleFonts.manrope(
+                              color: AppColors.textSecondary(context)),
+                          prefixIcon: Icon(Icons.search,
+                              color: AppColors.textSecondary(context)),
                           border: InputBorder.none,
                           contentPadding: const EdgeInsets.symmetric(
                               horizontal: 16, vertical: 12),
                         ),
-                        style: GoogleFonts.manrope(),
+                        style: GoogleFonts.manrope(
+                            color: AppColors.textPrimary(context)),
                       ),
                     ),
                     const SizedBox(height: 14),
@@ -421,7 +427,8 @@ class _CatalogScreenState extends State<CatalogScreen> {
                     // Active / Inactive Toggle
                     Container(
                       decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey[300]!, width: 1),
+                        border: Border.all(
+                            color: AppColors.cardBorder(context), width: 1),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Row(
@@ -433,8 +440,10 @@ class _CatalogScreenState extends State<CatalogScreen> {
                                 height: 32,
                                 decoration: BoxDecoration(
                                   color: _statusFilter == 'active'
-                                      ? Colors.black
-                                      : Colors.white,
+                                      ? (isDark
+                                          ? const Color(0xFF1E88E5)
+                                          : Colors.black)
+                                      : AppColors.surface(context),
                                   borderRadius: const BorderRadius.horizontal(
                                       left: Radius.circular(9)),
                                 ),
@@ -446,7 +455,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
                                     fontWeight: FontWeight.bold,
                                     color: _statusFilter == 'active'
                                         ? Colors.white
-                                        : Colors.black87,
+                                        : AppColors.textSecondary(context),
                                   ),
                                 ),
                               ),
@@ -459,8 +468,10 @@ class _CatalogScreenState extends State<CatalogScreen> {
                                 height: 32,
                                 decoration: BoxDecoration(
                                   color: _statusFilter == 'inactive'
-                                      ? Colors.black
-                                      : Colors.white,
+                                      ? (isDark
+                                          ? const Color(0xFF1E88E5)
+                                          : Colors.black)
+                                      : AppColors.surface(context),
                                   borderRadius: const BorderRadius.horizontal(
                                       right: Radius.circular(9)),
                                 ),
@@ -472,7 +483,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
                                     fontWeight: FontWeight.bold,
                                     color: _statusFilter == 'inactive'
                                         ? Colors.white
-                                        : Colors.black87,
+                                        : AppColors.textSecondary(context),
                                   ),
                                 ),
                               ),
@@ -614,12 +625,12 @@ class _CatalogScreenState extends State<CatalogScreen> {
       },
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.card(context),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.grey[200]!),
+          border: Border.all(color: AppColors.cardBorder(context)),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.06),
+              color: Colors.black.withOpacity(AppColors.isDark(context) ? 0.2 : 0.04),
               blurRadius: 6,
               offset: const Offset(0, 2),
             ),
@@ -632,9 +643,12 @@ class _CatalogScreenState extends State<CatalogScreen> {
             Expanded(
               child: Container(
                 width: double.infinity,
-                decoration: const BoxDecoration(
-                  color: Color(0x0D5BBCFF),
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(13)),
+                decoration: BoxDecoration(
+                  color: AppColors.isDark(context)
+                      ? const Color(0x205BBCFF)
+                      : const Color(0x0D5BBCFF),
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(13)),
                 ),
                 child: _buildCatalogImage(photo,
                     serviceName: serviceName, categoryName: categoryName),
@@ -662,7 +676,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
                     style: GoogleFonts.manrope(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                      color: AppColors.textPrimary(context),
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -682,11 +696,11 @@ class _CatalogScreenState extends State<CatalogScreen> {
                       Container(
                         padding: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
-                          color: Colors.grey[100],
+                          color: AppColors.inputBackground(context),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.edit_outlined,
-                            size: 14, color: Colors.black87),
+                        child: Icon(Icons.edit_outlined,
+                            size: 14, color: AppColors.textPrimary(context)),
                       ),
                     ],
                   ),

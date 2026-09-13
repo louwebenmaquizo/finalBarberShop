@@ -13,9 +13,12 @@ import 'screens/customer/customer_navigation_screen.dart';
 import 'screens/onboarding.dart';
 import 'services/auth_session_service.dart';
 
+import 'services/theme_service.dart';
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SupabaseConfig.initialize();
+  await ThemeService.init();
   GoogleFonts.config.allowRuntimeFetching = true;
   runApp(const MyApp());
 }
@@ -25,17 +28,18 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Liem Barber Shop',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF5BBCFF)),
-        useMaterial3: true,
-        textTheme: GoogleFonts.manropeTextTheme(
-          Theme.of(context).textTheme,  
-        ),
-      ),
-      home: const AuthGate(),
-      debugShowCheckedModeBanner: false,
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: ThemeService.themeModeNotifier,
+      builder: (context, themeMode, _) {
+        return MaterialApp(
+          title: 'Liem Barber Shop',
+          theme: AppTheme.lightTheme,
+          darkTheme: AppTheme.darkTheme,
+          themeMode: themeMode,
+          home: const AuthGate(),
+          debugShowCheckedModeBanner: false,
+        );
+      },
     );
   }
 }

@@ -9,6 +9,7 @@ import 'help_support_dialog.dart';
 import 'about_dialog.dart';
 import 'notification_settings_dialog.dart';
 import 'customer_appointments_screen.dart';
+import '../../services/theme_service.dart';
 
 class CustomerSettingsScreen extends StatefulWidget {
   final Map<String, dynamic>? userData;
@@ -28,6 +29,117 @@ class _CustomerSettingsScreenState extends State<CustomerSettingsScreen> {
     _userData = Map<String, dynamic>.from(widget.userData ?? {});
   }
 
+  void _showAppearanceDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return ValueListenableBuilder<ThemeMode>(
+          valueListenable: ThemeService.themeModeNotifier,
+          builder: (context, currentMode, _) {
+            final isDark = AppColors.isDark(context);
+            const blueColor = Color(0xFF5BBCFF);
+            return AlertDialog(
+              backgroundColor: AppColors.surface(context),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16)),
+              title: Text(
+                'Appearance',
+                style: GoogleFonts.manrope(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary(context),
+                ),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ListTile(
+                    leading:
+                        const Icon(Icons.light_mode, color: Colors.orange),
+                    title: Text(
+                      'Light Mode (Default)',
+                      style: GoogleFonts.manrope(
+                        fontWeight: currentMode == ThemeMode.light
+                            ? FontWeight.bold
+                            : FontWeight.w500,
+                        color: AppColors.textPrimary(context),
+                      ),
+                    ),
+                    trailing: currentMode == ThemeMode.light
+                        ? const Icon(Icons.check_circle, color: blueColor)
+                        : null,
+                    onTap: () async {
+                      await ThemeService.setThemeMode(ThemeMode.light);
+                      if (context.mounted) {
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text('Switched to Light Mode')),
+                        );
+                      }
+                    },
+                  ),
+                  ListTile(
+                    leading:
+                        const Icon(Icons.dark_mode, color: Colors.indigoAccent),
+                    title: Text(
+                      'Dark Mode',
+                      style: GoogleFonts.manrope(
+                        fontWeight: currentMode == ThemeMode.dark
+                            ? FontWeight.bold
+                            : FontWeight.w500,
+                        color: AppColors.textPrimary(context),
+                      ),
+                    ),
+                    trailing: currentMode == ThemeMode.dark
+                        ? const Icon(Icons.check_circle, color: blueColor)
+                        : null,
+                    onTap: () async {
+                      await ThemeService.setThemeMode(ThemeMode.dark);
+                      if (context.mounted) {
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text('Switched to Dark Mode')),
+                        );
+                      }
+                    },
+                  ),
+                  ListTile(
+                    leading: Icon(Icons.settings_system_daydream,
+                        color: isDark ? Colors.tealAccent : Colors.teal),
+                    title: Text(
+                      'Auto / System',
+                      style: GoogleFonts.manrope(
+                        fontWeight: currentMode == ThemeMode.system
+                            ? FontWeight.bold
+                            : FontWeight.w500,
+                        color: AppColors.textPrimary(context),
+                      ),
+                    ),
+                    trailing: currentMode == ThemeMode.system
+                        ? const Icon(Icons.check_circle, color: blueColor)
+                        : null,
+                    onTap: () async {
+                      await ThemeService.setThemeMode(ThemeMode.system);
+                      if (context.mounted) {
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text(
+                                  'Appearance synchronized with system theme')),
+                        );
+                      }
+                    },
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final displayName =
@@ -38,15 +150,16 @@ class _CustomerSettingsScreenState extends State<CustomerSettingsScreen> {
         _userData['profile_picture'] ?? _userData['profile_photo'];
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: AppColors.background(context),
       appBar: AppBar(
         title: Text(
           'Settings',
           style: GoogleFonts.manrope(
             fontWeight: FontWeight.bold,
+            color: AppColors.textPrimary(context),
           ),
         ),
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.surface(context),
         elevation: 0,
       ),
       body: ListView(
@@ -56,12 +169,12 @@ class _CustomerSettingsScreenState extends State<CustomerSettingsScreen> {
             margin: const EdgeInsets.all(16),
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppColors.card(context),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.grey[200]!),
+              border: Border.all(color: AppColors.cardBorder(context)),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.03),
+                  color: Colors.black.withOpacity(AppColors.isDark(context) ? 0.2 : 0.03),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -80,7 +193,7 @@ class _CustomerSettingsScreenState extends State<CustomerSettingsScreen> {
                         style: GoogleFonts.manrope(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                          color: AppColors.textPrimary(context),
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -88,7 +201,7 @@ class _CustomerSettingsScreenState extends State<CustomerSettingsScreen> {
                         email,
                         style: GoogleFonts.manrope(
                           fontSize: 13,
-                          color: Colors.grey[600],
+                          color: AppColors.textSecondary(context),
                         ),
                       ),
                       if (phone.isNotEmpty) ...[
@@ -97,7 +210,7 @@ class _CustomerSettingsScreenState extends State<CustomerSettingsScreen> {
                           phone,
                           style: GoogleFonts.manrope(
                             fontSize: 12,
-                            color: Colors.grey[500],
+                            color: AppColors.textSecondary(context),
                           ),
                         ),
                       ],
@@ -185,6 +298,20 @@ class _CustomerSettingsScreenState extends State<CustomerSettingsScreen> {
             ],
           ),
 
+          // Settings Section: Preferences
+          _buildSettingsSection(
+            context,
+            'Preferences',
+            [
+              _buildSettingsTile(
+                context,
+                icon: Icons.palette_outlined,
+                title: 'Appearance',
+                onTap: _showAppearanceDialog,
+              ),
+            ],
+          ),
+
           // Settings Section: Support
           _buildSettingsSection(
             context,
@@ -257,7 +384,7 @@ class _CustomerSettingsScreenState extends State<CustomerSettingsScreen> {
             style: GoogleFonts.manrope(
               fontSize: 13,
               fontWeight: FontWeight.bold,
-              color: Colors.grey[600],
+              color: AppColors.textSecondary(context),
               letterSpacing: 0.5,
             ),
           ),
@@ -265,9 +392,9 @@ class _CustomerSettingsScreenState extends State<CustomerSettingsScreen> {
         Container(
           margin: const EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColors.card(context),
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: Colors.grey[200]!),
+            border: Border.all(color: AppColors.cardBorder(context)),
           ),
           child: Column(
             children: children,
@@ -298,7 +425,7 @@ class _CustomerSettingsScreenState extends State<CustomerSettingsScreen> {
         style: GoogleFonts.manrope(
           fontSize: 15,
           fontWeight: FontWeight.w600,
-          color: Colors.black87,
+          color: AppColors.textPrimary(context),
         ),
       ),
       trailing: const Icon(Icons.chevron_right, color: Colors.grey, size: 20),
@@ -311,17 +438,21 @@ class _CustomerSettingsScreenState extends State<CustomerSettingsScreen> {
       context: context,
       builder: (BuildContext dialogContext) {
         return AlertDialog(
+          backgroundColor: AppColors.surface(context),
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: Text(
             'Log Out',
             style: GoogleFonts.manrope(
               fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary(context),
             ),
           ),
           content: Text(
             'Are you sure you want to log out of your account?',
-            style: GoogleFonts.manrope(),
+            style: GoogleFonts.manrope(
+              color: AppColors.textSecondary(context),
+            ),
           ),
           actions: [
             TextButton(
@@ -331,7 +462,7 @@ class _CustomerSettingsScreenState extends State<CustomerSettingsScreen> {
               child: Text(
                 'Cancel',
                 style: GoogleFonts.manrope(
-                  color: Colors.grey[600],
+                  color: AppColors.textSecondary(context),
                   fontWeight: FontWeight.w600,
                 ),
               ),

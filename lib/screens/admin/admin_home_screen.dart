@@ -13,6 +13,7 @@ import '../../widgets/notifications_modal.dart';
 import '../ai_chat_screen.dart';
 import '../onboarding.dart';
 import '../customer/customer_navigation_screen.dart';
+import '../../services/theme_service.dart';
 
 class AdminHomeScreen extends StatefulWidget {
   final String? username;
@@ -114,7 +115,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
         }
       },
       child: Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.background(context),
         body: SafeArea(
           bottom: false,
           child: Stack(
@@ -145,16 +146,16 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface(context),
         border: Border(
           bottom: BorderSide(
-            color: Colors.grey[300]!,
+            color: AppColors.cardBorder(context),
             width: 1,
           ),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.black.withOpacity(AppColors.isDark(context) ? 0.3 : 0.05),
             spreadRadius: 1,
             blurRadius: 4,
             offset: const Offset(0, 2),
@@ -203,7 +204,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                     style: GoogleFonts.manrope(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                      color: AppColors.textPrimary(context),
                     ),
                   ),
                   Text(
@@ -221,10 +222,10 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
           // Notification Button in a box
           Container(
             decoration: BoxDecoration(
-              color: Colors.grey[50],
+              color: AppColors.inputBackground(context),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                color: Colors.grey[300]!,
+                color: AppColors.cardBorder(context),
                 width: 1,
               ),
             ),
@@ -235,10 +236,10 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                   icon: Stack(
                     clipBehavior: Clip.none,
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.notifications_outlined,
                         size: 24,
-                        color: Colors.black87,
+                        color: AppColors.textPrimary(context),
                       ),
                       if (unreadCount > 0)
                         Positioned(
@@ -328,10 +329,16 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface(context),
+        border: Border(
+          top: BorderSide(
+            color: AppColors.cardBorder(context),
+            width: 1,
+          ),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.black.withOpacity(AppColors.isDark(context) ? 0.3 : 0.05),
             spreadRadius: 1,
             blurRadius: 4,
             offset: const Offset(0, -2),
@@ -371,8 +378,8 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
               Icon(
                 item.icon,
                 color: isSelected
-                    ? const Color(0xB25BBCFF) // Blue color when selected
-                    : Colors.grey[400],
+                    ? const Color(0xFF5BBCFF) // Blue color when selected
+                    : AppColors.textSecondary(context),
                 size: 24,
               ),
               const SizedBox(height: 4),
@@ -382,8 +389,8 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                   fontSize: 12,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                   color: isSelected
-                      ? const Color(0xB25BBCFF) // Blue color when selected
-                      : Colors.grey[600],
+                      ? const Color(0xFF5BBCFF) // Blue color when selected
+                      : AppColors.textSecondary(context),
                 ),
               ),
             ],

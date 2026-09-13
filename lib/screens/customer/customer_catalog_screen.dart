@@ -5,6 +5,7 @@ import '../../services/catalog_service.dart';
 import '../../services/employee_service.dart';
 import 'customer_booking_screen.dart';
 import 'customer_navigation_screen.dart';
+import '../../services/theme_service.dart';
 
 class CustomerCatalogScreen extends StatefulWidget {
   final Map<String, dynamic>? userData;
@@ -58,45 +59,19 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
       final services = results[1] as List<dynamic>;
       final employees = results[2] as List<dynamic>;
 
-      // Filter services to only active ones
-      final activeServices = services.where((s) {
-        final isActive = s['is_active'];
-        if (isActive is bool) return isActive;
-        if (isActive is int) return isActive == 1;
-        if (isActive is String)
-          return isActive == '1' || isActive.toLowerCase() == 'true';
-        return true;
-      }).toList();
-
-      // Filter barbers to only active staff (exclude purely administrative roles)
-      final barbers = employees.where((e) {
-        final isActive = e['is_active'];
-        bool active = false;
-        if (isActive is bool) {
-          active = isActive;
-        } else if (isActive is int) {
-          active = isActive == 1;
-        } else if (isActive is String) {
-          active = isActive == '1' || isActive.toLowerCase() == 'true';
-        }
-
-        final role = (e['role'] ?? '').toString().toLowerCase().trim();
-        final isNonBarber =
-            role == 'admin' || role == 'administrator' || role == 'cashier';
-        return active && !isNonBarber;
-      }).toList();
-
-      setState(() {
-        _categories = categories;
-        _services = activeServices;
-        _barbers = barbers;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
       if (mounted) {
+        setState(() {
+          _categories = categories;
+          _services = services;
+          _barbers = employees;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error loading catalog: $e'),
@@ -138,15 +113,16 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: AppColors.background(context),
       appBar: AppBar(
         title: Text(
           'Services Catalog',
           style: GoogleFonts.manrope(
             fontWeight: FontWeight.bold,
+            color: AppColors.textPrimary(context),
           ),
         ),
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.surface(context),
         elevation: 0,
       ),
       body: _isLoading
@@ -161,7 +137,7 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
                   children: [
                     // Header Section
                     Container(
-                      color: Colors.white,
+                      color: AppColors.surface(context),
                       padding: const EdgeInsets.all(16),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -169,25 +145,28 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
                           // Search Bar
                           Container(
                             decoration: BoxDecoration(
-                              color: Colors.grey[100],
+                              color: AppColors.inputBackground(context),
                               borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: AppColors.inputBorder(context)),
                             ),
                             child: TextField(
                               controller: _searchController,
                               decoration: InputDecoration(
                                 hintText: 'Search services...',
                                 hintStyle: GoogleFonts.manrope(
-                                  color: Colors.grey[600],
+                                  color: AppColors.textSecondary(context),
                                 ),
                                 prefixIcon:
-                                    Icon(Icons.search, color: Colors.grey[600]),
+                                    Icon(Icons.search, color: AppColors.textSecondary(context)),
                                 border: InputBorder.none,
                                 contentPadding: const EdgeInsets.symmetric(
                                   horizontal: 16,
                                   vertical: 12,
                                 ),
                               ),
-                              style: GoogleFonts.manrope(),
+                              style: GoogleFonts.manrope(
+                                color: AppColors.textPrimary(context),
+                              ),
                             ),
                           ),
                           const SizedBox(height: 16),
@@ -218,7 +197,7 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
                             style: GoogleFonts.manrope(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              color: Colors.black,
+                              color: AppColors.textPrimary(context),
                             ),
                           ),
                           const SizedBox(height: 12),
@@ -231,7 +210,7 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
                                     child: Text(
                                       'No barbers available',
                                       style: GoogleFonts.manrope(
-                                        color: Colors.grey[600],
+                                        color: AppColors.textSecondary(context),
                                       ),
                                     ),
                                   )
@@ -256,7 +235,7 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
                         style: GoogleFonts.manrope(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                          color: AppColors.textPrimary(context),
                         ),
                       ),
                     ),
@@ -336,11 +315,14 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
       },
       selectedColor: const Color(0xFF5BBCFF),
       labelStyle: GoogleFonts.manrope(
-        color: isSelected ? Colors.white : Colors.black,
+        color: isSelected ? Colors.white : AppColors.textPrimary(context),
         fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
         fontSize: 12,
       ),
-      backgroundColor: Colors.grey[100],
+      backgroundColor: AppColors.inputBackground(context),
+      side: BorderSide(
+        color: isSelected ? const Color(0xFF5BBCFF) : AppColors.inputBorder(context),
+      ),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
     );
   }
@@ -368,7 +350,7 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
               style: GoogleFonts.manrope(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: Colors.black87,
+                color: AppColors.textPrimary(context),
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -459,6 +441,7 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
     showDialog(
       context: context,
       builder: (context) => Dialog(
+        backgroundColor: AppColors.surface(context),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
@@ -475,7 +458,7 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
                 style: GoogleFonts.manrope(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black,
+                  color: AppColors.textPrimary(context),
                 ),
               ),
               const SizedBox(height: 16),
@@ -493,7 +476,7 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
                     Navigator.pop(context);
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xB25BBCFF),
+                    backgroundColor: const Color(0xFF5BBCFF),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -522,7 +505,7 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
         Icon(
           icon,
           size: 20,
-          color: Colors.grey[600],
+          color: AppColors.textSecondary(context),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -533,7 +516,7 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
                 label,
                 style: GoogleFonts.manrope(
                   fontSize: 12,
-                  color: Colors.grey[600],
+                  color: AppColors.textSecondary(context),
                 ),
               ),
               const SizedBox(height: 4),
@@ -542,7 +525,7 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
                 style: GoogleFonts.manrope(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
-                  color: Colors.black87,
+                  color: AppColors.textPrimary(context),
                 ),
               ),
             ],
@@ -581,15 +564,15 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.card(context),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Colors.grey[200]!,
+          color: AppColors.cardBorder(context),
           width: 1.2,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withOpacity(AppColors.isDark(context) ? 0.2 : 0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -637,7 +620,7 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.92),
+                    color: AppColors.surface(context).withOpacity(0.92),
                     borderRadius: BorderRadius.circular(10),
                     boxShadow: [
                       BoxShadow(
@@ -656,7 +639,7 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
                         style: GoogleFonts.manrope(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                          color: AppColors.textPrimary(context),
                         ),
                       ),
                     ],
@@ -683,7 +666,7 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
                         style: GoogleFonts.manrope(
                           fontSize: 13.5,
                           fontWeight: FontWeight.w700,
-                          color: Colors.black87,
+                          color: AppColors.textPrimary(context),
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -694,7 +677,7 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
                           description,
                           style: GoogleFonts.manrope(
                             fontSize: 10.5,
-                            color: Colors.grey[600],
+                            color: AppColors.textSecondary(context),
                             height: 1.2,
                           ),
                           maxLines: 2,
@@ -705,7 +688,7 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
                           '$durationMinutes mins session',
                           style: GoogleFonts.manrope(
                             fontSize: 10.5,
-                            color: Colors.grey[500],
+                            color: AppColors.textSecondary(context),
                           ),
                         ),
                     ],

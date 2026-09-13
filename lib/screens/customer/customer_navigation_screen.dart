@@ -5,6 +5,7 @@ import 'customer_catalog_screen.dart';
 import 'customer_appointments_screen.dart';
 import 'customer_settings_screen.dart';
 import '../ai_chat_screen.dart';
+import '../../services/theme_service.dart';
 
 class CustomerNavigationScreen extends StatefulWidget {
   final Map<String, dynamic>? userData;
@@ -67,15 +68,18 @@ class _CustomerNavigationScreenState extends State<CustomerNavigationScreen> {
         ),
         bottomNavigationBar: Container(
           decoration: BoxDecoration(
+            color: AppColors.surface(context),
+            border: Border(top: BorderSide(color: AppColors.divider(context), width: 0.5)),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.1),
+                color: Colors.black.withOpacity(AppColors.isDark(context) ? 0.3 : 0.08),
                 blurRadius: 10,
                 offset: const Offset(0, -2),
               ),
             ],
           ),
           child: BottomNavigationBar(
+            backgroundColor: AppColors.surface(context),
             currentIndex: _currentIndex,
             onTap: (index) {
               setState(() {
@@ -83,8 +87,8 @@ class _CustomerNavigationScreenState extends State<CustomerNavigationScreen> {
               });
             },
             type: BottomNavigationBarType.fixed,
-            selectedItemColor: const Color(0xB25BBCFF),
-            unselectedItemColor: Colors.grey[600],
+            selectedItemColor: const Color(0xFF5BBCFF),
+            unselectedItemColor: AppColors.textSecondary(context),
             selectedLabelStyle: GoogleFonts.manrope(
               fontSize: 12,
               fontWeight: FontWeight.w600,
