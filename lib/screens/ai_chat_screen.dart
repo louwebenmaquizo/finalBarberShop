@@ -3239,17 +3239,45 @@ class _AnimatedDot extends StatelessWidget {
   }
 }
 
-class AiFloatingButton extends StatefulWidget {
+class AiFloatingButton extends StatelessWidget {
   const AiFloatingButton({super.key});
 
   @override
-  State<AiFloatingButton> createState() => _AiFloatingButtonState();
+  Widget build(BuildContext context) {
+    return const DraggableAiFloatingButton();
+  }
 }
 
-class _AiFloatingButtonState extends State<AiFloatingButton>
+class DraggableAiFloatingButton extends StatefulWidget {
+  final double? initialX;
+  final double? initialY;
+
+  const DraggableAiFloatingButton({
+    super.key,
+    this.initialX,
+    this.initialY,
+  });
+
+  @override
+  State<DraggableAiFloatingButton> createState() =>
+      _DraggableAiFloatingButtonState();
+}
+
+class _DraggableAiFloatingButtonState extends State<DraggableAiFloatingButton>
     with SingleTickerProviderStateMixin {
+  static Offset? _savedPosition;
+
   late final AnimationController _pulseController;
   late final Animation<double> _scaleAnimation;
+
+  Offset _position = Offset.zero;
+  bool _isDragging = false;
+  Offset _dragStartGlobal = Offset.zero;
+  bool _initialized = false;
+  DateTime? _lastTapTime;
+
+  static const double _buttonSize = 54.0;
+  static const double _padding = 16.0;
 
   @override
   void initState() {
@@ -3264,54 +3292,172 @@ class _AiFloatingButtonState extends State<AiFloatingButton>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final mediaQuery = MediaQuery.of(context);
+    _initPosition(mediaQuery.size, mediaQuery.padding);
+  }
+
+  void _initPosition(Size screenSize, EdgeInsets safePadding) {
+    if (_initialized) return;
+
+    final double minX = _padding;
+    final double maxX = (screenSize.width - _buttonSize - _padding) < minX
+        ? minX
+        : (screenSize.width - _buttonSize - _padding);
+    final double minY = safePadding.top + _padding;
+    final double maxY = (screenSize.height - _buttonSize - _padding) < minY
+        ? minY
+        : (screenSize.height - _buttonSize - _padding);
+
+    if (_savedPosition != null) {
+      _position = Offset(
+        _savedPosition!.dx.clamp(minX, maxX),
+        _savedPosition!.dy.clamp(minY, maxY),
+      );
+    } else {
+      final double defaultX =
+          widget.initialX ?? (screenSize.width - _buttonSize - 20.0);
+      final double defaultY =
+          widget.initialY ?? (screenSize.height - _buttonSize - 140.0);
+      _position = Offset(
+        defaultX.clamp(minX, maxX),
+        defaultY.clamp(minY, maxY),
+      );
+      _savedPosition = _position;
+    }
+    _initialized = true;
+  }
+
+  @override
   void dispose() {
     _pulseController.dispose();
     super.dispose();
   }
 
+  void _handleTap() async {
+    final now = DateTime.now();
+    if (_lastTapTime != null &&
+        now.difference(_lastTapTime!).inMilliseconds < 450) {
+      return;
+    }
+    _lastTapTime = now;
+
+    final expired = await AiHistoryStorage.hasInactivityExpired();
+    if (expired) {
+      await AiHistoryStorage.clearActiveSession();
+    }
+    if (mounted) {
+      AiChatScreen.open(context);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _scaleAnimation,
-      builder: (context, child) {
-        return Transform.scale(
-          scale: _scaleAnimation.value,
-          child: child,
-        );
-      },
-      child: GestureDetector(
-        onTap: () async {
-          final expired = await AiHistoryStorage.hasInactivityExpired();
-          if (expired) {
-            await AiHistoryStorage.clearActiveSession();
-          }
-          if (context.mounted) {
-            AiChatScreen.open(context);
-          }
-        },
-        child: Container(
-          width: 54,
-          height: 54,
-          decoration: BoxDecoration(
-            gradient: _brandGradient,
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.35),
-              width: 1.5,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: _primaryBlue.withValues(alpha: 0.45),
-                blurRadius: 12,
-                spreadRadius: 1,
-                offset: const Offset(0, 4),
+    final mediaQuery = MediaQuery.of(context);
+    final screenSize = mediaQuery.size;
+    final safePadding = mediaQuery.padding;
+
+    final double minX = _padding;
+    final double maxX = (screenSize.width - _buttonSize - _padding) < minX
+        ? minX
+        : (screenSize.width - _buttonSize - _padding);
+    final double minY = safePadding.top + _padding;
+    final double maxY = (screenSize.height - _buttonSize - _padding) < minY
+        ? minY
+        : (screenSize.height - _buttonSize - _padding);
+
+    final double currentX = _position.dx.clamp(minX, maxX);
+    final double currentY = _position.dy.clamp(minY, maxY);
+
+    return Positioned(
+      left: currentX,
+      top: currentY,
+      child: MouseRegion(
+        cursor:
+            _isDragging ? SystemMouseCursors.grabbing : SystemMouseCursors.grab,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onPanStart: (details) {
+            _isDragging = false;
+            _dragStartGlobal = details.globalPosition;
+          },
+          onPanUpdate: (details) {
+            final distance =
+                (details.globalPosition - _dragStartGlobal).distance;
+            if (distance > 5.0 && !_isDragging) {
+              setState(() {
+                _isDragging = true;
+              });
+            }
+            setState(() {
+              final double newX = (_position.dx + details.delta.dx).clamp(minX, maxX);
+              final double newY = (_position.dy + details.delta.dy).clamp(minY, maxY);
+              _position = Offset(newX, newY);
+              _savedPosition = _position;
+            });
+          },
+          onPanEnd: (details) {
+            if (!_isDragging) {
+              _handleTap();
+            } else {
+              setState(() {
+                _isDragging = false;
+              });
+            }
+          },
+          onPanCancel: () {
+            if (_isDragging) {
+              setState(() {
+                _isDragging = false;
+              });
+            }
+          },
+          onTap: () {
+            if (!_isDragging) {
+              _handleTap();
+            }
+          },
+          child: Tooltip(
+            message: 'AI Copilot (Drag anywhere)',
+            child: AnimatedBuilder(
+              animation: _scaleAnimation,
+              builder: (context, child) {
+                final double scale =
+                    _isDragging ? 1.12 : _scaleAnimation.value;
+                return Transform.scale(
+                  scale: scale,
+                  child: child,
+                );
+              },
+              child: Container(
+                width: _buttonSize,
+                height: _buttonSize,
+                decoration: BoxDecoration(
+                  gradient: _brandGradient,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Colors.white
+                        .withValues(alpha: _isDragging ? 0.6 : 0.35),
+                    width: _isDragging ? 2.0 : 1.5,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: _primaryBlue
+                          .withValues(alpha: _isDragging ? 0.6 : 0.45),
+                      blurRadius: _isDragging ? 18 : 12,
+                      spreadRadius: _isDragging ? 2 : 1,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.auto_awesome_rounded,
+                  color: Colors.white,
+                  size: 24,
+                ),
               ),
-            ],
-          ),
-          child: const Icon(
-            Icons.auto_awesome_rounded,
-            color: Colors.white,
-            size: 24,
+            ),
           ),
         ),
       ),

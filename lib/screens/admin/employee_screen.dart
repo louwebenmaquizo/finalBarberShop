@@ -464,9 +464,10 @@ class _EmployeeScreenState extends State<EmployeeScreen> {
           ),
         ],
       ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 68.0),
-        child: FloatingActionButton(
+        padding: const EdgeInsets.only(bottom: 12.0, right: 4.0),
+        child: FloatingActionButton.extended(
           onPressed: () async {
             final result = await Navigator.push(
               context,
@@ -481,10 +482,18 @@ class _EmployeeScreenState extends State<EmployeeScreen> {
             }
           },
           backgroundColor: Colors.black,
-          shape: const CircleBorder(),
-          child: const Icon(
-            Icons.add,
-            color: Colors.white,
+          elevation: 4,
+          icon: const Icon(Icons.add, color: Colors.white, size: 20),
+          label: Text(
+            'Add Employee',
+            style: GoogleFonts.manrope(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
+            ),
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
           ),
         ),
       ),

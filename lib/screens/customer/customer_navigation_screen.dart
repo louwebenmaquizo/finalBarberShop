@@ -4,6 +4,7 @@ import 'customer_home_screen.dart';
 import 'customer_catalog_screen.dart';
 import 'customer_appointments_screen.dart';
 import 'customer_settings_screen.dart';
+import '../ai_chat_screen.dart';
 
 class CustomerNavigationScreen extends StatefulWidget {
   final Map<String, dynamic>? userData;
@@ -54,9 +55,15 @@ class _CustomerNavigationScreenState extends State<CustomerNavigationScreen> {
         }
       },
       child: Scaffold(
-        body: IndexedStack(
-          index: _currentIndex,
-          children: _screens,
+        body: Stack(
+          fit: StackFit.expand,
+          children: [
+            IndexedStack(
+              index: _currentIndex,
+              children: _screens,
+            ),
+            const DraggableAiFloatingButton(),
+          ],
         ),
         bottomNavigationBar: Container(
           decoration: BoxDecoration(

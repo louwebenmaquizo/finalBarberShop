@@ -8,7 +8,6 @@ import '../../widgets/notifications_modal.dart';
 import 'customer_catalog_screen.dart';
 import 'customer_booking_screen.dart';
 import 'customer_navigation_screen.dart';
-import '../ai_chat_screen.dart';
 
 class CustomerHomeScreen extends StatefulWidget {
   final Map<String, dynamic>? userData;
@@ -217,8 +216,6 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      floatingActionButton: const AiFloatingButton(),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async {

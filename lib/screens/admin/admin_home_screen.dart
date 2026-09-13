@@ -115,23 +115,25 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       },
       child: Scaffold(
         backgroundColor: Colors.white,
-        floatingActionButton: const Padding(
-          padding: EdgeInsets.only(bottom: 96.0),
-          child: AiFloatingButton(),
-        ),
-        floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
         body: SafeArea(
           bottom: false,
-          child: Column(
+          child: Stack(
+            fit: StackFit.expand,
             children: [
-              // Header
-              _buildHeader(),
-              // Body
-              Expanded(
-                child: _getBodyContent(),
+              Column(
+                children: [
+                  // Header
+                  _buildHeader(),
+                  // Body
+                  Expanded(
+                    child: _getBodyContent(),
+                  ),
+                  // Footer Navigation
+                  _buildFooter(),
+                ],
               ),
-              // Footer Navigation
-              _buildFooter(),
+              // Draggable AI Floating Button anywhere on screen
+              const DraggableAiFloatingButton(),
             ],
           ),
         ),
