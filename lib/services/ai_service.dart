@@ -660,11 +660,10 @@ class AiService {
 
       if (isCatalogInquiry) {
         return 'Yes, absolutely! You can add new hairstyles and services in two ways:\n\n'
-            '1. **Directly in this Chat:** Provide the service name, price, and duration, for example:\n'
-            '   👉 *"Add a hairstyle to catalog: Low Fade for ₱250, 30 mins"*\n'
-            '   👉 *"Add service: Beard Grooming for ₱150, 20 mins"*\n\n'
+            '1. **Directly in this Chat:** Use the form below or provide details like:\n'
+            '   👉 *"Add a hairstyle to catalog: Low Fade for ₱250, 30 mins"*\n\n'
             '2. **Via the Catalog Screen:** Go to the **Catalog** tab and tap the **+ Add Catalog** button.\n\n'
-            'Whenever you provide the service details here, I will prepare an interactive confirmation card for you to review before saving it to the database.';
+            '[ADMIN_FORM:ADD_CATALOG]';
       }
 
       final params = _parseLocalAddService(lastQuery);
@@ -673,9 +672,8 @@ class AiService {
             '[ADMIN_ACTION:CREATE_SERVICE:${jsonEncode(params)}]\n\n'
             'Please review the details in the action card above and tap **Confirm & Add to Catalog** to write it to the database.';
       } else {
-        return 'Sure! What is the name and price of the hairstyle or service you would like to add to the catalog?\n\n'
-            '👉 **Example:** *"Add a hairstyle to catalog: Classic Taper for ₱300, 30 mins"*\n'
-            '👉 Or include duration: *"Add service: Hair Spa for ₱450, 45 mins"*';
+        return 'Sure! Please fill in the hairstyle or service details in the form below:\n\n'
+            '[ADMIN_FORM:ADD_CATALOG]';
       }
     }
 
@@ -707,11 +705,10 @@ class AiService {
 
       if (isStaffInquiry) {
         return 'Yes, absolutely! You can add new barbers and staff members in two ways:\n\n'
-            '1. **Directly in this Chat:** Simply tell me their details, for example:\n'
-            '   👉 *"Add a barber named Marco with phone 09123456789"*\n'
-            '   👉 *"Add staff John Doe, phone 09987654321, role Stylist"*\n\n'
+            '1. **Directly in this Chat:** Use the form below or tell me their details.\n'
+            '   👉 *"Add a barber named Marco with phone 09123456789"*\n\n'
             '2. **Via the Employee Screen:** Go to the **Employee** tab and tap the **+ Add Staff** button.\n\n'
-            'Whenever you provide their details here, I will prepare an interactive confirmation card for you to review before creating their account.';
+            '[ADMIN_FORM:ADD_BARBER]';
       }
 
       final params = _parseLocalAddStaff(lastQuery);
@@ -720,9 +717,8 @@ class AiService {
             '[ADMIN_ACTION:CREATE_STAFF:${jsonEncode(params)}]\n\n'
             'Please review the profile in the action card above and tap **Confirm & Add Staff** to create their account in the database.';
       } else {
-        return 'Sure! What is the name and phone number of the barber you would like to add?\n\n'
-            '👉 **Example:** *"Add a barber named Marco with phone 09123456789"*\n'
-            '👉 Or provide details: *"Name: Carlos Santos, Phone: 09171234567, Role: Senior Barber"*';
+        return 'Sure! Please fill in the barber details in the form below:\n\n'
+            '[ADMIN_FORM:ADD_BARBER]';
       }
     }
 
@@ -1102,7 +1098,7 @@ CAPABILITIES & RULES:
                       } else if (name == 'propose_add_catalog_service') {
                         final serviceName = args['name']?.toString().trim() ?? '';
                         if (serviceName.isEmpty || _isInvalidEntityName(serviceName, isStaff: false)) {
-                          return 'Sure! What is the name and price of the hairstyle you would like to add? (For example: *"Add a hairstyle to catalog: Fade Cut for ₱250, 30 mins"*)';
+                          return 'Sure! Please fill in the hairstyle or service details in the form below:\n\n[ADMIN_FORM:ADD_CATALOG]';
                         }
                         final serviceJson = {
                           'name': serviceName,
@@ -1117,7 +1113,7 @@ CAPABILITIES & RULES:
                       } else if (name == 'propose_add_employee') {
                         final staffName = args['name']?.toString().trim() ?? '';
                         if (staffName.isEmpty || _isInvalidEntityName(staffName, isStaff: true)) {
-                          return 'Sure! What is the name and phone number of the barber you would like to add? (For example: *"Add barber Marco with phone 09123456789"*)';
+                          return 'Sure! Please fill in the barber details in the form below:\n\n[ADMIN_FORM:ADD_BARBER]';
                         }
                         final staffJson = {
                           'name': staffName,
