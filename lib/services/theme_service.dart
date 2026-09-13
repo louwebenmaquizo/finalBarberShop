@@ -92,7 +92,7 @@ class AppTheme {
       ),
       scaffoldBackgroundColor: darkBackground,
       cardColor: darkCard,
-      dialogTheme: const DialogTheme(backgroundColor: Color(0xFF242424)),
+      dialogTheme: const DialogThemeData(backgroundColor: Color(0xFF242424)),
       dividerColor: darkBorder,
       appBarTheme: const AppBarTheme(
         backgroundColor: darkSurface,

@@ -77,6 +77,81 @@ Deno.serve(async (request) => {
   const username = String(input.username ?? email.split('@')[0] ?? '').trim();
   const name = String(input.name ?? '').trim();
   const staffTitle = String(input.role ?? 'Barber').trim();
+  const existingUserId = input.user_id ? String(input.user_id).trim() : null;
+
+  if (existingUserId) {
+    if (!name) {
+      return json({error: 'Staff name is required'}, 400);
+    }
+    const admin = createClient(supabaseUrl, serviceRoleKey, {
+      auth: {persistSession: false, autoRefreshToken: false},
+    });
+
+    try {
+      // If password provided, update user auth password
+      if (password) {
+        if (password.length < 8) {
+          return json({error: 'Password must be at least 8 characters long'}, 400);
+        }
+        const authUpdate: Record<string, unknown> = {password};
+        if (email.includes('@')) {
+          authUpdate.email = email;
+        }
+        const {error: updateAuthError} = await admin.auth.admin.updateUserById(
+          existingUserId,
+          authUpdate,
+        );
+        if (updateAuthError) {
+          return json({error: updateAuthError.message}, 400);
+        }
+      }
+
+      // Update profiles role and username
+      await admin
+        .from('profiles')
+        .update({
+          username: username || undefined,
+          role: 'barber',
+          is_active: input.is_active !== false,
+        })
+        .eq('id', existingUserId);
+
+      // Update staff record
+      const staffUpdateFields: Record<string, unknown> = {
+        name,
+        phone: input.phone || null,
+        role: staffTitle,
+        skills: input.skills || null,
+        pay_rate: input.pay_rate ?? null,
+        commission_rate: input.commission_rate ?? 0,
+        is_active: input.is_active !== false,
+      };
+      if (email.includes('@')) {
+        staffUpdateFields.email = email;
+      }
+
+      const {data: staff, error: staffError} = await admin
+        .from('staff')
+        .update(staffUpdateFields)
+        .eq('user_id', existingUserId)
+        .select()
+        .single();
+
+      if (staffError) throw staffError;
+
+      return json({
+        data: {
+          ...staff,
+          staff_id: staff.id,
+          username,
+        },
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return json({error: message}, 400);
+    }
+  }
+
   if (!email.includes('@') || password.length < 8 || !username || !name) {
     return json(
       {error: 'Valid email, username, name, and an 8-character password are required'},

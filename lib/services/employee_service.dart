@@ -142,7 +142,7 @@ class EmployeeService {
         };
       }
 
-      Map<String, dynamic> staff;
+      Map<String, dynamic> staff = {};
 
       if (password.isNotEmpty) {
         if (password.length < 8) {
@@ -162,27 +162,62 @@ class EmployeeService {
             ? email
             : '${cleanUsername.toLowerCase().replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '')}@liembarber.com';
 
-        final response = await SupabaseConfig.client.functions.invoke(
-          'create-staff',
-          body: {
-            ..._mutationFields(employeeData, includeImage: false),
-            'name': name,
-            'email': authEmail,
-            'password': password,
-            'username': cleanUsername,
-          },
-        );
-        if (response.status < 200 || response.status >= 300) {
-          final payload = SupabaseServiceHelpers.asMap(response.data);
-          throw Exception(
-            payload['error'] ??
-                payload['message'] ??
-                'Unable to create the staff login account.',
+        // 1. Try Direct Database RPC first
+        bool createdViaRpc = false;
+        try {
+          final rpcRes = await SupabaseConfig.client.rpc(
+            'admin_create_staff_account',
+            params: {
+              'p_name': name,
+              'p_email': authEmail,
+              'p_password': password,
+              'p_phone': phone.isEmpty ? null : phone,
+              'p_role': employeeData['role']?.toString().trim() ?? 'Barber',
+              'p_skills': employeeData['skills']?.toString().trim(),
+              'p_pay_rate': employeeData['pay_rate'] != null
+                  ? double.tryParse(employeeData['pay_rate'].toString())
+                  : null,
+              'p_commission_rate': employeeData['commission_rate'] != null
+                  ? double.tryParse(employeeData['commission_rate'].toString()) ?? 0
+                  : 0,
+              'p_profile_photo': employeeData['profile_photo']?.toString(),
+            },
           );
+          final resMap = SupabaseServiceHelpers.asMap(rpcRes);
+          if (resMap['success'] == true) {
+            final newStaffId = resMap['staff_id']?.toString();
+            if (newStaffId != null && newStaffId.isNotEmpty) {
+              final loaded = await getEmployeeById(newStaffId);
+              if (loaded != null) {
+                staff = loaded;
+                createdViaRpc = true;
+              }
+            }
+          }
+        } catch (_) {}
+
+        // 2. Fallback to Edge Function if RPC not deployed yet
+        if (!createdViaRpc) {
+          try {
+            final response = await SupabaseConfig.client.functions.invoke(
+              'create-staff',
+              body: {
+                ..._mutationFields(employeeData, includeImage: false),
+                'name': name,
+                'email': authEmail,
+                'password': password,
+                'username': cleanUsername,
+              },
+            );
+            if (response.status >= 200 && response.status < 300) {
+              final payload = SupabaseServiceHelpers.asMap(response.data);
+              staff = SupabaseServiceHelpers.asMap(payload['data'] ?? payload);
+            }
+          } catch (_) {}
         }
-        final payload = SupabaseServiceHelpers.asMap(response.data);
-        staff = SupabaseServiceHelpers.asMap(payload['data'] ?? payload);
-      } else {
+      }
+
+      if (staff.isEmpty) {
         final data = await SupabaseConfig.client
             .from(SupabaseConfig.staffTable)
             .insert(_mutationFields(employeeData, includeImage: false))
@@ -278,46 +313,70 @@ class EmployeeService {
 
       final newPassword = employeeData['password']?.toString().trim();
       if (newPassword != null && newPassword.isNotEmpty) {
-        final currentStaff = await getEmployeeById(staffId);
-        final existingUserId = currentStaff?['user_id'];
-        final staffEmail = (employeeData['email'] ?? currentStaff?['email'] ?? '')
-            .toString()
-            .trim();
-        final staffName = (employeeData['name'] ?? currentStaff?['name'] ?? 'Barber')
-            .toString()
-            .trim();
-
-        if (existingUserId == null && staffEmail.isNotEmpty) {
-          try {
-            final cleanUsername = staffEmail.contains('@')
-                ? staffEmail.split('@').first
-                : staffName
-                    .toLowerCase()
-                    .replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '_');
-            final authEmail = staffEmail.contains('@')
-                ? staffEmail
-                : '$cleanUsername@liembarber.com';
-
-            final response = await SupabaseConfig.client.functions.invoke(
-              'create-staff',
-              body: {
-                ...update,
-                'name': staffName,
-                'email': authEmail,
-                'password': newPassword,
-                'username': cleanUsername,
-              },
-            );
-            if (response.status >= 200 && response.status < 300) {
-              final payload = SupabaseServiceHelpers.asMap(response.data);
-              final createdStaff =
-                  SupabaseServiceHelpers.asMap(payload['data'] ?? payload);
-              final createdUserId = createdStaff['user_id'];
-              if (createdUserId != null) {
-                update['user_id'] = createdUserId;
-              }
+        // 1. Direct database RPC call to update password in auth.users
+        bool passwordUpdatedViaRpc = false;
+        try {
+          final rpcRes = await SupabaseConfig.client.rpc(
+            'admin_update_staff_password',
+            params: {
+              'p_staff_id': staffId,
+              'p_new_password': newPassword,
+            },
+          );
+          final resMap = SupabaseServiceHelpers.asMap(rpcRes);
+          if (resMap['success'] == true) {
+            passwordUpdatedViaRpc = true;
+            if (resMap['user_id'] != null) {
+              update['user_id'] = resMap['user_id'];
             }
-          } catch (_) {}
+          }
+        } catch (_) {}
+
+        // 2. Fallback to Edge Function if RPC not present
+        if (!passwordUpdatedViaRpc) {
+          final currentStaff = await getEmployeeById(staffId);
+          final existingUserId = currentStaff?['user_id'];
+          final staffEmail = (employeeData['email'] ?? currentStaff?['email'] ?? '')
+              .toString()
+              .trim();
+          final staffName = (employeeData['name'] ?? currentStaff?['name'] ?? 'Barber')
+              .toString()
+              .trim();
+
+          if (staffEmail.isNotEmpty || existingUserId != null) {
+            try {
+              final cleanUsername = staffEmail.contains('@')
+                  ? staffEmail.split('@').first
+                  : staffName
+                      .toLowerCase()
+                      .replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '_');
+              final authEmail = staffEmail.contains('@')
+                  ? staffEmail
+                  : '$cleanUsername@liembarber.com';
+
+              final response = await SupabaseConfig.client.functions.invoke(
+                'create-staff',
+                body: {
+                  ...update,
+                  'staff_id': staffId,
+                  'user_id': existingUserId,
+                  'name': staffName,
+                  'email': authEmail,
+                  'password': newPassword,
+                  'username': cleanUsername,
+                },
+              );
+              if (response.status >= 200 && response.status < 300) {
+                final payload = SupabaseServiceHelpers.asMap(response.data);
+                final createdStaff =
+                    SupabaseServiceHelpers.asMap(payload['data'] ?? payload);
+                final createdUserId = createdStaff['user_id'];
+                if (createdUserId != null) {
+                  update['user_id'] = createdUserId;
+                }
+              }
+            } catch (_) {}
+          }
         }
       }
 
