@@ -747,6 +747,10 @@ class _AiChatScreenState extends State<AiChatScreen>
         !isUser && msg.content.contains('[ADMIN_ACTION:CREATE_SERVICE:');
     final hasAdminStaffAction =
         !isUser && msg.content.contains('[ADMIN_ACTION:CREATE_STAFF:');
+    final hasAdminBarberForm =
+        !isUser && msg.content.contains('[ADMIN_FORM:ADD_BARBER]');
+    final hasAdminCatalogForm =
+        !isUser && msg.content.contains('[ADMIN_FORM:ADD_CATALOG]');
 
     var displayContent = msg.content;
     if (hasAdminServiceAction) {
@@ -761,22 +765,41 @@ class _AiChatScreenState extends State<AiChatScreen>
               RegExp(r'\[ADMIN_ACTION:CREATE_STAFF:[^\]]+\]'), '')
           .trim();
     }
+    if (hasAdminBarberForm) {
+      displayContent = displayContent
+          .replaceAll('[ADMIN_FORM:ADD_BARBER]', '')
+          .trim();
+    }
+    if (hasAdminCatalogForm) {
+      displayContent = displayContent
+          .replaceAll('[ADMIN_FORM:ADD_CATALOG]', '')
+          .trim();
+    }
     if (displayContent.isEmpty) {
       displayContent = hasAdminServiceAction
           ? 'I have prepared the new catalog service for your review:'
-          : 'I have prepared the new staff profile for your review:';
+          : hasAdminBarberForm
+              ? 'Please fill in the barber details below:'
+              : hasAdminCatalogForm
+                  ? 'Please fill in the hairstyle / service details below:'
+                  : 'I have prepared the new staff profile for your review:';
     }
+
 
     final recommendedServices = (!isUser &&
             !_isAdmin &&
             !hasAdminServiceAction &&
-            !hasAdminStaffAction)
+            !hasAdminStaffAction &&
+            !hasAdminBarberForm &&
+            !hasAdminCatalogForm)
         ? _findRecommendedServices(msg.content, userPrompt: previousUserPrompt)
         : <Map<String, dynamic>>[];
     final recommendedBarbers = (!isUser &&
             !_isAdmin &&
             !hasAdminServiceAction &&
-            !hasAdminStaffAction)
+            !hasAdminStaffAction &&
+            !hasAdminBarberForm &&
+            !hasAdminCatalogForm)
         ? _findRecommendedBarbers(msg.content, userPrompt: previousUserPrompt)
         : <Map<String, dynamic>>[];
 
@@ -884,6 +907,76 @@ class _AiChatScreenState extends State<AiChatScreen>
           _buildAdminServiceActionCard(msg.content),
         if (hasAdminStaffAction)
           _buildAdminStaffActionCard(msg.content),
+        if (hasAdminBarberForm)
+          _AdminBarberFormCard(
+            formKey: msg.content.hashCode.toString(),
+            onSubmit: (data) async {
+              final actionKey = 'staff_${data['name']}_${data['phone']}';
+              // Call core executor — it handles snackbars internally.
+              // We check the result via EmployeeService directly to detect failure.
+              final res = await EmployeeService.createEmployee({
+                'name': data['name'],
+                'role': data['role'] ?? 'Barber',
+                'phone': data['phone'] ?? '',
+                'email': data['email'] ?? '',
+                'password': data['password'] ?? '',
+                'skills': data['specialties'] ?? 'General Barbering',
+              });
+              if (res['success'] != true) {
+                throw Exception(res['message'] ?? 'Failed to create staff account.');
+              }
+              // On success, also run the original executor to update state + show snackbar
+              if (mounted) {
+                setState(() {
+                  _confirmedActions.add(actionKey);
+                });
+                await _loadCatalogAndBarbers();
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('✓ "${data['name']}" added to the team successfully!'),
+                      backgroundColor: Colors.green[700],
+                      duration: const Duration(seconds: 5),
+                    ),
+                  );
+                }
+              }
+            },
+          ),
+        if (hasAdminCatalogForm)
+          _AdminCatalogFormCard(
+            formKey: msg.content.hashCode.toString(),
+            categories: _catalogCategories,
+            onSubmit: (data) async {
+              final actionKey = 'service_${data['name']}_${data['price']}';
+              final res = await CatalogService.createService({
+                'name': data['name'],
+                'price': (data['price'] as num?)?.toDouble() ?? 250.0,
+                'duration_minutes': (data['duration_minutes'] as num?)?.toInt() ?? 30,
+                'category_id': data['category_id'],
+                'description': data['description'] ?? 'Professional haircut service',
+                'is_active': 1,
+              });
+              if (res['success'] != true) {
+                throw Exception(res['message'] ?? 'Failed to add service to catalog.');
+              }
+              if (mounted) {
+                setState(() {
+                  _confirmedActions.add(actionKey);
+                });
+                await _loadCatalogAndBarbers();
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('✓ Service "${data['name']}" added to catalog successfully!'),
+                      backgroundColor: Colors.green[700],
+                      duration: const Duration(seconds: 5),
+                    ),
+                  );
+                }
+              }
+            },
+          ),
 
         // If this assistant message recommends haircut styles, render interactive cards!
         if (recommendedServices.isNotEmpty)
@@ -2479,6 +2572,1060 @@ class _AiChatScreenState extends State<AiChatScreen>
         ),
       );
     }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ADMIN INLINE BARBER FORM CARD
+// Renders an interactive in-chat form for creating a new barber/staff account.
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _AdminBarberFormCard extends StatefulWidget {
+  final String formKey;
+  final Future<void> Function(Map<String, dynamic> data) onSubmit;
+
+  const _AdminBarberFormCard({
+    required this.formKey,
+    required this.onSubmit,
+  });
+
+  @override
+  State<_AdminBarberFormCard> createState() => _AdminBarberFormCardState();
+}
+
+class _AdminBarberFormCardState extends State<_AdminBarberFormCard> {
+  final _formKey = GlobalKey<FormState>();
+  final _nameCtrl = TextEditingController();
+  final _emailCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController();
+  final _skillsCtrl = TextEditingController();
+  final _passwordCtrl = TextEditingController();
+
+  String _role = 'Barber';
+  bool _obscurePassword = true;
+  bool _isSubmitting = false;
+  bool _submitted = false;
+  String? _submittedName;
+
+  static const _roles = ['Barber', 'Senior Barber', 'Stylist', 'Staff', 'Cashier'];
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _emailCtrl.dispose();
+    _phoneCtrl.dispose();
+    _skillsCtrl.dispose();
+    _passwordCtrl.dispose();
+    super.dispose();
+  }
+
+  String? _errorMessage;
+
+  Future<void> _handleSubmit() async {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+    setState(() {
+      _isSubmitting = true;
+      _errorMessage = null;
+    });
+
+    final password = _passwordCtrl.text.trim().isNotEmpty
+        ? _passwordCtrl.text.trim()
+        : 'Liem@${DateTime.now().millisecondsSinceEpoch % 900000 + 100000}!';
+
+    final data = {
+      'name': _nameCtrl.text.trim(),
+      'email': _emailCtrl.text.trim(),
+      'phone': _phoneCtrl.text.trim(),
+      'role': _role,
+      'specialties': _skillsCtrl.text.trim().isNotEmpty
+          ? _skillsCtrl.text.trim()
+          : 'General Barbering',
+      'password': password,
+    };
+
+    try {
+      await widget.onSubmit(data);
+      if (!mounted) return;
+      setState(() {
+        _submitted = true;
+        _submittedName = _nameCtrl.text.trim();
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = e.toString().replaceFirst('Exception: ', '');
+      });
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+
+  @override
+  Widget build(BuildContext context) {
+    if (_submitted) {
+      return Container(
+        margin: const EdgeInsets.only(top: 8, bottom: 8, right: 20),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.green.shade50,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.green.shade300),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.check_circle_rounded,
+                color: Colors.green.shade700, size: 22),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                '✓ $_submittedName has been added to the team!',
+                style: GoogleFonts.manrope(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.green.shade800,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(top: 8, bottom: 8, right: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _surfaceBorder, width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [_primaryBlue.withValues(alpha: 0.12), Colors.white],
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+              ),
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(15)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.person_add_alt_1_rounded,
+                    size: 17, color: _primaryDeep),
+                const SizedBox(width: 8),
+                Text(
+                  'NEW BARBER / STAFF ACCOUNT',
+                  style: GoogleFonts.manrope(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.6,
+                    color: _primaryDeep,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Form Body
+          Padding(
+            padding: const EdgeInsets.all(14),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Full Name
+                  _buildFormField(
+                    controller: _nameCtrl,
+                    label: 'Full Name *',
+                    hint: 'e.g. Marco Santos',
+                    icon: Icons.badge_outlined,
+                    validator: (v) {
+                      if (v == null || v.trim().isEmpty) {
+                        return 'Full name is required';
+                      }
+                      if (v.trim().length < 2) {
+                        return 'Name must be at least 2 characters';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Email
+                  _buildFormField(
+                    controller: _emailCtrl,
+                    label: 'Email Address *',
+                    hint: 'e.g. marco@liembarbershop.com',
+                    icon: Icons.email_outlined,
+                    keyboardType: TextInputType.emailAddress,
+                    validator: (v) {
+                      if (v == null || v.trim().isEmpty) {
+                        return 'Email is required';
+                      }
+                      final email = v.trim().toLowerCase();
+                      if (!RegExp(r'^[\w\.\-]+@[\w\.\-]+\.\w+$')
+                          .hasMatch(email)) {
+                        return 'Enter a valid email address';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Phone
+                  _buildFormField(
+                    controller: _phoneCtrl,
+                    label: 'Phone Number *',
+                    hint: 'e.g. 09123456789',
+                    icon: Icons.phone_outlined,
+                    keyboardType: TextInputType.phone,
+                    validator: (v) {
+                      if (v == null || v.trim().isEmpty) {
+                        return 'Phone number is required';
+                      }
+                      if (v.trim().length < 7) {
+                        return 'Enter a valid phone number';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Role dropdown
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Role',
+                        style: GoogleFonts.manrope(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                          color: _textSecondary,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: _surfaceLight,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: _surfaceBorder),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: _role,
+                            isExpanded: true,
+                            style: GoogleFonts.manrope(
+                              fontSize: 13.5,
+                              color: _textPrimary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            icon: const Icon(Icons.keyboard_arrow_down_rounded,
+                                size: 18, color: _textSecondary),
+                            items: _roles
+                                .map((r) => DropdownMenuItem(
+                                      value: r,
+                                      child: Text(r),
+                                    ))
+                                .toList(),
+                            onChanged: (v) {
+                              if (v != null) setState(() => _role = v);
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Skills / Specialties
+                  _buildFormField(
+                    controller: _skillsCtrl,
+                    label: 'Skills / Specialties',
+                    hint: 'e.g. Fades, Beard Grooming',
+                    icon: Icons.workspace_premium_outlined,
+                    validator: null,
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Password
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Password (leave blank to auto-generate)',
+                        style: GoogleFonts.manrope(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                          color: _textSecondary,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      TextFormField(
+                        controller: _passwordCtrl,
+                        obscureText: _obscurePassword,
+                        style: GoogleFonts.manrope(
+                            fontSize: 13.5, color: _textPrimary),
+                        decoration: InputDecoration(
+                          hintText: 'Leave blank to auto-generate',
+                          hintStyle: GoogleFonts.manrope(
+                              fontSize: 13, color: _textSecondary),
+                          prefixIcon: const Icon(Icons.lock_outline_rounded,
+                              size: 17, color: _textSecondary),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscurePassword
+                                  ? Icons.visibility_off_outlined
+                                  : Icons.visibility_outlined,
+                              size: 17,
+                              color: _textSecondary,
+                            ),
+                            onPressed: () => setState(
+                                () => _obscurePassword = !_obscurePassword),
+                          ),
+                          filled: true,
+                          fillColor: _surfaceLight,
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 10),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide:
+                                const BorderSide(color: _surfaceBorder),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide:
+                                const BorderSide(color: _surfaceBorder),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: const BorderSide(
+                                color: _primaryBlue, width: 1.5),
+                          ),
+                        ),
+                        validator: (v) {
+                          if (v != null &&
+                              v.trim().isNotEmpty &&
+                              v.trim().length < 8) {
+                            return 'Password must be at least 8 characters';
+                          }
+                          return null;
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Submit Button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 46,
+                    child: ElevatedButton.icon(
+                      onPressed: _isSubmitting ? null : _handleSubmit,
+                      icon: _isSubmitting
+                          ? const SizedBox(
+                              width: 15,
+                              height: 15,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.white),
+                            )
+                          : const Icon(Icons.person_add_rounded, size: 17),
+                      label: Text(
+                        _isSubmitting
+                            ? 'Creating Account...'
+                            : 'Create Barber Account',
+                        style: GoogleFonts.manrope(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _surfaceDark,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Center(
+                    child: Text(
+                      '* Required fields',
+                      style: GoogleFonts.manrope(
+                          fontSize: 11, color: _textSecondary),
+                    ),
+                  ),
+                  if (_errorMessage != null) ...[
+                    const SizedBox(height: 10),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.red.shade200),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.error_outline_rounded,
+                              size: 16, color: Colors.red.shade600),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              _errorMessage!,
+                              style: GoogleFonts.manrope(
+                                fontSize: 12,
+                                color: Colors.red.shade700,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFormField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    required IconData icon,
+    TextInputType? keyboardType,
+    String? Function(String?)? validator,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: GoogleFonts.manrope(
+            fontSize: 11.5,
+            fontWeight: FontWeight.w600,
+            color: _textSecondary,
+            letterSpacing: 0.3,
+          ),
+        ),
+        const SizedBox(height: 5),
+        TextFormField(
+          controller: controller,
+          keyboardType: keyboardType,
+          style:
+              GoogleFonts.manrope(fontSize: 13.5, color: _textPrimary),
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle:
+                GoogleFonts.manrope(fontSize: 13, color: _textSecondary),
+            prefixIcon:
+                Icon(icon, size: 17, color: _textSecondary),
+            filled: true,
+            fillColor: _surfaceLight,
+            contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12, vertical: 10),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: _surfaceBorder),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: _surfaceBorder),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide:
+                  const BorderSide(color: _primaryBlue, width: 1.5),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(color: Colors.red.shade400),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(color: Colors.red.shade400, width: 1.5),
+            ),
+          ),
+          validator: validator,
+        ),
+      ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ADMIN INLINE CATALOG SERVICE FORM CARD
+// Renders an interactive in-chat form for creating a new hairstyle/catalog service.
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _AdminCatalogFormCard extends StatefulWidget {
+  final String formKey;
+  final List<Map<String, dynamic>> categories;
+  final Future<void> Function(Map<String, dynamic> data) onSubmit;
+
+  const _AdminCatalogFormCard({
+    required this.formKey,
+    required this.categories,
+    required this.onSubmit,
+  });
+
+  @override
+  State<_AdminCatalogFormCard> createState() => _AdminCatalogFormCardState();
+}
+
+class _AdminCatalogFormCardState extends State<_AdminCatalogFormCard> {
+  final _formKey = GlobalKey<FormState>();
+  final _nameCtrl = TextEditingController();
+  final _priceCtrl = TextEditingController();
+  final _descCtrl = TextEditingController();
+
+  String? _selectedCategoryId;
+  String _selectedCategoryName = 'Haircuts';
+  int _durationMinutes = 30;
+  bool _isSubmitting = false;
+  bool _submitted = false;
+  String? _submittedName;
+  String? _errorMessage;
+
+  static const _durationOptions = [15, 20, 30, 45, 60, 90];
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.categories.isNotEmpty) {
+      final first = widget.categories.first;
+      _selectedCategoryId = (first['category_id'] ?? first['id'])?.toString();
+      _selectedCategoryName = (first['name'] ?? 'Haircuts').toString();
+    }
+  }
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _priceCtrl.dispose();
+    _descCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleSubmit() async {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+    setState(() {
+      _isSubmitting = true;
+      _errorMessage = null;
+    });
+
+    final price = double.tryParse(_priceCtrl.text.trim()) ?? 250.0;
+
+    String? categoryId = _selectedCategoryId;
+    if (categoryId == null && widget.categories.isNotEmpty) {
+      for (final c in widget.categories) {
+        final name = (c['name'] ?? '').toString().toLowerCase();
+        if (name.contains(_selectedCategoryName.toLowerCase()) ||
+            _selectedCategoryName.toLowerCase().contains(name)) {
+          categoryId = (c['category_id'] ?? c['id'])?.toString();
+          break;
+        }
+      }
+      categoryId ??= (widget.categories.first['category_id'] ?? widget.categories.first['id'])?.toString();
+    }
+
+    final data = {
+      'name': _nameCtrl.text.trim(),
+      'category_id': categoryId,
+      'category_name': _selectedCategoryName,
+      'price': price,
+      'duration_minutes': _durationMinutes,
+      'description': _descCtrl.text.trim().isNotEmpty
+          ? _descCtrl.text.trim()
+          : 'Professional haircut service',
+    };
+
+    try {
+      await widget.onSubmit(data);
+      if (!mounted) return;
+      setState(() {
+        _submitted = true;
+        _submittedName = _nameCtrl.text.trim();
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = e.toString().replaceFirst('Exception: ', '');
+      });
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_submitted) {
+      return Container(
+        margin: const EdgeInsets.only(top: 8, bottom: 8, right: 20),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.green.shade50,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.green.shade300),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.check_circle_rounded,
+                color: Colors.green.shade700, size: 22),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                '✓ $_submittedName has been added to the catalog!',
+                style: GoogleFonts.manrope(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.green.shade800,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final categoryItems = widget.categories.isNotEmpty
+        ? widget.categories.map((c) {
+            final id = (c['category_id'] ?? c['id'])?.toString();
+            final name = (c['name'] ?? 'General').toString();
+            return DropdownMenuItem<String>(
+              value: id ?? name,
+              child: Text(name),
+            );
+          }).toList()
+        : const [
+            DropdownMenuItem(value: 'Haircuts', child: Text('Haircuts')),
+            DropdownMenuItem(value: 'Beard Grooming', child: Text('Beard Grooming')),
+            DropdownMenuItem(value: 'Styling', child: Text('Styling')),
+            DropdownMenuItem(value: 'Treatments', child: Text('Treatments')),
+            DropdownMenuItem(value: 'Packages', child: Text('Packages')),
+          ];
+
+    final currentDropdownValue = _selectedCategoryId ??
+        (widget.categories.isNotEmpty
+            ? (widget.categories.first['category_id'] ?? widget.categories.first['id'])?.toString()
+            : 'Haircuts');
+
+    return Container(
+      margin: const EdgeInsets.only(top: 8, bottom: 8, right: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _surfaceBorder, width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [_primaryBlue.withValues(alpha: 0.12), Colors.white],
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+              ),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.content_cut_rounded, size: 17, color: _primaryDeep),
+                const SizedBox(width: 8),
+                Text(
+                  'NEW CATALOG SERVICE / HAIRSTYLE',
+                  style: GoogleFonts.manrope(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.6,
+                    color: _primaryDeep,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Form Body
+          Padding(
+            padding: const EdgeInsets.all(14),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Hairstyle / Service Name
+                  _buildFormField(
+                    controller: _nameCtrl,
+                    label: 'Service / Hairstyle Name *',
+                    hint: 'e.g. Low Taper Fade',
+                    icon: Icons.content_cut_rounded,
+                    validator: (v) {
+                      if (v == null || v.trim().isEmpty) {
+                        return 'Service name is required';
+                      }
+                      if (v.trim().length < 2) {
+                        return 'Name must be at least 2 characters';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Category dropdown
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Category',
+                        style: GoogleFonts.manrope(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                          color: _textSecondary,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: _surfaceLight,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: _surfaceBorder),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: categoryItems.any((item) => item.value == currentDropdownValue)
+                                ? currentDropdownValue
+                                : categoryItems.first.value,
+                            isExpanded: true,
+                            style: GoogleFonts.manrope(
+                              fontSize: 13.5,
+                              color: _textPrimary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            icon: const Icon(Icons.keyboard_arrow_down_rounded,
+                                size: 18, color: _textSecondary),
+                            items: categoryItems,
+                            onChanged: (v) {
+                              if (v != null) {
+                                setState(() {
+                                  _selectedCategoryId = v;
+                                  final match = widget.categories.firstWhere(
+                                    (c) => (c['category_id'] ?? c['id'])?.toString() == v,
+                                    orElse: () => {'name': v},
+                                  );
+                                  _selectedCategoryName = (match['name'] ?? v).toString();
+                                });
+                              }
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Price & Duration side-by-side
+                  Row(
+                    children: [
+                      // Price
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Price (PHP) *',
+                              style: GoogleFonts.manrope(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w600,
+                                color: _textSecondary,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                            const SizedBox(height: 5),
+                            TextFormField(
+                              controller: _priceCtrl,
+                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              style: GoogleFonts.manrope(fontSize: 13.5, color: _textPrimary),
+                              decoration: InputDecoration(
+                                hintText: '250',
+                                hintStyle: GoogleFonts.manrope(fontSize: 13, color: _textSecondary),
+                                prefixText: '₱ ',
+                                prefixStyle: GoogleFonts.manrope(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: _textPrimary,
+                                ),
+                                filled: true,
+                                fillColor: _surfaceLight,
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  borderSide: const BorderSide(color: _surfaceBorder),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  borderSide: const BorderSide(color: _surfaceBorder),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  borderSide: const BorderSide(color: _primaryBlue, width: 1.5),
+                                ),
+                                errorBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  borderSide: BorderSide(color: Colors.red.shade400),
+                                ),
+                                focusedErrorBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  borderSide: BorderSide(color: Colors.red.shade400, width: 1.5),
+                                ),
+                              ),
+                              validator: (v) {
+                                if (v == null || v.trim().isEmpty) {
+                                  return 'Required';
+                                }
+                                final p = double.tryParse(v.trim());
+                                if (p == null || p <= 0) {
+                                  return 'Invalid price';
+                                }
+                                return null;
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+
+                      // Duration
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Duration *',
+                              style: GoogleFonts.manrope(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w600,
+                                color: _textSecondary,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                            const SizedBox(height: 5),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: _surfaceLight,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: _surfaceBorder),
+                              ),
+                              child: DropdownButtonHideUnderline(
+                                child: DropdownButton<int>(
+                                  value: _durationMinutes,
+                                  isExpanded: true,
+                                  style: GoogleFonts.manrope(
+                                    fontSize: 13.5,
+                                    color: _textPrimary,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  icon: const Icon(Icons.keyboard_arrow_down_rounded,
+                                      size: 18, color: _textSecondary),
+                                  items: _durationOptions
+                                      .map((d) => DropdownMenuItem(
+                                            value: d,
+                                            child: Text('$d mins'),
+                                          ))
+                                      .toList(),
+                                  onChanged: (v) {
+                                    if (v != null) setState(() => _durationMinutes = v);
+                                  },
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Description
+                  _buildFormField(
+                    controller: _descCtrl,
+                    label: 'Description',
+                    hint: 'e.g. Clean low fade with sharp edge line-up',
+                    icon: Icons.notes_rounded,
+                    validator: null,
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Submit Button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 46,
+                    child: ElevatedButton.icon(
+                      onPressed: _isSubmitting ? null : _handleSubmit,
+                      icon: _isSubmitting
+                          ? const SizedBox(
+                              width: 15,
+                              height: 15,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.white),
+                            )
+                          : const Icon(Icons.add_circle_outline_rounded, size: 17),
+                      label: Text(
+                        _isSubmitting ? 'Adding to Catalog...' : 'Add to Catalog',
+                        style: GoogleFonts.manrope(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _surfaceDark,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Center(
+                    child: Text(
+                      '* Required fields',
+                      style: GoogleFonts.manrope(fontSize: 11, color: _textSecondary),
+                    ),
+                  ),
+                  if (_errorMessage != null) ...[
+                    const SizedBox(height: 10),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.red.shade200),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.error_outline_rounded, size: 16, color: Colors.red.shade600),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              _errorMessage!,
+                              style: GoogleFonts.manrope(
+                                fontSize: 12,
+                                color: Colors.red.shade700,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFormField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    required IconData icon,
+    TextInputType? keyboardType,
+    String? Function(String?)? validator,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: GoogleFonts.manrope(
+            fontSize: 11.5,
+            fontWeight: FontWeight.w600,
+            color: _textSecondary,
+            letterSpacing: 0.3,
+          ),
+        ),
+        const SizedBox(height: 5),
+        TextFormField(
+          controller: controller,
+          keyboardType: keyboardType,
+          style: GoogleFonts.manrope(fontSize: 13.5, color: _textPrimary),
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: GoogleFonts.manrope(fontSize: 13, color: _textSecondary),
+            prefixIcon: Icon(icon, size: 17, color: _textSecondary),
+            filled: true,
+            fillColor: _surfaceLight,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: _surfaceBorder),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: _surfaceBorder),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: _primaryBlue, width: 1.5),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(color: Colors.red.shade400),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(color: Colors.red.shade400, width: 1.5),
+            ),
+          ),
+          validator: validator,
+        ),
+      ],
+    );
   }
 }
 
