@@ -46,7 +46,12 @@ class _LoginScreenState extends State<LoginScreen> {
     _authSubscription = SupabaseConfig.client.auth.onAuthStateChange.listen((state) async {
       if (!mounted || _isNavigating) return;
       if (state.event == AuthChangeEvent.signedIn) {
-        final user = await AuthSessionService.getSession();
+        Map<String, dynamic>? user;
+        try {
+          user = await AuthSessionService.getSession();
+        } catch (_) {
+          return; // AuthGate shows a retry screen when the profile can't load.
+        }
         if (user != null && mounted && !_isNavigating) {
           _navigateForUser(user);
         }
@@ -419,6 +424,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 color: Colors.black87,
                               ),
                             ),
+                            if (SupabaseConfig.passwordResetEmailEnabled)
                             InkWell(
                               onTap: () {
                                 showForgotPasswordDialog(context);
@@ -531,6 +537,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 24),
 
+                    if (SupabaseConfig.googleSignInEnabled) ...[
                     // "OR" Divider
                     Row(
                       children: [
@@ -594,8 +601,26 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     const SizedBox(height: 28),
+                    ],
+
+                    if (!SupabaseConfig.passwordResetEmailEnabled)
+                      Text(
+                        SupabaseConfig.emailSignUpEnabled
+                            ? "Forgot your password? Contact the shop and "
+                                "we'll reset it for you."
+                            : 'New customer? Tap "Continue with Google" to create '
+                                'your account. Staff: forgot your password? Ask the '
+                                'shop admin to reset it.',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.manrope(
+                          fontSize: 13,
+                          color: Colors.grey[700],
+                          height: 1.4,
+                        ),
+                      ),
 
                     // "Don't have an account? Register now" at the bottom
+                    if (SupabaseConfig.emailSignUpEnabled)
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [

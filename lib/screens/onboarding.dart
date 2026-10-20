@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../config/api_config.dart';
 import 'auth/login_screen.dart';
 import 'auth/register_screen.dart';
 
@@ -112,7 +113,10 @@ class OnboardingScreen extends StatelessWidget {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const RegisterScreen(),
+                              builder: (context) =>
+                                  SupabaseConfig.emailSignUpEnabled
+                                      ? const RegisterScreen()
+                                      : const LoginScreen(),
                             ),
                           );
                         },
@@ -124,7 +128,9 @@ class OnboardingScreen extends StatelessWidget {
                           elevation: 0,
                         ),
                         child: Text(
-                          'Register',
+                          SupabaseConfig.emailSignUpEnabled
+                              ? 'Register'
+                              : 'Create account with Google',
                           style: GoogleFonts.manrope(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,

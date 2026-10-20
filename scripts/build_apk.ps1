@@ -6,6 +6,15 @@ if (Test-Path "$jdk17\bin\java.exe") {
     Write-Host "Using JDK 17 from $jdk17" -ForegroundColor Cyan
 }
 
+# Guard: only the Supabase URL and publishable key may be compiled into the app.
+$config = Get-Content "supabase.local.json" -Raw | ConvertFrom-Json
+$forbidden = $config.PSObject.Properties.Name | Where-Object { $_ -notin @("SUPABASE_URL", "SUPABASE_PUBLISHABLE_KEY") }
+if ($forbidden) {
+    Write-Host "supabase.local.json contains keys that would be embedded in the app: $($forbidden -join ', ')" -ForegroundColor Red
+    Write-Host "Remove them. Server secrets such as GEMINI_API_KEY belong in 'supabase secrets set'." -ForegroundColor Red
+    exit 1
+}
+
 Write-Host "Building Release APK: Maquizo_LiemBarberShop.apk..." -ForegroundColor Green
 flutter build apk --release --dart-define-from-file=supabase.local.json
 

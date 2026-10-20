@@ -130,12 +130,13 @@ class _AuthGateState extends State<AuthGate> {
         });
       }
     } catch (_) {
-      // Only fall back to onboarding if no current session exists
+      // The profile could not be loaded (usually no connection). Never guess
+      // the role: a signed-in user gets a retry screen instead.
       final hasSession = SupabaseConfig.client.auth.currentSession != null;
       if (mounted) {
         setState(() {
           _targetScreen = hasSession
-              ? _targetScreen // keep current screen if already set
+              ? _ConnectionErrorScreen(onRetry: _checkInitialAuth)
               : const OnboardingScreen();
           _isChecking = false;
         });
@@ -164,5 +165,51 @@ class _AuthGateState extends State<AuthGate> {
       );
     }
     return _targetScreen;
+  }
+}
+
+class _ConnectionErrorScreen extends StatelessWidget {
+  const _ConnectionErrorScreen({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.wifi_off_rounded, size: 56, color: Colors.grey),
+                const SizedBox(height: 16),
+                Text(
+                  "Can't reach Liem Barber Shop",
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Check your internet connection and try again.',
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton.icon(
+                  onPressed: onRetry,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Retry'),
+                ),
+                TextButton(
+                  onPressed: () => Supabase.instance.client.auth.signOut(),
+                  child: const Text('Sign out'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

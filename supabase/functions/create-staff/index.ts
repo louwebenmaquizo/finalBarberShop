@@ -1,28 +1,34 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
-function getCorsHeaders(request: Request) {
+// ALLOWED_ORIGINS (optional secret): comma-separated web origins, e.g.
+// "https://liembarber.com". Mobile apps send no Origin header.
+function getCorsHeaders(request: Request): Record<string, string> {
   const origin = request.headers.get('Origin') ?? '';
+  const configured = (Deno.env.get('ALLOWED_ORIGINS') ?? '')
+    .split(',')
+    .map((o) => o.trim())
+    .filter(Boolean);
   const isAllowed = !origin ||
+    configured.includes(origin) ||
     origin.startsWith('http://localhost:') ||
-    origin.startsWith('http://127.0.0.1:') ||
-    origin.endsWith('.supabase.co') ||
-    origin.endsWith('.vercel.app');
+    origin.startsWith('http://127.0.0.1:');
 
   return {
-    'Access-Control-Allow-Origin': isAllowed ? (origin || '*') : 'http://localhost:3000',
+    'Access-Control-Allow-Origin': isAllowed && origin ? origin : (configured[0] ?? 'http://localhost:3000'),
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    Vary: 'Origin',
   };
 }
 
-const json = (body: unknown, status = 200, cors: Record<string, string> = {}) =>
-  new Response(JSON.stringify(body), {
-    status,
-    headers: {...cors, 'Content-Type': 'application/json'},
-  });
-
 Deno.serve(async (request) => {
   const corsHeaders = getCorsHeaders(request);
+  // Every response needs the CORS headers or browsers hide it from the app.
+  const json = (body: unknown, status = 200) =>
+    new Response(JSON.stringify(body), {
+      status,
+      headers: {...corsHeaders, 'Content-Type': 'application/json'},
+    });
   if (request.method === 'OPTIONS') {
     return new Response('ok', {headers: corsHeaders});
   }
@@ -86,6 +92,17 @@ Deno.serve(async (request) => {
     const admin = createClient(supabaseUrl, serviceRoleKey, {
       auth: {persistSession: false, autoRefreshToken: false},
     });
+
+    // Only existing barber/staff accounts that are linked to a staff record
+    // may be edited here, so this endpoint cannot be used to change an
+    // admin's or a customer's password or email.
+    const [{data: targetProfile}, {data: targetStaff}] = await Promise.all([
+      admin.from('profiles').select('role').eq('id', existingUserId).maybeSingle(),
+      admin.from('staff').select('id').eq('user_id', existingUserId).maybeSingle(),
+    ]);
+    if (!targetStaff || !['barber', 'staff'].includes(String(targetProfile?.role))) {
+      return json({error: 'Only barber/staff accounts can be edited here.'}, 403);
+    }
 
     try {
       // If password provided, update user auth password

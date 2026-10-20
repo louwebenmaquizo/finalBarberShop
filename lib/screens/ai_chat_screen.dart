@@ -8,6 +8,7 @@ import '../config/api_config.dart';
 import '../services/ai_service.dart';
 import '../services/api_service.dart';
 import '../services/auth_session_service.dart';
+import '../services/booking_service.dart';
 import '../services/catalog_service.dart';
 import '../services/employee_service.dart';
 
@@ -744,13 +745,13 @@ class _AiChatScreenState extends State<AiChatScreen>
   Widget _buildBubble(AiMessage msg, {String? previousUserPrompt}) {
     final isUser = msg.role == 'user';
     final hasAdminServiceAction =
-        !isUser && msg.content.contains('[ADMIN_ACTION:CREATE_SERVICE:');
+        !isUser && _isAdmin && msg.content.contains('[ADMIN_ACTION:CREATE_SERVICE:');
     final hasAdminStaffAction =
-        !isUser && msg.content.contains('[ADMIN_ACTION:CREATE_STAFF:');
+        !isUser && _isAdmin && msg.content.contains('[ADMIN_ACTION:CREATE_STAFF:');
     final hasAdminBarberForm =
-        !isUser && msg.content.contains('[ADMIN_FORM:ADD_BARBER]');
+        !isUser && _isAdmin && msg.content.contains('[ADMIN_FORM:ADD_BARBER]');
     final hasAdminCatalogForm =
-        !isUser && msg.content.contains('[ADMIN_FORM:ADD_CATALOG]');
+        !isUser && _isAdmin && msg.content.contains('[ADMIN_FORM:ADD_CATALOG]');
 
     var displayContent = msg.content;
     if (hasAdminServiceAction) {
@@ -1754,11 +1755,6 @@ class _AiChatScreenState extends State<AiChatScreen>
             );
           });
           _scrollToBottom();
-          AiService.saveMessage(
-            sessionId: _sessionId,
-            role: 'assistant',
-            content: confirmationText,
-          );
           AiHistoryStorage.saveSession(
             AiChatSession(
               sessionId: _sessionId,
@@ -2521,7 +2517,7 @@ class _AiChatScreenState extends State<AiChatScreen>
     try {
       final tempPassword = (data['password'] != null && data['password'].toString().trim().isNotEmpty)
           ? data['password'].toString().trim()
-          : 'Liem@${DateTime.now().millisecondsSinceEpoch % 900000 + 100000}!';
+          : generateTempPassword();
 
       final staffPayload = {
         'name': data['name'],
@@ -2541,11 +2537,32 @@ class _AiChatScreenState extends State<AiChatScreen>
         });
         await _loadCatalogAndBarbers();
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('✓ Staff member "${data['name']}" created! (Temp Password: $tempPassword)'),
-            backgroundColor: Colors.green[700],
-            duration: const Duration(seconds: 6),
+        await showDialog<void>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: Text('Staff member "${data['name']}" created'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Give them this temporary password and ask them to change it after signing in:'),
+                const SizedBox(height: 12),
+                SelectableText(
+                  tempPassword,
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Clipboard.setData(ClipboardData(text: tempPassword)),
+                child: const Text('Copy'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Done'),
+              ),
+            ],
           ),
         );
       } else {
@@ -2630,7 +2647,7 @@ class _AdminBarberFormCardState extends State<_AdminBarberFormCard> {
 
     final password = _passwordCtrl.text.trim().isNotEmpty
         ? _passwordCtrl.text.trim()
-        : 'Liem@${DateTime.now().millisecondsSinceEpoch % 900000 + 100000}!';
+        : generateTempPassword();
 
     final data = {
       'name': _nameCtrl.text.trim(),
@@ -3724,6 +3741,33 @@ class _InChatBookingSheetState extends State<_InChatBookingSheet> {
         _selectedTime!.minute,
       );
       final endDt = startDt.add(Duration(minutes: duration));
+
+      if (!startDt.isAfter(DateTime.now())) {
+        setState(() {
+          _isSubmitting = false;
+          _errorMessage = 'That time has already passed. Please pick a later slot.';
+        });
+        return;
+      }
+
+      final busy = await BookingService.getStaffBookedIntervals(
+        staffId: _selectedStaffId!,
+        date: _selectedDate,
+      );
+      final conflict = BookingService.findConflictingBooking(
+        proposedStart: startDt,
+        proposedEnd: endDt,
+        existingIntervals: busy,
+      );
+      if (conflict != null) {
+        if (!mounted) return;
+        setState(() {
+          _isSubmitting = false;
+          _errorMessage =
+              'This barber is booked from ${conflict['start_formatted']} to ${conflict['end_formatted']}. Please choose another time.';
+        });
+        return;
+      }
 
       final dateStr =
           '${_selectedDate.year}-${_selectedDate.month.toString().padLeft(2, '0')}-${_selectedDate.day.toString().padLeft(2, '0')}';
@@ -5007,4 +5051,23 @@ class _ChatHistorySheetState extends State<_ChatHistorySheet> {
       ),
     );
   }
+}
+
+/// Random 12-character password with upper, lower, digit and symbol.
+String generateTempPassword() {
+  const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const lower = 'abcdefghijkmnpqrstuvwxyz';
+  const digits = '23456789';
+  const symbols = '!@#\$%*?';
+  const all = upper + lower + digits + symbols;
+  final rng = Random.secure();
+  String pick(String set) => set[rng.nextInt(set.length)];
+  final chars = [
+    pick(upper),
+    pick(lower),
+    pick(digits),
+    pick(symbols),
+    for (var i = 0; i < 8; i++) pick(all),
+  ]..shuffle(rng);
+  return chars.join();
 }

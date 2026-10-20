@@ -532,7 +532,7 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
                     TextFormField(
                       controller: _priceController,
                       decoration: InputDecoration(
-                        labelText: 'Price (\$) *',
+                        labelText: 'Price (₱) *',
                         labelStyle: GoogleFonts.manrope(),
                         border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12)),

@@ -365,6 +365,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
       floatingActionButton: Padding(
         padding: const EdgeInsets.only(bottom: 12.0, right: 4.0),
         child: FloatingActionButton.extended(
+          heroTag: 'catalog-add-fab',
           onPressed: _showAddMenu,
           backgroundColor: isDark ? const Color(0xFF1E88E5) : Colors.black,
           elevation: 4,
@@ -715,9 +716,9 @@ class _CatalogScreenState extends State<CatalogScreen> {
 
   String _formatPrice(double price) {
     if (price == price.roundToDouble()) {
-      return '\$${price.toInt()}';
+      return '₱${price.toInt()}';
     }
-    return '\$${price.toStringAsFixed(2)}';
+    return '₱${price.toStringAsFixed(2)}';
   }
 
   static String getDefaultCatalogImage(String? name, [String? category]) {

@@ -22,6 +22,10 @@ class ApiService {
         } catch (_) {
           redirectTo = 'http://localhost:5000';
         }
+      } else {
+        // Must match the intent filter in AndroidManifest.xml / Info.plist and
+        // be listed under Auth > URL Configuration > Redirect URLs.
+        redirectTo = 'io.supabase.barber://login-callback/';
       }
       await SupabaseConfig.client.auth.signInWithOAuth(
         OAuthProvider.google,
@@ -314,6 +318,9 @@ class ApiService {
         'phone': customer['phone'] ?? phone,
         'profile_picture': profilePicture ?? customer['profile_picture'],
         'role': 'customer',
+        // True when Supabase signed the user in right away ("Confirm email"
+        // turned off); false when they must confirm by email first.
+        'signed_in': response.session != null,
       };
     } catch (error) {
       throw Exception(SupabaseServiceHelpers.errorMessage(error));

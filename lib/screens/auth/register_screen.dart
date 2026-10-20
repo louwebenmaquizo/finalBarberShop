@@ -9,6 +9,7 @@ import '../../services/employee_service.dart';
 import '../../services/rate_limit_service.dart';
 import '../../services/security_sanitizer.dart';
 import '../../widgets/terms_modal.dart';
+import '../../main.dart' show AuthGate;
 import 'login_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -235,7 +236,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
           _isLoading = false;
         });
 
-        if (result != null) {
+        if (result != null && result['signed_in'] == true) {
+          // Signed in straight away: let AuthGate route to the customer home.
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Welcome to Liem Barber Shop!',
+                  style: GoogleFonts.manrope()),
+              backgroundColor: Colors.green,
+            ),
+          );
+          Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const AuthGate()),
+            (route) => false,
+          );
+        } else if (result != null) {
           // Registration successful - customer has been added to schema
           // Show success dialog prompting user to log in
           await showDialog(

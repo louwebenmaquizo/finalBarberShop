@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Central Supabase configuration.
@@ -18,8 +21,6 @@ class SupabaseConfig {
   static const String url = String.fromEnvironment('SUPABASE_URL');
   static const String publishableKey =
       String.fromEnvironment('SUPABASE_PUBLISHABLE_KEY');
-  static const String geminiApiKey =
-      String.fromEnvironment('GEMINI_API_KEY');
 
   static bool get isConfigured =>
       url.trim().isNotEmpty && publishableKey.trim().isNotEmpty;
@@ -53,10 +54,25 @@ class SupabaseConfig {
     await Supabase.initialize(
       url: url,
       publishableKey: publishableKey,
+      httpClient: TimeoutHttpClient(),
     );
   }
 
   static SupabaseClient get client => Supabase.instance.client;
+
+  /// Customers can register with email and password. With "Confirm email"
+  /// turned off in Supabase (no email provider yet), new accounts are signed
+  /// in immediately.
+  static const bool emailSignUpEnabled = true;
+
+  /// "Forgot password" sends an email, which needs an email provider (custom
+  /// SMTP) in Supabase Auth. Turn on once one is configured.
+  static const bool passwordResetEmailEnabled = false;
+
+  /// Hidden until the Google OAuth app is published ("In production"). In
+  /// Testing mode only listed test users can sign in; everyone else sees
+  /// Google's "Access blocked" page.
+  static const bool googleSignInEnabled = true;
 
   static const String profilesTable = 'profiles';
   static const String customersTable = 'customers';
@@ -85,6 +101,29 @@ class SupabaseConfig {
   static const String customerAvatarsBucket = 'customer-avatars';
   static const String staffAvatarsBucket = 'staff-avatars';
   static const String serviceImagesBucket = 'service-images';
+}
+
+/// Fails requests that get no response within [timeout] so slow or dropped
+/// connections surface as errors instead of spinners that never finish.
+class TimeoutHttpClient extends http.BaseClient {
+  TimeoutHttpClient({this.timeout = const Duration(seconds: 45)});
+
+  final Duration timeout;
+  final http.Client _inner = http.Client();
+
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) {
+    return _inner.send(request).timeout(
+          timeout,
+          onTimeout: () => throw TimeoutException(
+            'The server took too long to respond. Check your connection and try again.',
+            timeout,
+          ),
+        );
+  }
+
+  @override
+  void close() => _inner.close();
 }
 
 /// Logical routes retained for widgets that still use [ApiServiceExtension].

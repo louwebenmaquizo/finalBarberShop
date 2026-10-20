@@ -537,9 +537,9 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
 
   String _formatPrice(double price) {
     if (price == price.roundToDouble()) {
-      return '\$${price.toInt()}';
+      return '₱${price.toInt()}';
     }
-    return '\$${price.toStringAsFixed(2)}';
+    return '₱${price.toStringAsFixed(2)}';
   }
 
   Widget _buildServiceCard(Map<String, dynamic> service) {

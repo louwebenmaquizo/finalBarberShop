@@ -237,7 +237,7 @@ class _DashboardScreenState extends State<DashboardScreen>
             Icons.book_online),
         _buildStatCard('Total Barbers', totalBarbers.toString(), pinkColor,
             Icons.content_cut),
-        _buildStatCard('Revenue Today', '\$${revenueToday.toStringAsFixed(2)}',
+        _buildStatCard('Revenue Today', '₱${revenueToday.toStringAsFixed(2)}',
             blueColor, Icons.attach_money),
       ],
     );

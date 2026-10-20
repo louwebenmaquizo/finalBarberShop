@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/api_config.dart';
@@ -328,14 +327,29 @@ class AiHistoryStorage {
   }
 }
 
+/// Error from the `ai-chat` Edge Function. [status] is 0 for network errors.
+class AiChatException implements Exception {
+  const AiChatException(this.message, {this.status = 0});
+
+  final String message;
+  final int status;
+
+  /// Network failures, missing deployments and server errors may fall back to
+  /// a database-only answer. Auth, permission and rate-limit errors may not.
+  bool get allowsLocalFallback =>
+      status == 0 || status == 404 || status >= 500;
+
+  @override
+  String toString() => message;
+}
+
 /// Talks to the `ai-chat` Supabase Edge Function and persists
 /// message history both locally and in the `ai_messages` table.
 class AiService {
   AiService._();
 
-  /// Send the full [messages] history and return the AI reply text.
-  /// [sessionId] groups messages for this chat session.
-  /// [userRole] determines whether customer concierge or executive admin copilot is active.
+  /// Sends the conversation to the `ai-chat` Edge Function and returns the
+  /// reply. The Gemini key lives only on the server.
   static Future<String> sendMessage({
     required List<AiMessage> messages,
     required String sessionId,
@@ -347,53 +361,52 @@ class AiService {
     }
 
     final isAdmin = userRole == 'admin' || userRole == 'manager' || userRole == 'cashier';
-
-    // If Admin or Manager, route directly to the Executive Admin Copilot engine
     if (isAdmin) {
       return _adminExecutiveGemini(messages, sessionId, session);
     }
 
-    // 1. Try calling the deployed Supabase Edge Function first (for customers)
+    try {
+      final result = await _invokeAiChat(messages);
+      final reply = result['reply']?.toString().trim() ?? '';
+      if (reply.isNotEmpty) return reply;
+      throw const AiChatException('No response from the AI. Please try again.');
+    } on AiChatException catch (e) {
+      if (e.allowsLocalFallback) {
+        final local = await _localCustomerFallback(messages);
+        if (local != null) return local;
+      }
+      throw Exception(e.message);
+    }
+  }
+
+  static const int _maxMessagesSent = 20;
+
+  static Future<Map<String, dynamic>> _invokeAiChat(
+    List<AiMessage> messages,
+  ) async {
+    final recent = messages.length > _maxMessagesSent
+        ? messages.sublist(messages.length - _maxMessagesSent)
+        : messages;
     try {
       final response = await SupabaseConfig.client.functions.invoke(
         'ai-chat',
         body: {
-          'messages': messages.map((m) => m.toJson()).toList(),
-          'session_id': sessionId,
+          'messages': recent
+              .map((m) => {'role': m.role, 'content': m.content})
+              .toList(),
         },
-        headers: {'Authorization': 'Bearer ${session.accessToken}'},
       );
-
-      if (response.status == 200 && response.data?['reply'] != null) {
-        return response.data['reply'].toString();
-      }
-
-      if (response.status == 403) {
-        throw Exception(
-            response.data?['error']?.toString() ?? 'Access denied.');
-      }
-    } catch (edgeError) {
-      final errStr = edgeError.toString();
-      if (errStr.contains('Access denied') ||
-          errStr.contains('not available for barbers')) {
-        rethrow;
-      }
-      if (SupabaseConfig.geminiApiKey.isNotEmpty) {
-        return _fallbackDirectGemini(messages, sessionId, session);
-      }
-
-      throw Exception(
-        'The "ai-chat" Edge Function is not deployed yet, and GEMINI_API_KEY '
-        'is not configured. Please add your free GEMINI_API_KEY in supabase.local.json '
-        'or deploy the Edge Function.',
+      return SupabaseServiceHelpers.asMap(response.data);
+    } on FunctionException catch (e) {
+      throw AiChatException(
+        SupabaseServiceHelpers.errorMessage(e),
+        status: e.status,
+      );
+    } catch (_) {
+      throw const AiChatException(
+        'Could not reach the AI assistant. Check your connection and try again.',
       );
     }
-
-    if (SupabaseConfig.geminiApiKey.isNotEmpty) {
-      return _fallbackDirectGemini(messages, sessionId, session);
-    }
-
-    throw Exception('AI service unavailable. Please try again.');
   }
 
   /// Executive Admin AI Copilot: Queries database analytics and formats catalog/staff mutations.
@@ -403,7 +416,6 @@ class AiService {
     String sessionId,
     Session session,
   ) async {
-    final apiKey = SupabaseConfig.geminiApiKey.trim();
     final lastQuery =
         messages.isNotEmpty ? messages.last.content.trim() : '';
     final lowerQuery = lastQuery.toLowerCase();
@@ -640,8 +652,7 @@ class AiService {
             lowerQuery.contains('service') ||
             lowerQuery.contains('haircut')) &&
         (lowerQuery.contains('add') ||
-            lowerQuery.contains('create') ||
-            lowerQuery.contains('new'));
+            lowerQuery.contains('create'));
 
     if (isCatalogIntent) {
       final isCatalogInquiry = lowerQuery.startsWith('can we') ||
@@ -684,8 +695,7 @@ class AiService {
             lowerQuery.contains('stylist')) &&
         (lowerQuery.contains('add') ||
             lowerQuery.contains('create') ||
-            lowerQuery.contains('hire') ||
-            lowerQuery.contains('new'));
+            lowerQuery.contains('hire'));
 
     if (isStaffIntent) {
       final isStaffInquiry = lowerQuery.startsWith('can we') ||
@@ -722,436 +732,169 @@ class AiService {
       }
     }
 
-    // ── 2. GEMINI LLM WITH FUNCTION CALLING (For nuanced & natural dialogue) ──
-    if (apiKey.isNotEmpty) {
-      try {
-        final tools = [
-          {
-            'function_declarations': [
-              {
-                'name': 'query_catalog_services',
-                'description':
-                    'Query and list the entire shop catalog of services, hairstyles, categories, prices in PHP, and durations.',
-                'parameters': {
-                  'type': 'OBJECT',
-                  'properties': {
-                    'category': {
-                      'type': 'STRING',
-                      'description': 'Optional category filter'
-                    }
-                  }
-                }
-              },
-              {
-                'name': 'query_staff_members',
-                'description':
-                    'Query and list all official barbers, stylists, and staff members registered at the shop.',
-                'parameters': {
-                  'type': 'OBJECT',
-                  'properties': {
-                    'role': {
-                      'type': 'STRING',
-                      'description': 'Optional role filter: Barber, Stylist, etc.'
-                    }
-                  }
-                }
-              },
-              {
-                'name': 'query_recent_bookings',
-                'description':
-                    'Query the live Supabase database for real-time and recent appointments, checking if there are recent bookings right now, the latest scheduled clients, their barbers, services, timestamps, statuses, and next upcoming appointment.',
-                'parameters': {
-                  'type': 'OBJECT',
-                  'properties': {
-                    'limit': {
-                      'type': 'INTEGER',
-                      'description': 'Number of recent bookings to fetch (default 5)'
-                    }
-                  }
-                }
-              },
-              {
-                'name': 'query_bookings_analytics',
-                'description':
-                    'Query appointments and bookings analytics from the Supabase database across any timeframe (days, weeks, months, years, or all-time total) to get counts, statuses (completed, pending, canceled), revenue in PHP, and barber workload.',
-                'parameters': {
-                  'type': 'OBJECT',
-                  'properties': {
-                    'timeframe': {
-                      'type': 'STRING',
-                      'description':
-                          'Timeframe to query: today, yesterday, days, this_week, weeks, this_month, months, this_year, years, all_time'
-                    },
-                    'count': {
-                      'type': 'INTEGER',
-                      'description':
-                          'Number of units (e.g. 3 for past 3 days/weeks/months/years)'
-                    },
-                    'days_back': {
-                      'type': 'INTEGER',
-                      'description':
-                          'Legacy compatibility: Number of days in the past to query'
-                    },
-                    'status': {
-                      'type': 'STRING',
-                      'description':
-                          'Optional status filter: all, completed, pending, canceled'
-                    }
-                  }
-                }
-              },
-              {
-                'name': 'query_shop_financials',
-                'description':
-                    'Query real-time shop revenue and financial performance stats (today revenue, monthly revenue, total appointments).',
-                'parameters': {
-                  'type': 'OBJECT',
-                  'properties': {
-                    'period': {
-                      'type': 'STRING',
-                      'description': 'Timeframe to inspect: today, month, all'
-                    }
-                  }
-                }
-              },
-              {
-                'name': 'propose_add_catalog_service',
-                'description':
-                    'Propose adding a new hairstyle, haircut, or service to the shop catalog. Validates and generates an interactive confirmation card for the admin to verify before saving. DO NOT call this if the user is asking an inquiry/exploratory question (e.g. "can we add hairstyles?") or if the service name is missing or generic (e.g. "add hairstyle"). Only call when a specific haircut/service name is provided.',
-                'parameters': {
-                  'type': 'OBJECT',
-                  'properties': {
-                    'name': {
-                      'type': 'STRING',
-                      'description': 'Name of the haircut or service'
-                    },
-                    'price': {
-                      'type': 'NUMBER',
-                      'description': 'Price in Philippine Peso (PHP / ₱)'
-                    },
-                    'duration_minutes': {
-                      'type': 'INTEGER',
-                      'description': 'Duration in minutes (default 30)'
-                    },
-                    'category_name': {
-                      'type': 'STRING',
-                      'description': 'Category (Haircuts, Beard Grooming, etc.)'
-                    },
-                    'description': {
-                      'type': 'STRING',
-                      'description': 'Short description of the haircut style'
-                    }
-                  },
-                  'required': ['name', 'price']
-                }
-              },
-              {
-                'name': 'propose_add_employee',
-                'description':
-                    'Propose adding a new barber, stylist, or staff member. Validates and generates an interactive confirmation card for the admin to verify before saving. DO NOT call this if the user is asking an inquiry/exploratory question (e.g. "can we add barbers?") or if the person\'s name is missing (e.g. "add barbers"). Only call when an actual person\'s name is specified.',
-                'parameters': {
-                  'type': 'OBJECT',
-                  'properties': {
-                    'name': {
-                      'type': 'STRING',
-                      'description': 'Full name of the barber or employee'
-                    },
-                    'role': {
-                      'type': 'STRING',
-                      'description': 'Role: Barber, Senior Barber, Stylist, or Cashier'
-                    },
-                    'phone': {
-                      'type': 'STRING',
-                      'description': 'Phone number'
-                    },
-                    'email': {
-                      'type': 'STRING',
-                      'description': 'Email address'
-                    },
-                    'specialties': {
-                      'type': 'STRING',
-                      'description': 'Specialties or skills'
-                    }
-                  },
-                  'required': ['name']
-                }
-              }
-            ]
-          }
-        ];
-
-        final serviceSummary = services
-            .map((s) =>
-                '- ${s['name']}: ₱${s['price']} (${s['duration_minutes']} min, Category: ${s['category_name'] ?? 'Haircuts'})${s['description'] != null && s['description'].toString().isNotEmpty ? ' [${s['description']}]' : ''}')
-            .join('\n');
-
-        final staffSummary = staff
-            .map((st) =>
-                '- ${st['name']} (${st['role']})${st['phone'] != null && st['phone'].toString().isNotEmpty ? ' Phone: ${st['phone']}' : ''}${st['skills'] != null && st['skills'].toString().isNotEmpty ? ' Skills: ${st['skills']}' : ''}')
-            .join('\n');
-
-        final stats = SupabaseServiceHelpers.asMap(dashboardData?['stats']);
-        final todayBookings = stats['today_bookings'] ?? 0;
-        final totalBookings = stats['total_bookings'] ?? 0;
-        final todayRevenue = SupabaseServiceHelpers.asDouble(stats['today_revenue']);
-        final activeBarbers = stats['active_barbers'] ?? staff.length;
-        final recentBookings = SupabaseServiceHelpers.asMapList(dashboardData?['recent_bookings']);
-        final nextClient = SupabaseServiceHelpers.asMap(dashboardData?['next_client']);
-
-        final recentSummary = recentBookings.isNotEmpty
-            ? recentBookings.take(4).map((b) {
-                final cName = b['customer_name'] ?? b['full_name'] ?? 'Customer';
-                final sName = b['service_name'] ?? 'Service';
-                final price = b['price'] != null ? ' (₱${b['price']})' : '';
-                final status = b['status'] != null ? ' [${b['status']}]' : '';
-                return '- $cName: $sName$price$status';
-              }).join('\n')
-            : 'No recent bookings recorded.';
-
-        final nextClientSummary = nextClient.isNotEmpty
-            ? '${nextClient['customer_name'] ?? nextClient['full_name']} for ${nextClient['service'] ?? nextClient['service_name']} with ${nextClient['employee'] ?? nextClient['staff_name']} (${nextClient['time'] ?? nextClient['start_time']})'
-            : 'None scheduled.';
-
-        final systemPrompt = '''
-You are the Executive AI Operations Copilot for Liem Barber Shop.
-You work directly with the Shop Administrator and Store Managers.
-Your role is to manage shop operations, analyze bookings, report revenue, manage the catalog, and assist with staff.
-
-LIVE SHOP PERFORMANCE & STATS (REAL-TIME DATABASE SNAPSHOT):
-- Today's Bookings: $todayBookings
-- All-Time Total Bookings: $totalBookings
-- Today's Revenue: ₱${todayRevenue.toStringAsFixed(2)}
-- Active Barbers: $activeBarbers
-- Next Upcoming Client: $nextClientSummary
-- Recent Bookings:
-$recentSummary
-
-OFFICIAL SHOP CATALOG (${services.length} Services):
-${serviceSummary.isNotEmpty ? serviceSummary : 'No services currently listed.'}
-
-OFFICIAL SHOP STAFF (${staff.length} Members):
-${staffSummary.isNotEmpty ? staffSummary : 'No staff currently listed.'}
-
-CAPABILITIES & RULES:
-1. When asked to list, show, or describe the catalog, services, or hairstyles, provide the exact services from the official catalog above or call `query_catalog_services`. NEVER state that you do not have a database tool to view the catalog.
-2. When asked about staff, barbers, or employees, list the team members from above or call `query_staff_members`.
-3. When asked about bookings, appointments, or past schedules across ANY timeframe (today, yesterday, past X days, this week, past X weeks, this month, past X months, this year, past X years, or all-time total), call `query_bookings_analytics` or report using the real-time database snapshot above.
-4. When asked if there are recent bookings right now (e.g. "is there any recent bookings right now?"), call `query_recent_bookings` or check the recent bookings snapshot above. If yes, state them clearly with customer, barber, and status. If no, state truthfully that there are no recent bookings in the database right now.
-5. When asked about total bookings or overall shop appointments, answer using the exact all-time count from the database.
-6. When asked about revenue, sales, or shop financials, call `query_shop_financials`.
-7. When asked capability questions (e.g. "can we add barbers?", "how to add a hairstyle?", "is it possible to add staff?"), DO NOT generate an action card. Instead, warmly explain how they can do it (via chat with an example command or via the UI tabs).
-8. When asked to add a hairstyle or service, verify that a specific service name is provided. If the user only said "add hairstyle" or "add service" without specifying the name, ask them what service name and price they want. DO NOT propose an action card with generic names like "add hairstyle" or "hairstyle".
-9. When asked to add a barber or employee, verify that a specific person's name is provided. If the user only said "add barbers" or "add a barber" without a person's name, ask them for the barber's name and phone number. DO NOT propose an action card with names like "can we add barbers?" or "add barbers" or "New Barber".
-10. Maintain a professional, executive, concise tone. Always use ₱ for Philippine Peso.
-11. Answer with 100% precision grounded in the official database records provided above. Never invent fake bookings or metrics.
-''';
-
-        final contents = messages.map((m) {
-          return {
-            'role': m.role == 'assistant' ? 'model' : 'user',
-            'parts': [
-              {'text': m.content}
-            ],
-          };
-        }).toList();
-
-        final payload = jsonEncode({
-          'system_instruction': {
-            'parts': [
-              {'text': systemPrompt}
-            ]
-          },
-          'contents': contents,
-          'tools': tools,
-          'generationConfig': {'maxOutputTokens': 1024, 'temperature': 0.7},
-        });
-
-        const modelsToTry = [
-          'gemini-3.5-flash',
-          'gemini-3.5-flash-lite',
-          'gemini-3.7-flash',
-          'gemini-3.6-flash',
-        ];
-
-        for (final model in modelsToTry) {
-          try {
-            final url = Uri.parse(
-              'https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey',
-            );
-            final response = await http.post(
-              url,
-              headers: {'Content-Type': 'application/json'},
-              body: payload,
-            );
-
-            if (response.statusCode == 200) {
-              final data = jsonDecode(response.body);
-              final candidates = data?['candidates'] as List?;
-              if (candidates != null && candidates.isNotEmpty) {
-                final candidate = candidates[0] as Map?;
-                final parts = candidate?['content']?['parts'] as List?;
-                if (parts != null && parts.isNotEmpty) {
-                  for (final part in parts) {
-                    final funcCall = part['functionCall'] as Map?;
-                    if (funcCall != null) {
-                      final name = funcCall['name']?.toString();
-                      final args = SupabaseServiceHelpers.asMap(funcCall['args']);
-
-                      if (name == 'query_catalog_services') {
-                        return _formatCatalogReport(services);
-                      } else if (name == 'query_staff_members') {
-                        return _formatStaffReport(staff);
-                      } else if (name == 'query_recent_bookings') {
-                        return await _executeRecentBookingsReport(dashboardData: dashboardData);
-                      } else if (name == 'query_bookings_analytics') {
-                        final tf = (args['timeframe'] ?? '').toString().toLowerCase();
-                        final count = (args['count'] as num?)?.toInt() ?? (args['days_back'] as num?)?.toInt() ?? 3;
-                        final status = args['status']?.toString();
-                        final now = DateTime.now();
-
-                        if (tf == 'today' || (tf == 'days' && count == 0)) {
-                          final analytics = await _executeTemporalBookingsAnalytics(
-                            startDate: DateTime(now.year, now.month, now.day),
-                            timeframeLabel: "Today's",
-                            statusFilter: status,
-                            dashboardData: dashboardData,
-                          );
-                          return _formatBookingsReport(analytics);
-                        } else if (tf == 'yesterday') {
-                          final analytics = await _executeTemporalBookingsAnalytics(
-                            startDate: DateTime(now.year, now.month, now.day).subtract(const Duration(days: 1)),
-                            endDate: DateTime(now.year, now.month, now.day),
-                            timeframeLabel: "Yesterday's",
-                            statusFilter: status,
-                            dashboardData: dashboardData,
-                          );
-                          return _formatBookingsReport(analytics);
-                        } else if (tf == 'this_week') {
-                          final startOfWeek = DateTime(now.year, now.month, now.day).subtract(Duration(days: now.weekday - 1));
-                          final analytics = await _executeTemporalBookingsAnalytics(
-                            startDate: startOfWeek,
-                            timeframeLabel: "This Week's",
-                            statusFilter: status,
-                            dashboardData: dashboardData,
-                          );
-                          return _formatBookingsReport(analytics);
-                        } else if (tf == 'weeks') {
-                          final analytics = await _executeTemporalBookingsAnalytics(
-                            startDate: DateTime(now.year, now.month, now.day).subtract(Duration(days: count * 7)),
-                            timeframeLabel: count == 1 ? "Past Week's" : "Past $count Weeks",
-                            statusFilter: status,
-                            dashboardData: dashboardData,
-                          );
-                          return _formatBookingsReport(analytics);
-                        } else if (tf == 'this_month') {
-                          final analytics = await _executeTemporalBookingsAnalytics(
-                            startDate: DateTime(now.year, now.month, 1),
-                            timeframeLabel: "This Month's (${_monthName(now.month)} ${now.year})",
-                            statusFilter: status,
-                            dashboardData: dashboardData,
-                          );
-                          return _formatBookingsReport(analytics);
-                        } else if (tf == 'months') {
-                          final analytics = await _executeTemporalBookingsAnalytics(
-                            startDate: DateTime(now.year, now.month, now.day).subtract(Duration(days: count * 30)),
-                            timeframeLabel: count == 1 ? "Past Month's" : "Past $count Months",
-                            statusFilter: status,
-                            dashboardData: dashboardData,
-                          );
-                          return _formatBookingsReport(analytics);
-                        } else if (tf == 'this_year') {
-                          final analytics = await _executeTemporalBookingsAnalytics(
-                            startDate: DateTime(now.year, 1, 1),
-                            timeframeLabel: "This Year's (${now.year})",
-                            statusFilter: status,
-                            dashboardData: dashboardData,
-                          );
-                          return _formatBookingsReport(analytics);
-                        } else if (tf == 'years') {
-                          final analytics = await _executeTemporalBookingsAnalytics(
-                            startDate: DateTime(now.year - count, now.month, now.day),
-                            timeframeLabel: count == 1 ? "Past Year's" : "Past $count Years",
-                            statusFilter: status,
-                            dashboardData: dashboardData,
-                          );
-                          return _formatBookingsReport(analytics);
-                        } else if (tf == 'all_time') {
-                          final analytics = await _executeTemporalBookingsAnalytics(
-                            isAllTime: true,
-                            timeframeLabel: "All-Time Overall",
-                            statusFilter: status,
-                            dashboardData: dashboardData,
-                          );
-                          return _formatBookingsReport(analytics);
-                        } else {
-                          final days = count > 0 ? count : 3;
-                          final analytics = await _executeTemporalBookingsAnalytics(
-                            startDate: DateTime(now.year, now.month, now.day).subtract(Duration(days: days)),
-                            timeframeLabel: "Past $days Days",
-                            statusFilter: status,
-                            dashboardData: dashboardData,
-                          );
-                          return _formatBookingsReport(analytics);
-                        }
-                      } else if (name == 'query_shop_financials') {
-                        return await _formatFinancialReport();
-                      } else if (name == 'propose_add_catalog_service') {
-                        final serviceName = args['name']?.toString().trim() ?? '';
-                        if (serviceName.isEmpty || _isInvalidEntityName(serviceName, isStaff: false)) {
-                          return 'Sure! Please fill in the hairstyle or service details in the form below:\n\n[ADMIN_FORM:ADD_CATALOG]';
-                        }
-                        final serviceJson = {
-                          'name': serviceName,
-                          'price': (args['price'] as num?)?.toDouble() ?? 250.0,
-                          'duration_minutes': (args['duration_minutes'] as num?)?.toInt() ?? 30,
-                          'category_name': args['category_name'] ?? 'Haircuts',
-                          'description': args['description'] ?? 'Professional haircut style',
-                        };
-                        return 'I have prepared the new catalog service for your review:\n\n'
-                            '[ADMIN_ACTION:CREATE_SERVICE:${jsonEncode(serviceJson)}]\n\n'
-                            'Please review the details in the action card above and tap **Confirm & Add to Catalog** to write it to the database.';
-                      } else if (name == 'propose_add_employee') {
-                        final staffName = args['name']?.toString().trim() ?? '';
-                        if (staffName.isEmpty || _isInvalidEntityName(staffName, isStaff: true)) {
-                          return 'Sure! Please fill in the barber details in the form below:\n\n[ADMIN_FORM:ADD_BARBER]';
-                        }
-                        final staffJson = {
-                          'name': staffName,
-                          'role': args['role'] ?? 'Barber',
-                          'phone': args['phone'] ?? '',
-                          'email': args['email'] ?? '',
-                          'specialties': args['specialties'] ?? 'General Barbering',
-                        };
-                        return 'I have prepared the new staff profile for your review:\n\n'
-                            '[ADMIN_ACTION:CREATE_STAFF:${jsonEncode(staffJson)}]\n\n'
-                            'Please review the profile in the action card above and tap **Confirm & Add Staff** to create their account in the database.';
-                      }
-                    }
-                  }
-
-                  final reply = parts[0]?['text']?.toString();
-                  if (reply != null && reply.trim().isNotEmpty) {
-                    return reply.trim();
-                  }
-                }
-              }
-            }
-          } catch (_) {
-            continue;
-          }
-        }
-      } catch (_) {}
+    // ── 2. GEMINI (server-side via the ai-chat Edge Function) ──
+    final Map<String, dynamic> result;
+    try {
+      result = await _invokeAiChat(messages);
+    } on AiChatException catch (e) {
+      throw Exception(e.message);
     }
 
-    // Default intelligent fallback if all models or network calls fail
-    return '👋 **Liem Barber Shop Executive Assistant**\n\n'
-        'I am ready to help you manage shop operations. You can ask me:\n'
-        '• *"List all the catalog"*\n'
-        '• *"How many barbers do we have?"*\n'
-        '• *"How many bookings in the past 3 days?"*\n'
-        '• *"What is today\'s revenue?"*\n'
-        '• *"Add a hairstyle to catalog: Skin Fade for ₱280, 30 mins"*\n'
-        '• *"Add a barber named David with phone 09171234567"*';
+    final call = SupabaseServiceHelpers.asMap(result['function_call']);
+    if (call.isNotEmpty) {
+      return _dispatchAdminTool(
+        call['name']?.toString() ?? '',
+        SupabaseServiceHelpers.asMap(call['args']),
+        services: services,
+        staff: staff,
+        dashboardData: dashboardData,
+      );
+    }
+
+    final reply = result['reply']?.toString().trim() ?? '';
+    if (reply.isNotEmpty) return reply;
+    throw Exception('No response from the AI. Please try again.');
+  }
+
+  /// Executes the tool Gemini chose, using data loaded with the admin's own
+  /// permissions, and formats the answer locally.
+  static Future<String> _dispatchAdminTool(
+    String name,
+    Map<String, dynamic> args, {
+    required List<Map<String, dynamic>> services,
+    required List<Map<String, dynamic>> staff,
+    required Map<String, dynamic>? dashboardData,
+  }) async {
+    if (name == 'query_catalog_services') {
+      return _formatCatalogReport(services);
+    } else if (name == 'query_staff_members') {
+      return _formatStaffReport(staff);
+    } else if (name == 'query_recent_bookings') {
+      return await _executeRecentBookingsReport(dashboardData: dashboardData);
+    } else if (name == 'query_bookings_analytics') {
+      final tf = (args['timeframe'] ?? '').toString().toLowerCase();
+      final count = (args['count'] as num?)?.toInt() ?? (args['days_back'] as num?)?.toInt() ?? 3;
+      final status = args['status']?.toString();
+      final now = DateTime.now();
+
+      if (tf == 'today' || (tf == 'days' && count == 0)) {
+        final analytics = await _executeTemporalBookingsAnalytics(
+          startDate: DateTime(now.year, now.month, now.day),
+          timeframeLabel: "Today's",
+          statusFilter: status,
+          dashboardData: dashboardData,
+        );
+        return _formatBookingsReport(analytics);
+      } else if (tf == 'yesterday') {
+        final analytics = await _executeTemporalBookingsAnalytics(
+          startDate: DateTime(now.year, now.month, now.day).subtract(const Duration(days: 1)),
+          endDate: DateTime(now.year, now.month, now.day),
+          timeframeLabel: "Yesterday's",
+          statusFilter: status,
+          dashboardData: dashboardData,
+        );
+        return _formatBookingsReport(analytics);
+      } else if (tf == 'this_week') {
+        final startOfWeek = DateTime(now.year, now.month, now.day).subtract(Duration(days: now.weekday - 1));
+        final analytics = await _executeTemporalBookingsAnalytics(
+          startDate: startOfWeek,
+          timeframeLabel: "This Week's",
+          statusFilter: status,
+          dashboardData: dashboardData,
+        );
+        return _formatBookingsReport(analytics);
+      } else if (tf == 'weeks') {
+        final analytics = await _executeTemporalBookingsAnalytics(
+          startDate: DateTime(now.year, now.month, now.day).subtract(Duration(days: count * 7)),
+          timeframeLabel: count == 1 ? "Past Week's" : "Past $count Weeks",
+          statusFilter: status,
+          dashboardData: dashboardData,
+        );
+        return _formatBookingsReport(analytics);
+      } else if (tf == 'this_month') {
+        final analytics = await _executeTemporalBookingsAnalytics(
+          startDate: DateTime(now.year, now.month, 1),
+          timeframeLabel: "This Month's (${_monthName(now.month)} ${now.year})",
+          statusFilter: status,
+          dashboardData: dashboardData,
+        );
+        return _formatBookingsReport(analytics);
+      } else if (tf == 'months') {
+        final analytics = await _executeTemporalBookingsAnalytics(
+          startDate: DateTime(now.year, now.month, now.day).subtract(Duration(days: count * 30)),
+          timeframeLabel: count == 1 ? "Past Month's" : "Past $count Months",
+          statusFilter: status,
+          dashboardData: dashboardData,
+        );
+        return _formatBookingsReport(analytics);
+      } else if (tf == 'this_year') {
+        final analytics = await _executeTemporalBookingsAnalytics(
+          startDate: DateTime(now.year, 1, 1),
+          timeframeLabel: "This Year's (${now.year})",
+          statusFilter: status,
+          dashboardData: dashboardData,
+        );
+        return _formatBookingsReport(analytics);
+      } else if (tf == 'years') {
+        final analytics = await _executeTemporalBookingsAnalytics(
+          startDate: DateTime(now.year - count, now.month, now.day),
+          timeframeLabel: count == 1 ? "Past Year's" : "Past $count Years",
+          statusFilter: status,
+          dashboardData: dashboardData,
+        );
+        return _formatBookingsReport(analytics);
+      } else if (tf == 'all_time') {
+        final analytics = await _executeTemporalBookingsAnalytics(
+          isAllTime: true,
+          timeframeLabel: "All-Time Overall",
+          statusFilter: status,
+          dashboardData: dashboardData,
+        );
+        return _formatBookingsReport(analytics);
+      } else {
+        final days = count > 0 ? count : 3;
+        final analytics = await _executeTemporalBookingsAnalytics(
+          startDate: DateTime(now.year, now.month, now.day).subtract(Duration(days: days)),
+          timeframeLabel: "Past $days Days",
+          statusFilter: status,
+          dashboardData: dashboardData,
+        );
+        return _formatBookingsReport(analytics);
+      }
+    } else if (name == 'query_shop_financials') {
+      return await _formatFinancialReport();
+    } else if (name == 'propose_add_catalog_service') {
+      final serviceName = args['name']?.toString().trim() ?? '';
+      if (serviceName.isEmpty || _isInvalidEntityName(serviceName, isStaff: false)) {
+        return 'Sure! Please fill in the hairstyle or service details in the form below:\n\n[ADMIN_FORM:ADD_CATALOG]';
+      }
+      final serviceJson = {
+        'name': serviceName,
+        'price': (args['price'] as num?)?.toDouble() ?? 250.0,
+        'duration_minutes': (args['duration_minutes'] as num?)?.toInt() ?? 30,
+        'category_name': args['category_name'] ?? 'Haircuts',
+        'description': args['description'] ?? 'Professional haircut style',
+      };
+      return 'I have prepared the new catalog service for your review:\n\n'
+          '[ADMIN_ACTION:CREATE_SERVICE:${jsonEncode(serviceJson)}]\n\n'
+          'Please review the details in the action card above and tap **Confirm & Add to Catalog** to write it to the database.';
+    } else if (name == 'propose_add_employee') {
+      final staffName = args['name']?.toString().trim() ?? '';
+      if (staffName.isEmpty || _isInvalidEntityName(staffName, isStaff: true)) {
+        return 'Sure! Please fill in the barber details in the form below:\n\n[ADMIN_FORM:ADD_BARBER]';
+      }
+      final staffJson = {
+        'name': staffName,
+        'role': args['role'] ?? 'Barber',
+        'phone': args['phone'] ?? '',
+        'email': args['email'] ?? '',
+        'specialties': args['specialties'] ?? 'General Barbering',
+      };
+      return 'I have prepared the new staff profile for your review:\n\n'
+          '[ADMIN_ACTION:CREATE_STAFF:${jsonEncode(staffJson)}]\n\n'
+          'Please review the profile in the action card above and tap **Confirm & Add Staff** to create their account in the database.';
+    }
+    return 'Sorry, I could not complete that request. Please rephrase and try again.';
   }
 
   /// Real-time Supabase analytics query across any temporal range (days, weeks, months, years, or all-time)
@@ -1178,8 +921,17 @@ CAPABILITIES & RULES:
         query = query.eq('status', statusFilter.toLowerCase());
       }
 
-      final data = await query.order('start_time', ascending: false);
-      final rows = SupabaseServiceHelpers.asMapList(data);
+      // PostgREST returns at most 1000 rows per request; page through all.
+      const pageSize = 1000;
+      final rows = <Map<String, dynamic>>[];
+      for (var page = 0; page < 50; page++) {
+        final data = await query
+            .order('start_time', ascending: false)
+            .range(page * pageSize, (page + 1) * pageSize - 1);
+        final batch = SupabaseServiceHelpers.asMapList(data);
+        rows.addAll(batch);
+        if (batch.length < pageSize) break;
+      }
 
       int total = rows.length;
       int completed = 0;
@@ -1218,7 +970,7 @@ CAPABILITIES & RULES:
           total = (stats['total_bookings'] as num?)?.toInt() ?? 0;
         } else if (timeframeLabel.contains("Today's")) {
           total = (stats['today_bookings'] as num?)?.toInt() ?? 0;
-          revenue = SupabaseServiceHelpers.asDouble(stats['today_revenue']);
+          revenue = SupabaseServiceHelpers.asDouble(stats['revenue_today']);
         }
       }
 
@@ -1242,7 +994,7 @@ CAPABILITIES & RULES:
           total = (stats['total_bookings'] as num?)?.toInt() ?? 0;
         } else if (timeframeLabel.contains("Today's")) {
           total = (stats['today_bookings'] as num?)?.toInt() ?? 0;
-          revenue = SupabaseServiceHelpers.asDouble(stats['today_revenue']);
+          revenue = SupabaseServiceHelpers.asDouble(stats['revenue_today']);
         }
       }
       return {
@@ -1281,7 +1033,7 @@ CAPABILITIES & RULES:
     sb.writeln('📊 **$timeframe Bookings Overview**');
     sb.writeln('Here is the live report directly from the shop database:\n');
     sb.writeln('• **Total Bookings:** $total appointment${total == 1 ? '' : 's'}');
-    sb.writeln('• **Completed:** $completed (Revenue: ₱${revenue.toStringAsFixed(2)})');
+    sb.writeln('• **Completed:** $completed (est. ₱${revenue.toStringAsFixed(2)} at list price)');
     sb.writeln('• **Pending / Confirmed:** $pending');
     sb.writeln('• **Canceled / No-show:** $canceled\n');
 
@@ -1356,9 +1108,9 @@ CAPABILITIES & RULES:
 
       for (int i = 0; i < recentList.length && i < 5; i++) {
         final b = recentList[i];
-        final cName = b['customer_name'] ?? b['full_name'] ?? 'Customer';
-        final sName = b['service_name'] ?? 'Haircut Service';
-        final barber = b['employee_name'] ?? b['staff_name'] ?? 'Assigned Staff';
+        final cName = b['customer_name'] ?? b['customer'] ?? b['full_name'] ?? 'Customer';
+        final sName = b['service_name'] ?? b['service'] ?? 'Haircut Service';
+        final barber = b['staff_name'] ?? b['employee'] ?? b['employee_name'] ?? 'Assigned Staff';
         final price = b['price'] ?? b['service_price'] ?? b['total_amount'];
         final priceStr = price != null ? '₱${price.toString()}' : '';
         final status = (b['status'] ?? 'Confirmed').toString().toUpperCase();
@@ -1435,7 +1187,7 @@ CAPABILITIES & RULES:
       final stats = SupabaseServiceHelpers.asMap(dash?['stats']);
       final todayBookings = stats['today_bookings'] ?? 0;
       final totalBookings = stats['total_bookings'] ?? 0;
-      final todayRevenue = SupabaseServiceHelpers.asDouble(stats['today_revenue']);
+      final todayRevenue = SupabaseServiceHelpers.asDouble(stats['revenue_today']);
       final recent = SupabaseServiceHelpers.asMapList(dash?['recent_bookings']);
 
       final sb = StringBuffer();
@@ -1447,8 +1199,8 @@ CAPABILITIES & RULES:
       if (recent.isNotEmpty) {
         sb.writeln('📋 **Latest Bookings:**');
         for (final b in recent.take(4)) {
-          final cName = b['customer_name'] ?? b['full_name'] ?? 'Customer';
-          final sName = b['service_name'] ?? 'Service';
+          final cName = b['customer_name'] ?? b['customer'] ?? b['full_name'] ?? 'Customer';
+          final sName = b['service_name'] ?? b['service'] ?? 'Service';
           final price = b['price'] != null ? ' (₱${b['price']})' : '';
           sb.writeln('• $cName - $sName$price');
         }
@@ -1804,18 +1556,9 @@ CAPABILITIES & RULES:
     return null;
   }
 
-  /// Client-side direct Gemini call with dynamic database context.
-  static Future<String> _fallbackDirectGemini(
-    List<AiMessage> messages,
-    String sessionId,
-    Session session,
-  ) async {
-    final apiKey = SupabaseConfig.geminiApiKey.trim();
-    if (apiKey.isEmpty) {
-      throw Exception('GEMINI_API_KEY is not configured in supabase.local.json.');
-    }
-
-    // Query active services and staff from public views for real-time RAG context
+  /// Answers simple barber/service questions straight from the database when
+  /// the AI service is unreachable. Returns null when it can't help.
+  static Future<String?> _localCustomerFallback(List<AiMessage> messages) async {
     List<dynamic> services = [];
     List<dynamic> staff = [];
     try {
@@ -1833,101 +1576,8 @@ CAPABILITIES & RULES:
       ]);
       services = SupabaseServiceHelpers.asMapList(res[0]);
       staff = SupabaseServiceHelpers.asMapList(res[1]);
-    } catch (_) {}
-
-    final serviceList = services
-        .map((s) =>
-            '- ${s['name']}: ₱${s['price']}, ${s['duration_minutes']} min${s['description'] != null ? ' (${s['description']})' : ''}')
-        .join('\n');
-
-    final staffList = staff
-        .where((st) {
-          final role = (st['role'] ?? '').toString().toLowerCase();
-          return !role.contains('admin') && !role.contains('cashier');
-        })
-        .map((st) =>
-            '- ${st['name']} (${st['role']})${st['skills'] != null && st['skills'].toString().isNotEmpty ? ' - Specialties: ${st['skills']}' : ''}')
-        .join('\n');
-
-    final systemPrompt = '''
-You are a friendly and knowledgeable AI assistant for Liem Barber Shop.
-Your job is to help customers choose the right haircut, learn about services, and find the right barber.
-
-AVAILABLE SERVICES:
-${serviceList.isNotEmpty ? serviceList : 'Standard cuts and styling available.'}
-
-AVAILABLE BARBERS:
-${staffList.isNotEmpty ? staffList : 'Professional barbers available.'}
-
-RULES:
-- CRITICAL COUNT RULE: When the customer requests a specific quantity or number of hairstyles, haircuts, services, or barbers (for example: "provide 1 hairstyle", "give me 2 barbers", "recommend 1 haircut", "show 3 styles", "provide 1 barber", "pick 2 haircuts"), you MUST provide and list EXACTLY that number of items. NEVER provide more or fewer items than requested.
-- If the customer asks for a general list without a specific count (for example: "provide all names of barbers", "who are the barbers?", "who works here?"), list ALL available barbers or services.
-- Always mention that their profile cards with their photos and booking buttons appear directly below in the chat.
-- Only discuss haircuts, grooming, services, barbers, and appointment-related topics.
-- Always show exact prices and durations from the list above. Never invent services or prices.
-- When recommending haircuts or barbers, be specific and match the customer's described style or preference.
-- Keep responses concise, warm, and helpful. Use emojis sparingly.
-- Use ₱ (Philippine Peso) for all prices.
-- If the question is unrelated to the barbershop, politely redirect.
-''';
-
-    final contents = messages.map((m) {
-      return {
-        'role': m.role == 'assistant' ? 'model' : 'user',
-        'parts': [
-          {'text': m.content}
-        ],
-      };
-    }).toList();
-
-    final payload = jsonEncode({
-      'system_instruction': {
-        'parts': [
-          {'text': systemPrompt}
-        ]
-      },
-      'contents': contents,
-      'generationConfig': {'maxOutputTokens': 1024, 'temperature': 0.7},
-    });
-
-    // Pool of available models to failover seamlessly if any hits quota/rate-limits
-    final modelsToTry = [
-      'gemini-3.5-flash',
-      'gemini-3.5-flash-lite',
-      'gemini-3.7-flash',
-      'gemini-3.6-flash',
-    ];
-
-    for (final model in modelsToTry) {
-      try {
-        final url = Uri.parse(
-          'https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey',
-        );
-
-        final response = await http.post(
-          url,
-          headers: {'Content-Type': 'application/json'},
-          body: payload,
-        );
-
-        if (response.statusCode == 200) {
-          final data = jsonDecode(response.body);
-          final candidates = data?['candidates'] as List?;
-          if (candidates != null && candidates.isNotEmpty) {
-            final candidate = candidates[0] as Map?;
-            final parts = candidate?['content']?['parts'] as List?;
-            if (parts != null && parts.isNotEmpty) {
-              final reply = parts[0]?['text']?.toString();
-              if (reply != null && reply.trim().isNotEmpty) {
-                return reply.trim();
-              }
-            }
-          }
-        }
-        // If 429 (quota exceeded), 404, or 503, loop and try the next model!
-      } catch (_) {
-        continue;
-      }
+    } catch (_) {
+      return null;
     }
 
     // Smart Local Fallback: If all Gemini models are exhausted, answer directly from database
@@ -1998,9 +1648,7 @@ RULES:
       return "$countIntro our catalog:\n\n$bullets\n\nYou can click **\"View Hairstyle\"** or **\"Book This\"** below to schedule your appointment directly!";
     }
 
-    throw Exception(
-      'Our AI Assistant is currently experiencing high demand. Please try again in a moment.',
-    );
+    return null;
   }
 
   /// Persist an individual message (e.g. appointment booking confirmation) to Supabase

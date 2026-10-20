@@ -2,7 +2,9 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../onboarding.dart';
+import '../../config/api_config.dart';
 import '../../services/auth_session_service.dart';
+import '../../services/supabase_service_helpers.dart';
 import 'edit_profile_dialog.dart';
 import 'change_password_dialog.dart';
 import 'help_support_dialog.dart';
@@ -363,10 +365,102 @@ class _CustomerSettingsScreenState extends State<CustomerSettingsScreen> {
               ),
             ),
           ),
+          Center(
+            child: TextButton(
+              onPressed: () => _showDeleteAccountDialog(context),
+              child: Text(
+                'Delete my account',
+                style: GoogleFonts.manrope(
+                  color: Colors.red[700],
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
           const SizedBox(height: 20),
         ],
       ),
     );
+  }
+
+  Future<void> _showDeleteAccountDialog(BuildContext context) async {
+    final confirmController = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          backgroundColor: AppColors.surface(context),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text(
+            'Delete account?',
+            style: GoogleFonts.manrope(
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary(context),
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'This permanently deletes your profile, appointments, reviews '
+                'and AI chat history. This cannot be undone.\n\n'
+                'Type DELETE to confirm.',
+                style: GoogleFonts.manrope(color: AppColors.textSecondary(context)),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: confirmController,
+                autofocus: true,
+                onChanged: (_) => setDialogState(() {}),
+                decoration: const InputDecoration(hintText: 'DELETE'),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: confirmController.text.trim() == 'DELETE'
+                  ? () => Navigator.of(dialogContext).pop(true)
+                  : null,
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              child: const Text('Delete', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      ),
+    );
+    confirmController.dispose();
+    if (confirmed != true || !context.mounted) return;
+
+    try {
+      await SupabaseConfig.client.functions.invoke('delete-account');
+    } catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(SupabaseServiceHelpers.errorMessage(error)),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+
+    try {
+      await AuthSessionService.clearSession();
+    } catch (_) {
+      // The user no longer exists; a failed sign-out call is expected.
+    }
+    if (context.mounted) {
+      Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const OnboardingScreen()),
+        (route) => false,
+      );
+    }
   }
 
   Widget _buildSettingsSection(

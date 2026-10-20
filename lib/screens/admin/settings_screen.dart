@@ -131,7 +131,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _showAccountDetailsDialog() async {
-    final session = await AuthSessionService.getSession();
+    Map<String, dynamic>? session;
+    try {
+      session = await AuthSessionService.getSession();
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not load account details. Check your connection.')),
+        );
+      }
+      return;
+    }
     if (!mounted || session == null) return;
     final username = session['username']?.toString() ?? 'Admin';
     final role = session['role']?.toString() ?? 'admin';

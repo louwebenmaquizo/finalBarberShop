@@ -81,19 +81,22 @@ class BookingService {
       final startIso = SupabaseServiceHelpers.toUtcIso(startOfDay.toIso8601String());
       final endIso = SupabaseServiceHelpers.toUtcIso(endOfDay.toIso8601String());
 
-      final data = await SupabaseConfig.client
-          .from(SupabaseConfig.appointmentsTable)
-          .select('id, staff_id, start_time, end_time, status')
-          .eq('staff_id', staffId)
-          .gte('end_time', startIso)
-          .lte('start_time', endIso)
-          .not('status', 'in', '("canceled","declined","no-show")');
+      // RPC instead of a table query: row-level security hides other
+      // customers' appointments, which made every slot look free.
+      final data = await SupabaseConfig.client.rpc(
+        'get_staff_busy_intervals',
+        params: {
+          'p_staff_id': staffId,
+          'p_from': startIso,
+          'p_to': endIso,
+        },
+      );
 
       final rows = SupabaseServiceHelpers.asMapList(data);
       final intervals = <Map<String, dynamic>>[];
 
       for (final row in rows) {
-        final id = (row['id'] ?? '').toString();
+        final id = (row['appointment_id'] ?? '').toString();
         if (excludeAppointmentId != null && id == excludeAppointmentId) {
           continue;
         }

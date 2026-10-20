@@ -218,6 +218,7 @@ class SupabaseStorageService {
   }
 
   static final Map<String, String> _urlCache = {};
+  static final Map<String, DateTime> _urlCacheExpiry = {};
 
   /// Turns a stored object path into a URL understood by the existing widgets.
   static Future<String?> resolveReference({
@@ -237,7 +238,9 @@ class SupabaseStorageService {
     }
 
     final cacheKey = '$bucket:$reference:$isPublic';
-    if (_urlCache.containsKey(cacheKey)) {
+    final expiry = _urlCacheExpiry[cacheKey];
+    if (_urlCache.containsKey(cacheKey) &&
+        (expiry == null || DateTime.now().isBefore(expiry))) {
       return _urlCache[cacheKey];
     }
 
@@ -248,6 +251,12 @@ class SupabaseStorageService {
           : await storage.createSignedUrl(reference, signedUrlLifetimeSeconds);
       if (resolved.isNotEmpty) {
         _urlCache[cacheKey] = resolved;
+        // Signed URLs expire; refresh them a few minutes early.
+        _urlCacheExpiry[cacheKey] = isPublic
+            ? DateTime(9999)
+            : DateTime.now().add(
+                Duration(seconds: signedUrlLifetimeSeconds - 300),
+              );
       }
       return resolved;
     } catch (_) {

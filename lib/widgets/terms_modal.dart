@@ -87,7 +87,9 @@ class _TermsModalContent extends StatelessWidget {
                   ),
                   _buildSection(
                     '6. Privacy & Data Protection',
-                    '• Your personal information (name, email, phone number) is securely stored and solely used for appointment reminders, customer service, and promotional updates.\n• We do not sell or share your data with third parties.',
+                    '• Your personal information (name, email, phone number) is securely stored and used for appointments and customer service.\n'
+                    '• We do not sell your data. We use trusted service providers to run the app: Supabase (database and sign-in) and Google Gemini (AI assistant). Messages you send to the AI assistant, together with the shop\'s service list, are processed by Google to generate replies.\n'
+                    '• You can delete your account and its data at any time in Settings > Delete my account.',
                   ),
                   _buildSection(
                     '7. Contact & Inquiries',

@@ -729,7 +729,7 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                             controller: _payRateController,
                             enabled: _isEditing,
                             decoration: InputDecoration(
-                              labelText: 'Pay Rate (\$)',
+                              labelText: 'Pay Rate (₱)',
                               prefixIcon: const Icon(Icons.attach_money),
                               border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12)),

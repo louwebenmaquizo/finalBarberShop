@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../services/auth_session_service.dart';
 import '../../services/booking_service.dart';
 import '../../services/notification_service.dart';
+import '../../services/transaction_service.dart';
 import '../../widgets/notifications_modal.dart';
 import '../onboarding.dart';
 
@@ -104,6 +105,15 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
           ),
         );
         _loadAppointments();
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Could not update status: ${response['message'] ?? 'please try again.'}',
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -114,6 +124,98 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
         );
       }
     }
+  }
+
+  /// Completing a cut records the payment in the same database call, so
+  /// revenue is never missing for barber-completed appointments.
+  Future<void> _completeWithPayment(Map<String, dynamic> appointment) async {
+    final appointmentId = (appointment['appointment_id'] ?? '').toString();
+    final amount = double.tryParse('${appointment['service_price'] ?? ''}') ?? 0;
+    if (appointmentId.isEmpty || amount <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('This appointment has no service price. Ask the front desk to complete it.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    var method = 'cash';
+    final tipController = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          title: const Text('Complete & record payment'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Service: ₱${amount.toStringAsFixed(2)}',
+                  style: GoogleFonts.manrope(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                initialValue: method,
+                decoration: const InputDecoration(labelText: 'Payment method'),
+                items: const [
+                  DropdownMenuItem(value: 'cash', child: Text('Cash')),
+                  DropdownMenuItem(value: 'card', child: Text('Card')),
+                  DropdownMenuItem(value: 'mobile', child: Text('Mobile (GCash/Maya)')),
+                ],
+                onChanged: (v) => setDialogState(() => method = v ?? 'cash'),
+              ),
+              TextField(
+                controller: tipController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(labelText: 'Tip (optional)', prefixText: '₱ '),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('Complete'),
+            ),
+          ],
+        ),
+      ),
+    );
+    final tipText = tipController.text.trim();
+    tipController.dispose();
+    if (confirmed != true || !mounted) return;
+
+    final tip = double.tryParse(tipText) ?? 0;
+    if (tip < 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Tip cannot be negative.'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
+    final result = await TransactionService.createTransaction(
+      appointmentId: appointmentId,
+      customerId: (appointment['customer_id'] ?? '').toString(),
+      amount: amount,
+      paymentMethod: method,
+      staffId: (appointment['staff_id'] ?? '').toString(),
+      tipAmount: tip,
+    );
+    if (!mounted) return;
+    BookingService.invalidateCache();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(result['success'] == true
+            ? 'Great cut! Payment recorded and appointment completed.'
+            : 'Could not complete: ${result['message'] ?? 'please try again.'}'),
+        backgroundColor: result['success'] == true ? Colors.green : Colors.red,
+      ),
+    );
+    if (result['success'] == true) _loadAppointments();
   }
 
   void _showAddNoteDialog(Map<String, dynamic> appointment) {
@@ -584,7 +686,7 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
                   ],
                 ),
                 Text(
-                  '\$$price',
+                  '₱$price',
                   style: GoogleFonts.manrope(
                       fontWeight: FontWeight.bold,
                       fontSize: 15,
@@ -717,8 +819,7 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
                 // IN PROGRESS: Complete Cut Button
                 if (status == 'in_progress') ...[
                   ElevatedButton.icon(
-                    onPressed: () =>
-                        _updateAppointmentStatus(appointmentId, 'completed'),
+                    onPressed: () => _completeWithPayment(appointment),
                     icon:
                         const Icon(Icons.check, size: 16, color: Colors.white),
                     label: Text('Complete Cut',

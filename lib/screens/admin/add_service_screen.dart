@@ -465,7 +465,7 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
                     TextFormField(
                       controller: _priceController,
                       decoration: InputDecoration(
-                        labelText: 'Price (\$) *',
+                        labelText: 'Price (₱) *',
                         labelStyle: GoogleFonts.manrope(),
                         border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12)),

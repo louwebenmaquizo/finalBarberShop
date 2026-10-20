@@ -526,7 +526,7 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
                     child: TextFormField(
                       controller: _payRateController,
                       decoration: InputDecoration(
-                        labelText: 'Hourly Pay (\$)',
+                        labelText: 'Hourly Pay (₱)',
                         prefixIcon: const Icon(Icons.attach_money),
                         border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12)),

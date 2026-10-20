@@ -1264,7 +1264,7 @@ class _BookingScreenState extends State<BookingScreen> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'Base Amount: \$${baseAmount.toStringAsFixed(2)}',
+                              'Base Amount: ₱${baseAmount.toStringAsFixed(2)}',
                               style: GoogleFonts.manrope(fontSize: 14),
                               overflow: TextOverflow.ellipsis,
                               maxLines: 1,
@@ -1337,7 +1337,7 @@ class _BookingScreenState extends State<BookingScreen> {
                         keyboardType: const TextInputType.numberWithOptions(
                             decimal: true),
                         decoration: InputDecoration(
-                          prefixText: '\$ ',
+                          prefixText: '₱ ',
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
@@ -1366,7 +1366,7 @@ class _BookingScreenState extends State<BookingScreen> {
                         keyboardType: const TextInputType.numberWithOptions(
                             decimal: true),
                         decoration: InputDecoration(
-                          prefixText: '\$ ',
+                          prefixText: '₱ ',
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
@@ -1416,7 +1416,7 @@ class _BookingScreenState extends State<BookingScreen> {
                                 Flexible(
                                   flex: 1,
                                   child: Text(
-                                    '\$${total.toStringAsFixed(2)}',
+                                    '₱${total.toStringAsFixed(2)}',
                                     style: GoogleFonts.manrope(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 18,

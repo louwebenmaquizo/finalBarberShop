@@ -50,10 +50,10 @@ class _ChangePasswordDialogContentState
       );
       return;
     }
-    if (newPass.length < 6) {
+    if (newPass.length < 8) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content: Text('New password must be at least 6 characters',
+            content: Text('New password must be at least 8 characters',
                 style: GoogleFonts.manrope()),
             backgroundColor: Colors.red),
       );

@@ -468,6 +468,7 @@ class _EmployeeScreenState extends State<EmployeeScreen> {
       floatingActionButton: Padding(
         padding: const EdgeInsets.only(bottom: 12.0, right: 4.0),
         child: FloatingActionButton.extended(
+          heroTag: 'employee-add-fab',
           onPressed: () async {
             final result = await Navigator.push(
               context,

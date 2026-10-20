@@ -789,7 +789,7 @@ class _CustomerAppointmentsScreenState
                   const SizedBox(height: 8),
                   // Price
                   Text(
-                    '\$${price.toString()}',
+                    '₱${price.toString()}',
                     style: GoogleFonts.manrope(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,

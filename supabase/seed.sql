@@ -1,3 +1,6 @@
+-- LOCAL DEVELOPMENT ONLY. Loaded by `supabase db reset` on a local stack.
+-- Never run this on the production project: it inserts fake customers,
+-- appointments, transactions and reviews.
 -- ============================================================================
 -- Complete System Seeder Migration for Liem Barber Shop
 -- Populates:

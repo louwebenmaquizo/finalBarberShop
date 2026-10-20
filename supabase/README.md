@@ -4,23 +4,24 @@ This directory replaces the legacy PHP/MySQL backend.
 
 ## Remote project
 
-- Project reference: `qpdfscwlrmpuoqrtemwv`
 - Region: Singapore
 - Flutter uses only `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY`.
-- Never add a Supabase secret/service-role key to Flutter or Git.
+- Never add a Supabase secret/service-role key or the Gemini key to Flutter or Git.
 
-## Apply database changes
+## Apply database changes and deploy functions
 
 ```powershell
-supabase link --project-ref qpdfscwlrmpuoqrtemwv
+supabase link --project-ref YOUR_PROJECT_REF
 supabase db push
+supabase secrets set GEMINI_API_KEY=your-gemini-key
+supabase secrets set ALLOWED_ORIGINS=https://your-web-domain.com   # only if you host the web app
+supabase functions deploy ai-chat
 supabase functions deploy create-staff
+supabase functions deploy delete-account
 ```
 
-The initial migration creates Auth-linked profiles, customers, staff,
-catalog, appointments, transactions, feedback, compatibility views, secure
-RPCs, RLS policies, and Storage buckets. The second migration adds a starter
-catalog without passwords or customer data.
+`seed.sql` contains fake demo data and only runs on a local stack
+(`supabase db reset`). It is never pushed to the remote project.
 
 ## Run Flutter
 
