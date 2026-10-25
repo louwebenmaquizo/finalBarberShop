@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../services/theme_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -153,7 +154,7 @@ class _ChangePasswordDialogContentState
                   style: GoogleFonts.manrope(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black87),
+                      color: AppColors.textPrimary(context)),
                 ),
                 IconButton(
                   icon: const Icon(Icons.close, color: Colors.grey, size: 20),
@@ -167,7 +168,7 @@ class _ChangePasswordDialogContentState
               Text(
                 'You signed in with Google. Set a password if you also want '
                 'to log in with your email and password.',
-                style: GoogleFonts.manrope(fontSize: 13, color: Colors.grey[700]),
+                style: GoogleFonts.manrope(fontSize: 13, color: AppColors.textSecondary(context)),
               ),
               const SizedBox(height: 16),
             ],
@@ -189,7 +190,7 @@ class _ChangePasswordDialogContentState
                 border:
                     OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 filled: true,
-                fillColor: Colors.grey[50],
+                fillColor: AppColors.inputBackground(context),
               ),
               style: GoogleFonts.manrope(),
             ),
@@ -211,7 +212,7 @@ class _ChangePasswordDialogContentState
                 border:
                     OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 filled: true,
-                fillColor: Colors.grey[50],
+                fillColor: AppColors.inputBackground(context),
               ),
               style: GoogleFonts.manrope(),
             ),
@@ -235,7 +236,7 @@ class _ChangePasswordDialogContentState
                 border:
                     OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 filled: true,
-                fillColor: Colors.grey[50],
+                fillColor: AppColors.inputBackground(context),
               ),
               style: GoogleFonts.manrope(),
             ),

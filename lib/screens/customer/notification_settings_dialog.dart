@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../services/theme_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../services/notification_service.dart';
 
@@ -51,7 +52,7 @@ class _NotificationSettingsDialogContentState
                   style: GoogleFonts.manrope(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black87),
+                      color: AppColors.textPrimary(context)),
                 ),
                 IconButton(
                   icon: const Icon(Icons.close, color: Colors.grey, size: 20),
@@ -84,7 +85,7 @@ class _NotificationSettingsDialogContentState
               const SizedBox(height: 8),
               Text(
                 'These are in-app notifications (the bell icon). The app does not send SMS or email.',
-                style: GoogleFonts.manrope(fontSize: 12, color: Colors.grey[600]),
+                style: GoogleFonts.manrope(fontSize: 12, color: AppColors.textSecondary(context)),
               ),
             ],
             const SizedBox(height: 24),
@@ -138,11 +139,11 @@ class _NotificationSettingsDialogContentState
                     style: GoogleFonts.manrope(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
-                        color: Colors.black87)),
+                        color: AppColors.textPrimary(context))),
                 const SizedBox(height: 2),
                 Text(subtitle,
                     style: GoogleFonts.manrope(
-                        fontSize: 12, color: Colors.grey[600], height: 1.3)),
+                        fontSize: 12, color: AppColors.textSecondary(context), height: 1.3)),
               ],
             ),
           ),

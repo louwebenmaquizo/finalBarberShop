@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import '../../services/theme_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../services/catalog_service.dart';
@@ -296,7 +297,7 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
         Text(
           'Service Image / Photo',
           style: GoogleFonts.manrope(
-              fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black87),
+              fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary(context)),
         ),
         const SizedBox(height: 8),
         GestureDetector(
@@ -305,7 +306,7 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
             width: double.infinity,
             height: 180,
             decoration: BoxDecoration(
-              color: Colors.grey[100],
+              color: AppColors.inputBackground(context),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: const Color(0xFF5BBCFF), width: 1.5),
             ),
@@ -384,20 +385,20 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background(context),
       appBar: AppBar(
         title: Text(
           'Edit Service',
           style: GoogleFonts.manrope(
             fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: Colors.black87,
+            color: AppColors.textPrimary(context),
           ),
         ),
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.surface(context),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black87),
+          icon: Icon(Icons.arrow_back, color: AppColors.textPrimary(context)),
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
@@ -442,7 +443,7 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
                         border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12)),
                         filled: true,
-                        fillColor: Colors.grey[50],
+                        fillColor: AppColors.inputBackground(context),
                         prefixIcon: const Icon(Icons.content_cut),
                       ),
                       style: GoogleFonts.manrope(),
@@ -458,22 +459,22 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
                     // Category Dropdown (Clean, full-width)
                     DropdownButtonFormField<String>(
                       value: _selectedCategoryId,
-                      dropdownColor: Colors.white,
-                      icon: const Icon(Icons.arrow_drop_down, color: Colors.black87),
+                      dropdownColor: AppColors.surface(context),
+                      icon: Icon(Icons.arrow_drop_down, color: AppColors.textPrimary(context)),
                       decoration: InputDecoration(
                         labelText: 'Category',
                         labelStyle: GoogleFonts.manrope(
-                          color: Colors.grey[700],
+                          color: AppColors.textSecondary(context),
                           fontWeight: FontWeight.w500,
                         ),
                         border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12)),
-                        prefixIcon: const Icon(Icons.category_outlined, color: Colors.black87),
+                        prefixIcon: Icon(Icons.category_outlined, color: AppColors.textPrimary(context)),
                         filled: true,
-                        fillColor: Colors.grey[50],
+                        fillColor: AppColors.inputBackground(context),
                       ),
                       style: GoogleFonts.manrope(
-                        color: Colors.black87,
+                        color: AppColors.textPrimary(context),
                         fontSize: 15,
                         fontWeight: FontWeight.w500,
                       ),
@@ -482,14 +483,14 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
                           value: null,
                           child: Text('No Category',
                               style:
-                                  GoogleFonts.manrope(color: Colors.black87)),
+                                  GoogleFonts.manrope(color: AppColors.textPrimary(context))),
                         ),
                         ..._categories.map((category) {
                           return DropdownMenuItem<String>(
                             value: category['category_id'],
                             child: Text(category['name'] ?? '',
                                 style:
-                                    GoogleFonts.manrope(color: Colors.black87)),
+                                    GoogleFonts.manrope(color: AppColors.textPrimary(context))),
                           );
                         }),
                       ],
@@ -510,7 +511,7 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
                         border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12)),
                         filled: true,
-                        fillColor: Colors.grey[50],
+                        fillColor: AppColors.inputBackground(context),
                         prefixIcon: const Icon(Icons.timer_outlined),
                       ),
                       style: GoogleFonts.manrope(),
@@ -537,7 +538,7 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
                         border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12)),
                         filled: true,
-                        fillColor: Colors.grey[50],
+                        fillColor: AppColors.inputBackground(context),
                         prefixIcon: const Icon(Icons.attach_money),
                       ),
                       style: GoogleFonts.manrope(),
@@ -565,7 +566,7 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
                         border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12)),
                         filled: true,
-                        fillColor: Colors.grey[50],
+                        fillColor: AppColors.inputBackground(context),
                         prefixIcon: const Icon(Icons.money_off_outlined),
                       ),
                       style: GoogleFonts.manrope(),
@@ -583,7 +584,7 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
                         border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12)),
                         filled: true,
-                        fillColor: Colors.grey[50],
+                        fillColor: AppColors.inputBackground(context),
                         prefixIcon: const Icon(Icons.description_outlined),
                       ),
                       style: GoogleFonts.manrope(),

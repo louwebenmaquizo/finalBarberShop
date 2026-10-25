@@ -188,7 +188,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
                     style: GoogleFonts.manrope(fontWeight: FontWeight.bold)),
                 subtitle: Text('Create a haircut, shave, or styling package',
                     style: GoogleFonts.manrope(
-                        fontSize: 12, color: Colors.grey[600])),
+                        fontSize: 12, color: AppColors.textSecondary(context))),
                 onTap: () async {
                   Navigator.pop(context);
                   final result = await Navigator.push(
@@ -214,7 +214,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
                     style: GoogleFonts.manrope(fontWeight: FontWeight.bold)),
                 subtitle: Text('Group services into clean custom categories',
                     style: GoogleFonts.manrope(
-                        fontSize: 12, color: Colors.grey[600])),
+                        fontSize: 12, color: AppColors.textSecondary(context))),
                 onTap: () {
                   Navigator.pop(context);
                   _showAddCategory();
@@ -232,7 +232,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
                     style: GoogleFonts.manrope(fontWeight: FontWeight.bold)),
                 subtitle: Text('Rename, edit, or delete existing categories',
                     style: GoogleFonts.manrope(
-                        fontSize: 12, color: Colors.grey[600])),
+                        fontSize: 12, color: AppColors.textSecondary(context))),
                 onTap: () {
                   Navigator.pop(context);
                   _showManageCategories();
@@ -272,7 +272,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
                 decoration: BoxDecoration(
                   color: isSelected
                       ? Colors.white.withOpacity(0.3)
-                      : Colors.grey[300],
+                      : AppColors.cardBorder(context),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
@@ -280,7 +280,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
                   style: GoogleFonts.manrope(
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
-                    color: isSelected ? Colors.white : Colors.black87,
+                    color: isSelected ? Colors.white : AppColors.textPrimary(context),
                   ),
                 ),
               ),
@@ -367,7 +367,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
         child: FloatingActionButton.extended(
           heroTag: 'catalog-add-fab',
           onPressed: _showAddMenu,
-          backgroundColor: isDark ? const Color(0xFF1E88E5) : Colors.black,
+          backgroundColor: isDark ? const Color(0xFF1E88E5) : AppColors.strongFill(context),
           elevation: 4,
           icon: const Icon(Icons.add, color: Colors.white, size: 20),
           label: Text(
@@ -543,7 +543,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
                                 style: GoogleFonts.manrope(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
-                                    color: Colors.grey[700]),
+                                    color: AppColors.textSecondary(context)),
                               ),
                               const SizedBox(height: 4),
                               Text(

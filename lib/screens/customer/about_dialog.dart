@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../services/theme_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../config/shop_info.dart';
 
@@ -49,7 +50,7 @@ class _AboutAppDialogContent extends StatelessWidget {
               style: GoogleFonts.manrope(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
-                color: Colors.black87,
+                color: AppColors.textPrimary(context),
               ),
             ),
             const SizedBox(height: 4),
@@ -67,7 +68,7 @@ class _AboutAppDialogContent extends StatelessWidget {
               textAlign: TextAlign.center,
               style: GoogleFonts.manrope(
                 fontSize: 14,
-                color: Colors.grey[700],
+                color: AppColors.textSecondary(context),
                 height: 1.5,
               ),
             ),
@@ -79,7 +80,7 @@ class _AboutAppDialogContent extends StatelessWidget {
               children: [
                 Text('Developer',
                     style: GoogleFonts.manrope(
-                        color: Colors.grey[600], fontSize: 13)),
+                        color: AppColors.textSecondary(context), fontSize: 13)),
                 Text('Liem Tech Team',
                     style: GoogleFonts.manrope(
                         fontWeight: FontWeight.bold, fontSize: 13)),
@@ -91,7 +92,7 @@ class _AboutAppDialogContent extends StatelessWidget {
               children: [
                 Text('Operating Hours',
                     style: GoogleFonts.manrope(
-                        color: Colors.grey[600], fontSize: 13)),
+                        color: AppColors.textSecondary(context), fontSize: 13)),
                 Text(ShopInfo.bookingHoursLabel,
                     style: GoogleFonts.manrope(
                         fontWeight: FontWeight.bold, fontSize: 13)),

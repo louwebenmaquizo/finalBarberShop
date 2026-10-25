@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/theme_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/catalog_service.dart';
 
@@ -34,7 +35,7 @@ Future<Map<String, dynamic>?> showAddCategoryDialog(
               style: GoogleFonts.manrope(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: Colors.black87,
+                color: AppColors.textPrimary(context),
               ),
             ),
           ],
@@ -48,7 +49,7 @@ Future<Map<String, dynamic>?> showAddCategoryDialog(
               Text(
                 'Create a category to group and organize your barber services.',
                 style:
-                    GoogleFonts.manrope(fontSize: 13, color: Colors.grey[600]),
+                    GoogleFonts.manrope(fontSize: 13, color: AppColors.textSecondary(context)),
               ),
               const SizedBox(height: 16),
               TextFormField(
@@ -85,7 +86,7 @@ Future<Map<String, dynamic>?> showAddCategoryDialog(
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
             child: Text('Cancel',
-                style: GoogleFonts.manrope(color: Colors.grey[600])),
+                style: GoogleFonts.manrope(color: AppColors.textSecondary(context))),
           ),
           ElevatedButton(
             onPressed: isSaving
@@ -212,13 +213,13 @@ void showManageCategoriesDialog(BuildContext context,
                             style: GoogleFonts.manrope(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
-                              color: Colors.black87,
+                              color: AppColors.textPrimary(context),
                             ),
                           ),
                           Text(
                             'Organize services into clear categories',
                             style: GoogleFonts.manrope(
-                                fontSize: 12, color: Colors.grey[600]),
+                                fontSize: 12, color: AppColors.textSecondary(context)),
                           ),
                         ],
                       ),
@@ -306,15 +307,15 @@ void showManageCategoriesDialog(BuildContext context,
                                           : '$count service(s) attached',
                                       style: GoogleFonts.manrope(
                                           fontSize: 12,
-                                          color: Colors.grey[600]),
+                                          color: AppColors.textSecondary(context)),
                                     ),
                                     trailing: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         // Edit Category
                                         IconButton(
-                                          icon: const Icon(Icons.edit,
-                                              size: 18, color: Colors.black54),
+                                          icon: Icon(Icons.edit,
+                                              size: 18, color: AppColors.textSecondary(context)),
                                           onPressed: () {
                                             _showEditCategoryDialog(
                                                 context, cat, () {

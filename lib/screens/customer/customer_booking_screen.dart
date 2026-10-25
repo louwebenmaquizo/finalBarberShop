@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../../services/theme_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../config/shop_info.dart';
 import '../../services/api_service.dart';
@@ -371,7 +372,7 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
             onPressed: () => Navigator.pop(context, false),
             child: Text(
               'Cancel',
-              style: GoogleFonts.manrope(color: Colors.grey[600]),
+              style: GoogleFonts.manrope(color: AppColors.textSecondary(context)),
             ),
           ),
           ElevatedButton(
@@ -483,7 +484,7 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
               '$label:',
               style: GoogleFonts.manrope(
                 fontWeight: FontWeight.w600,
-                color: Colors.grey[700],
+                color: AppColors.textSecondary(context),
               ),
             ),
           ),
@@ -547,20 +548,20 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background(context),
       appBar: AppBar(
         title: Text(
           'Book Appointment',
           style: GoogleFonts.manrope(
             fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: Colors.black,
+            color: AppColors.textPrimary(context),
           ),
         ),
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.surface(context),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: Icon(Icons.arrow_back, color: AppColors.textPrimary(context)),
           onPressed: () => Navigator.pop(context),
         ),
         centerTitle: true,
@@ -582,22 +583,22 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
                     style: GoogleFonts.manrope(
                       fontSize: 17,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black,
+                      color: AppColors.textPrimary(context),
                     ),
                   ),
                   const SizedBox(height: 10),
                   Container(
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppColors.surface(context),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey[300]!),
+                      border: Border.all(color: AppColors.cardBorder(context)),
                     ),
                     child: DropdownButtonFormField<String>(
                       value: _selectedServiceId,
-                      dropdownColor: Colors.white,
-                      icon: const Icon(Icons.arrow_drop_down, color: Colors.black87),
+                      dropdownColor: AppColors.surface(context),
+                      icon: Icon(Icons.arrow_drop_down, color: AppColors.textPrimary(context)),
                       style: GoogleFonts.manrope(
-                        color: Colors.black87,
+                        color: AppColors.textPrimary(context),
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
                       ),
@@ -609,7 +610,7 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
                         ),
                         hintText: 'Choose a service',
                         hintStyle: GoogleFonts.manrope(
-                          color: Colors.grey[600],
+                          color: AppColors.textSecondary(context),
                         ),
                       ),
                       items: _services.isEmpty
@@ -619,7 +620,7 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
                                 child: Text(
                                   'No services available',
                                   style: GoogleFonts.manrope(
-                                    color: Colors.grey[600],
+                                    color: AppColors.textSecondary(context),
                                   ),
                                 ),
                               ),
@@ -632,7 +633,7 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
                                 child: Text(
                                   '${service['name']} - ₱$price ($duration mins)',
                                   style: GoogleFonts.manrope(
-                                    color: Colors.black87,
+                                    color: AppColors.textPrimary(context),
                                     fontSize: 14,
                                     fontWeight: FontWeight.w500,
                                   ),
@@ -655,22 +656,22 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
                     style: GoogleFonts.manrope(
                       fontSize: 17,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black,
+                      color: AppColors.textPrimary(context),
                     ),
                   ),
                   const SizedBox(height: 10),
                   Container(
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppColors.surface(context),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey[300]!),
+                      border: Border.all(color: AppColors.cardBorder(context)),
                     ),
                     child: DropdownButtonFormField<String>(
                       value: _selectedStaffId,
-                      dropdownColor: Colors.white,
-                      icon: const Icon(Icons.arrow_drop_down, color: Colors.black87),
+                      dropdownColor: AppColors.surface(context),
+                      icon: Icon(Icons.arrow_drop_down, color: AppColors.textPrimary(context)),
                       style: GoogleFonts.manrope(
-                        color: Colors.black87,
+                        color: AppColors.textPrimary(context),
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
                       ),
@@ -682,7 +683,7 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
                         ),
                         hintText: 'Choose a barber',
                         hintStyle: GoogleFonts.manrope(
-                          color: Colors.grey[600],
+                          color: AppColors.textSecondary(context),
                         ),
                       ),
                       items: _staff.isEmpty
@@ -692,7 +693,7 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
                                 child: Text(
                                   'No barbers available',
                                   style: GoogleFonts.manrope(
-                                    color: Colors.grey[600],
+                                    color: AppColors.textSecondary(context),
                                   ),
                                 ),
                               ),
@@ -708,7 +709,7 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
                                     Text(
                                       '${staff['name'] ?? 'Barber'} (${staff['role'] ?? 'Stylist'})',
                                       style: GoogleFonts.manrope(
-                                        color: Colors.black87,
+                                        color: AppColors.textPrimary(context),
                                         fontSize: 14,
                                         fontWeight: FontWeight.w500,
                                       ),
@@ -733,7 +734,7 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
                     style: GoogleFonts.manrope(
                       fontSize: 17,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black,
+                      color: AppColors.textPrimary(context),
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -742,9 +743,9 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
                     child: Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: AppColors.surface(context),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey[300]!),
+                        border: Border.all(color: AppColors.cardBorder(context)),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -755,8 +756,8 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
                                 : _formatDate(_selectedDate!),
                             style: GoogleFonts.manrope(
                               color: _selectedDate == null
-                                  ? Colors.grey[600]
-                                  : Colors.black,
+                                  ? AppColors.textSecondary(context)
+                                  : AppColors.textPrimary(context),
                               fontWeight: _selectedDate == null
                                   ? FontWeight.normal
                                   : FontWeight.w600,
@@ -778,7 +779,7 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
                         style: GoogleFonts.manrope(
                           fontSize: 17,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black,
+                          color: AppColors.textPrimary(context),
                         ),
                       ),
                       if (_selectedStaffId != null && _selectedDate != null)
@@ -802,9 +803,9 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
                     Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: Colors.grey[50],
+                        color: AppColors.inputBackground(context),
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.grey[200]!),
+                        border: Border.all(color: AppColors.cardBorder(context)),
                       ),
                       child: Row(
                         children: [
@@ -813,7 +814,7 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
                           Expanded(
                             child: Text(
                               'Please select a barber and date first to view real-time availability.',
-                              style: GoogleFonts.manrope(fontSize: 13, color: Colors.grey[700]),
+                              style: GoogleFonts.manrope(fontSize: 13, color: AppColors.textSecondary(context)),
                             ),
                           ),
                         ],
@@ -922,7 +923,7 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
     if (_standardTimeSlots.every(_isSlotInPast)) {
       return Text(
         'No more times available on this date. Please pick another date.',
-        style: GoogleFonts.manrope(color: Colors.grey[700]),
+        style: GoogleFonts.manrope(color: AppColors.textSecondary(context)),
       );
     }
     return Wrap(
@@ -943,13 +944,15 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
           textColor = Colors.white;
           borderSide = const BorderSide(color: Color(0xFF5BBCFF), width: 1.5);
         } else if (isBooked) {
-          chipBg = Colors.red[50]!;
-          textColor = Colors.red[400]!;
-          borderSide = BorderSide(color: Colors.red[200]!);
+          final dark = AppColors.isDark(context);
+          chipBg = dark ? const Color(0x33F44336) : Colors.red[50]!;
+          textColor = dark ? Colors.red[200]! : Colors.red[400]!;
+          borderSide = BorderSide(
+              color: dark ? const Color(0x66F44336) : Colors.red[200]!);
         } else {
-          chipBg = Colors.white;
-          textColor = Colors.black87;
-          borderSide = BorderSide(color: Colors.grey[300]!);
+          chipBg = AppColors.surface(context);
+          textColor = AppColors.textPrimary(context);
+          borderSide = BorderSide(color: AppColors.cardBorder(context));
         }
 
         return InkWell(

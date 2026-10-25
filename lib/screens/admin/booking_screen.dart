@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../services/theme_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../services/booking_service.dart';
 import '../../services/transaction_service.dart';
@@ -192,7 +193,7 @@ class _BookingScreenState extends State<BookingScreen> {
                         style: GoogleFonts.manrope(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                          color: AppColors.textPrimary(context),
                         ),
                       ),
                       IconButton(
@@ -208,7 +209,7 @@ class _BookingScreenState extends State<BookingScreen> {
                     style: GoogleFonts.manrope(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: Colors.black87,
+                      color: AppColors.textPrimary(context),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -229,12 +230,12 @@ class _BookingScreenState extends State<BookingScreen> {
                       decoration: BoxDecoration(
                         color: _sortOrder == 'ascending'
                             ? blueColor.withOpacity(0.1)
-                            : Colors.grey[50],
+                            : AppColors.inputBackground(context),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: _sortOrder == 'ascending'
                               ? blueColor
-                              : Colors.grey[300]!,
+                              : AppColors.cardBorder(context),
                           width: _sortOrder == 'ascending' ? 2 : 1,
                         ),
                       ),
@@ -244,7 +245,7 @@ class _BookingScreenState extends State<BookingScreen> {
                             Icons.arrow_upward,
                             color: _sortOrder == 'ascending'
                                 ? blueColor
-                                : Colors.grey[600],
+                                : AppColors.textSecondary(context),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
@@ -258,7 +259,7 @@ class _BookingScreenState extends State<BookingScreen> {
                                     fontWeight: FontWeight.w600,
                                     color: _sortOrder == 'ascending'
                                         ? blueColor
-                                        : Colors.black87,
+                                        : AppColors.textPrimary(context),
                                   ),
                                 ),
                                 const SizedBox(height: 4),
@@ -266,7 +267,7 @@ class _BookingScreenState extends State<BookingScreen> {
                                   'Earliest to Latest',
                                   style: GoogleFonts.manrope(
                                     fontSize: 12,
-                                    color: Colors.grey[600],
+                                    color: AppColors.textSecondary(context),
                                   ),
                                 ),
                               ],
@@ -300,12 +301,12 @@ class _BookingScreenState extends State<BookingScreen> {
                       decoration: BoxDecoration(
                         color: _sortOrder == 'descending'
                             ? blueColor.withOpacity(0.1)
-                            : Colors.grey[50],
+                            : AppColors.inputBackground(context),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: _sortOrder == 'descending'
                               ? blueColor
-                              : Colors.grey[300]!,
+                              : AppColors.cardBorder(context),
                           width: _sortOrder == 'descending' ? 2 : 1,
                         ),
                       ),
@@ -315,7 +316,7 @@ class _BookingScreenState extends State<BookingScreen> {
                             Icons.arrow_downward,
                             color: _sortOrder == 'descending'
                                 ? blueColor
-                                : Colors.grey[600],
+                                : AppColors.textSecondary(context),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
@@ -329,7 +330,7 @@ class _BookingScreenState extends State<BookingScreen> {
                                     fontWeight: FontWeight.w600,
                                     color: _sortOrder == 'descending'
                                         ? blueColor
-                                        : Colors.black87,
+                                        : AppColors.textPrimary(context),
                                   ),
                                 ),
                                 const SizedBox(height: 4),
@@ -337,7 +338,7 @@ class _BookingScreenState extends State<BookingScreen> {
                                   'Latest to Earliest',
                                   style: GoogleFonts.manrope(
                                     fontSize: 12,
-                                    color: Colors.grey[600],
+                                    color: AppColors.textSecondary(context),
                                   ),
                                 ),
                               ],
@@ -366,22 +367,22 @@ class _BookingScreenState extends State<BookingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background(context),
       body: Column(
         children: [
           // Fixed Header Section
           Container(
             padding: const EdgeInsets.all(23),
-            color: Colors.white,
+            color: AppColors.surface(context),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Search Bar
                 Container(
                   decoration: BoxDecoration(
-                    color: Colors.grey[50],
+                    color: AppColors.inputBackground(context),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey[300]!),
+                    border: Border.all(color: AppColors.cardBorder(context)),
                   ),
                   child: TextField(
                     controller: _searchController,
@@ -416,7 +417,7 @@ class _BookingScreenState extends State<BookingScreen> {
                       style: GoogleFonts.manrope(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: Colors.black87,
+                        color: AppColors.textPrimary(context),
                       ),
                     ),
                     // Filter Button (right side) - Text first, then icon
@@ -434,14 +435,14 @@ class _BookingScreenState extends State<BookingScreen> {
                             style: GoogleFonts.manrope(
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
-                              color: Colors.black87,
+                              color: AppColors.textPrimary(context),
                             ),
                           ),
                           const SizedBox(width: 8),
-                          const Icon(
+                          Icon(
                             Icons.filter_list,
                             size: 18,
-                            color: Colors.black87,
+                            color: AppColors.textPrimary(context),
                           ),
                         ],
                       ),
@@ -496,7 +497,7 @@ class _BookingScreenState extends State<BookingScreen> {
                                     child: Text(
                                       'No bookings found',
                                       style: GoogleFonts.manrope(
-                                        color: Colors.grey[600],
+                                        color: AppColors.textSecondary(context),
                                       ),
                                     ),
                                   ),
@@ -523,7 +524,7 @@ class _BookingScreenState extends State<BookingScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface(context),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: const Color.fromARGB(176, 67, 169, 241),
@@ -711,22 +712,31 @@ class _BookingScreenState extends State<BookingScreen> {
   }
 
   Widget _buildActionButton(String label, Color color, VoidCallback onPressed) {
+    // Dark text on light buttons (e.g. pink), white text on darker ones.
+    final foreground =
+        color.computeLuminance() > 0.5 ? Colors.black87 : Colors.white;
     return ElevatedButton(
       onPressed: onPressed,
       style: ElevatedButton.styleFrom(
         backgroundColor: color,
-        foregroundColor: Colors.white,
+        foregroundColor: foreground,
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),
         ),
         elevation: 0,
       ),
-      child: Text(
-        label,
-        style: GoogleFonts.manrope(
-          fontSize: 12,
-          fontWeight: FontWeight.w500,
+      // One line; shrinks slightly instead of breaking a word ("Reschedu-le").
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(
+          label,
+          maxLines: 1,
+          softWrap: false,
+          style: GoogleFonts.manrope(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
     );
@@ -792,7 +802,7 @@ class _BookingScreenState extends State<BookingScreen> {
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: Text('Cancel',
-                style: GoogleFonts.manrope(color: Colors.grey[600])),
+                style: GoogleFonts.manrope(color: AppColors.textSecondary(context))),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -881,7 +891,7 @@ class _BookingScreenState extends State<BookingScreen> {
           children: [
             Text(
               'Customer: ${booking['customer_name'] ?? 'Guest'} • ${booking['service_name'] ?? 'Service'}',
-              style: GoogleFonts.manrope(fontSize: 13, color: Colors.grey[600]),
+              style: GoogleFonts.manrope(fontSize: 13, color: AppColors.textSecondary(context)),
             ),
             const SizedBox(height: 16),
             TextField(
@@ -895,7 +905,7 @@ class _BookingScreenState extends State<BookingScreen> {
                 border:
                     OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 filled: true,
-                fillColor: Colors.grey[50],
+                fillColor: AppColors.inputBackground(context),
               ),
               style: GoogleFonts.manrope(fontSize: 14),
             ),
@@ -905,7 +915,7 @@ class _BookingScreenState extends State<BookingScreen> {
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: Text('Cancel',
-                style: GoogleFonts.manrope(color: Colors.grey[600])),
+                style: GoogleFonts.manrope(color: AppColors.textSecondary(context))),
           ),
           ElevatedButton(
             onPressed: () {
@@ -987,7 +997,7 @@ class _BookingScreenState extends State<BookingScreen> {
                 style: GoogleFonts.manrope(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+                  color: AppColors.textPrimary(context),
                 ),
               ),
               const SizedBox(height: 12),
@@ -996,7 +1006,7 @@ class _BookingScreenState extends State<BookingScreen> {
                 'Mark this booking as completed?\nThe status will be updated in the system.',
                 style: GoogleFonts.manrope(
                   fontSize: 14,
-                  color: Colors.grey[600],
+                  color: AppColors.textSecondary(context),
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -1011,7 +1021,7 @@ class _BookingScreenState extends State<BookingScreen> {
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
-                          side: BorderSide(color: Colors.grey[300]!),
+                          side: BorderSide(color: AppColors.cardBorder(context)),
                         ),
                       ),
                       child: Text(
@@ -1019,7 +1029,7 @@ class _BookingScreenState extends State<BookingScreen> {
                         style: GoogleFonts.manrope(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: Colors.black87,
+                          color: AppColors.textPrimary(context),
                         ),
                       ),
                     ),
@@ -1272,7 +1282,7 @@ class _BookingScreenState extends State<BookingScreen> {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.grey[100],
+                          color: AppColors.inputBackground(context),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Column(
@@ -1308,10 +1318,10 @@ class _BookingScreenState extends State<BookingScreen> {
                       const SizedBox(height: 8),
                       DropdownButtonFormField<String>(
                         value: selectedPaymentMethod,
-                        dropdownColor: Colors.white,
-                        icon: const Icon(Icons.arrow_drop_down, color: Colors.black87),
+                        dropdownColor: AppColors.surface(context),
+                        icon: Icon(Icons.arrow_drop_down, color: AppColors.textPrimary(context)),
                         style: GoogleFonts.manrope(
-                          color: Colors.black87,
+                          color: AppColors.textPrimary(context),
                           fontWeight: FontWeight.w600,
                           fontSize: 14,
                         ),
@@ -1330,7 +1340,7 @@ class _BookingScreenState extends State<BookingScreen> {
                                   child: Text(
                                     method.toUpperCase(),
                                     style: GoogleFonts.manrope(
-                                      color: Colors.black87,
+                                      color: AppColors.textPrimary(context),
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
@@ -1469,7 +1479,7 @@ class _BookingScreenState extends State<BookingScreen> {
                   child: Text(
                     'Cancel',
                     style: GoogleFonts.manrope(
-                      color: Colors.grey[600],
+                      color: AppColors.textSecondary(context),
                     ),
                   ),
                 ),
@@ -1550,7 +1560,7 @@ class _BookingScreenState extends State<BookingScreen> {
                 style: GoogleFonts.manrope(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+                  color: AppColors.textPrimary(context),
                 ),
               ),
               const SizedBox(height: 12),
@@ -1559,7 +1569,7 @@ class _BookingScreenState extends State<BookingScreen> {
                 'Are you sure you want to delete this booking?\nThis action cannot be undone.',
                 style: GoogleFonts.manrope(
                   fontSize: 14,
-                  color: Colors.grey[600],
+                  color: AppColors.textSecondary(context),
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -1574,7 +1584,7 @@ class _BookingScreenState extends State<BookingScreen> {
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
-                          side: BorderSide(color: Colors.grey[300]!),
+                          side: BorderSide(color: AppColors.cardBorder(context)),
                         ),
                       ),
                       child: Text(
@@ -1582,7 +1592,7 @@ class _BookingScreenState extends State<BookingScreen> {
                         style: GoogleFonts.manrope(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: Colors.black87,
+                          color: AppColors.textPrimary(context),
                         ),
                       ),
                     ),

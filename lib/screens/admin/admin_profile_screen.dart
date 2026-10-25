@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import '../../services/theme_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -111,7 +112,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
   void _showImagePickerModal() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.surface(context),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -127,7 +128,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                   style: GoogleFonts.manrope(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                    color: AppColors.textPrimary(context),
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -395,12 +396,12 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: AppColors.inputBackground(context),
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.surface(context),
         elevation: 0.5,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black87),
+          icon: Icon(Icons.arrow_back, color: AppColors.textPrimary(context)),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -408,7 +409,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
           style: GoogleFonts.manrope(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: Colors.black87,
+            color: AppColors.textPrimary(context),
           ),
         ),
         centerTitle: true,
@@ -449,9 +450,9 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                     Container(
                       padding: const EdgeInsets.all(18),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: AppColors.surface(context),
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.grey[200]!),
+                        border: Border.all(color: AppColors.cardBorder(context)),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withOpacity(0.03),
@@ -501,7 +502,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                               icon: Icons.email_outlined,
                               helperText: 'Primary login identifier',
                             ),
-                            style: GoogleFonts.manrope(color: Colors.grey[700]),
+                            style: GoogleFonts.manrope(color: AppColors.textSecondary(context)),
                           ),
                           const SizedBox(height: 16),
 
@@ -526,9 +527,9 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                     Container(
                       padding: const EdgeInsets.all(18),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: AppColors.surface(context),
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.grey[200]!),
+                        border: Border.all(color: AppColors.cardBorder(context)),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withOpacity(0.03),
@@ -544,7 +545,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                             'Leave password fields blank if you do not wish to change your password.',
                             style: GoogleFonts.manrope(
                               fontSize: 12.5,
-                              color: Colors.grey[600],
+                              color: AppColors.textSecondary(context),
                             ),
                           ),
                           const SizedBox(height: 16),
@@ -561,7 +562,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                                   _obscureNewPassword
                                       ? Icons.visibility_off
                                       : Icons.visibility,
-                                  color: Colors.grey[600],
+                                  color: AppColors.textSecondary(context),
                                 ),
                                 onPressed: () => setState(() =>
                                     _obscureNewPassword = !_obscureNewPassword),
@@ -583,7 +584,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                                   _obscureConfirmPassword
                                       ? Icons.visibility_off
                                       : Icons.visibility,
-                                  color: Colors.grey[600],
+                                  color: AppColors.textSecondary(context),
                                 ),
                                 onPressed: () => setState(() =>
                                     _obscureConfirmPassword =
@@ -647,7 +648,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
           style: GoogleFonts.manrope(
             fontSize: 15,
             fontWeight: FontWeight.bold,
-            color: Colors.black87,
+            color: AppColors.textPrimary(context),
           ),
         ),
       ],
@@ -662,25 +663,25 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
   }) {
     return InputDecoration(
       labelText: label,
-      labelStyle: GoogleFonts.manrope(color: Colors.grey[600], fontSize: 13.5),
+      labelStyle: GoogleFonts.manrope(color: AppColors.textSecondary(context), fontSize: 13.5),
       prefixIcon: Icon(icon, color: primaryBlue, size: 20),
       suffixIcon: suffixIcon,
       helperText: helperText,
       helperStyle: GoogleFonts.manrope(color: Colors.grey[500], fontSize: 11),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.grey[300]!),
+        borderSide: BorderSide(color: AppColors.cardBorder(context)),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.grey[300]!),
+        borderSide: BorderSide(color: AppColors.cardBorder(context)),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: const BorderSide(color: primaryBlue, width: 2),
       ),
       filled: true,
-      fillColor: Colors.grey[50],
+      fillColor: AppColors.inputBackground(context),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
     );
   }

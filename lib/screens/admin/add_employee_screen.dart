@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import '../../services/theme_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../services/employee_service.dart';
@@ -385,19 +386,19 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background(context),
       appBar: AppBar(
         title: Text(
           'Add Barber / Staff',
           style: GoogleFonts.manrope(
             fontWeight: FontWeight.bold,
-            color: Colors.black87,
+            color: AppColors.textPrimary(context),
           ),
         ),
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.surface(context),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black87),
+          icon: Icon(Icons.arrow_back, color: AppColors.textPrimary(context)),
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
@@ -583,7 +584,7 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
                     Text(
                       'Create login credentials so this barber can log in and view their daily customer appointments.',
                       style: GoogleFonts.manrope(
-                          fontSize: 12, color: Colors.grey[600]),
+                          fontSize: 12, color: AppColors.textSecondary(context)),
                     ),
                     const SizedBox(height: 16),
 
@@ -596,7 +597,7 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
                         border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12)),
                         filled: true,
-                        fillColor: Colors.white,
+                        fillColor: AppColors.surface(context),
                         hintText: 'e.g. marcus_barber',
                       ),
                       style: GoogleFonts.manrope(),
@@ -620,7 +621,7 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
                         border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12)),
                         filled: true,
-                        fillColor: Colors.white,
+                        fillColor: AppColors.surface(context),
                         hintText: 'e.g. barber123',
                       ),
                       style: GoogleFonts.manrope(),
@@ -641,7 +642,7 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
                       ? 'Barber is active and available for customer bookings'
                       : 'Barber is inactive',
                   style: GoogleFonts.manrope(
-                      fontSize: 12, color: Colors.grey[600]),
+                      fontSize: 12, color: AppColors.textSecondary(context)),
                 ),
                 value: _isActive,
                 activeColor: const Color(0xFF5BBCFF),

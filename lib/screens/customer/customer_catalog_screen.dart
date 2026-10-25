@@ -147,7 +147,8 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
                             decoration: BoxDecoration(
                               color: AppColors.inputBackground(context),
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: AppColors.inputBorder(context)),
+                              border: Border.all(
+                                  color: AppColors.inputBorder(context)),
                             ),
                             child: TextField(
                               controller: _searchController,
@@ -156,8 +157,8 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
                                 hintStyle: GoogleFonts.manrope(
                                   color: AppColors.textSecondary(context),
                                 ),
-                                prefixIcon:
-                                    Icon(Icons.search, color: AppColors.textSecondary(context)),
+                                prefixIcon: Icon(Icons.search,
+                                    color: AppColors.textSecondary(context)),
                                 border: InputBorder.none,
                                 contentPadding: const EdgeInsets.symmetric(
                                   horizontal: 16,
@@ -260,7 +261,7 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
                                     : 'No services available',
                                 style: GoogleFonts.manrope(
                                   fontSize: 16,
-                                  color: Colors.grey[600],
+                                  color: AppColors.textSecondary(context),
                                 ),
                               ),
                             ],
@@ -283,7 +284,10 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
                                         : 2,
                             crossAxisSpacing: 14,
                             mainAxisSpacing: 14,
-                            childAspectRatio: 0.95,
+                            // Height fits the 90px photo, name, 2-line description and the
+                            // price/button row; grows with the phone's text size.
+                            mainAxisExtent: 112 +
+                                104 * MediaQuery.textScalerOf(context).scale(1),
                           ),
                           itemCount: _filteredServices.length,
                           itemBuilder: (context, index) {
@@ -321,7 +325,9 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
       ),
       backgroundColor: AppColors.inputBackground(context),
       side: BorderSide(
-        color: isSelected ? const Color(0xFF5BBCFF) : AppColors.inputBorder(context),
+        color: isSelected
+            ? const Color(0xFF5BBCFF)
+            : AppColors.inputBorder(context),
       ),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
     );
@@ -572,7 +578,8 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(AppColors.isDark(context) ? 0.2 : 0.04),
+            color: Colors.black
+                .withOpacity(AppColors.isDark(context) ? 0.2 : 0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -699,14 +706,21 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Text(
-                        _formatPrice(price),
-                        style: GoogleFonts.manrope(
-                          fontSize: 14.5,
-                          fontWeight: FontWeight.w800,
-                          color: const Color(0xFF0F8751),
+                      Flexible(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            _formatPrice(price),
+                            style: GoogleFonts.manrope(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              color: const Color(0xFF0F8751),
+                            ),
+                          ),
                         ),
                       ),
+                      const SizedBox(width: 6),
                       ElevatedButton(
                         onPressed: () async {
                           final result = await Navigator.push(
@@ -734,8 +748,9 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
                           backgroundColor: const Color(0xFF5BBCFF),
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 0),
-                          minimumSize: const Size(60, 26),
+                              horizontal: 12, vertical: 0),
+                          minimumSize: const Size(0, 32),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
@@ -744,7 +759,7 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
                         child: Text(
                           'Book Now',
                           style: GoogleFonts.manrope(
-                            fontSize: 10.5,
+                            fontSize: 11.5,
                             fontWeight: FontWeight.bold,
                             color: Colors.white,
                           ),
@@ -767,13 +782,17 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
     if (n.contains('classic')) return 'assets/catalog/1.png';
     if (n.contains('fade') || n.contains('skin')) return 'assets/catalog/2.jpg';
     if (n.contains('kid') || n.contains('child')) return 'assets/catalog/3.jpg';
-    if (n.contains('styling') || n.contains('style') || c.contains('styling')) return 'assets/catalog/4.png';
-    if ((n.contains('beard') && !n.contains('haircut')) || c.contains('beard')) return 'assets/catalog/5.jpg';
-    if (n.contains('beard') || n.contains('package')) return 'assets/catalog/6.jpg';
+    if (n.contains('styling') || n.contains('style') || c.contains('styling'))
+      return 'assets/catalog/4.png';
+    if ((n.contains('beard') && !n.contains('haircut')) || c.contains('beard'))
+      return 'assets/catalog/5.jpg';
+    if (n.contains('beard') || n.contains('package'))
+      return 'assets/catalog/6.jpg';
     return 'assets/catalog/1.png';
   }
 
-  Widget _buildCustomerCatalogImage(String? photo, {String? serviceName, String? categoryName}) {
+  Widget _buildCustomerCatalogImage(String? photo,
+      {String? serviceName, String? categoryName}) {
     const double imgHeight = 90.0;
     String? clean = photo?.trim();
     if (clean == null || clean.isEmpty) {

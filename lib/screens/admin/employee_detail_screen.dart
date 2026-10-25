@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import '../../services/theme_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../services/employee_service.dart';
@@ -320,7 +321,7 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                 style: GoogleFonts.manrope(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+                  color: AppColors.textPrimary(context),
                 ),
               ),
               const SizedBox(height: 12),
@@ -328,7 +329,7 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                 'Are you sure you want to deactivate this barber?\nThey will no longer appear in customer booking schedules.',
                 style: GoogleFonts.manrope(
                   fontSize: 14,
-                  color: Colors.grey[600],
+                  color: AppColors.textSecondary(context),
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -342,7 +343,7 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
-                          side: BorderSide(color: Colors.grey[300]!),
+                          side: BorderSide(color: AppColors.cardBorder(context)),
                         ),
                       ),
                       child: Text(
@@ -350,7 +351,7 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                         style: GoogleFonts.manrope(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: Colors.black87,
+                          color: AppColors.textPrimary(context),
                         ),
                       ),
                     ),
@@ -523,25 +524,25 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background(context),
       appBar: AppBar(
         title: Text(
           _isEditing ? 'Edit Barber' : 'Barber Details',
           style: GoogleFonts.manrope(
             fontWeight: FontWeight.bold,
-            color: Colors.black87,
+            color: AppColors.textPrimary(context),
           ),
         ),
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.surface(context),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black87),
+          icon: Icon(Icons.arrow_back, color: AppColors.textPrimary(context)),
           onPressed: () => Navigator.pop(context, true),
         ),
         actions: [
           if (!_isEditing) ...[
             IconButton(
-              icon: const Icon(Icons.edit, color: Colors.black87),
+              icon: Icon(Icons.edit, color: AppColors.textPrimary(context)),
               onPressed: () {
                 setState(() {
                   _isEditing = true;
@@ -557,7 +558,7 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
             ),
           ] else ...[
             IconButton(
-              icon: const Icon(Icons.close, color: Colors.black87),
+              icon: Icon(Icons.close, color: AppColors.textPrimary(context)),
               onPressed: () {
                 setState(() {
                   _isEditing = false;

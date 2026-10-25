@@ -51,17 +51,25 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<ThemeMode>(
-      valueListenable: ThemeService.themeModeNotifier,
-      builder: (context, themeMode, _) {
-        return MaterialApp(
-          scaffoldMessengerKey: appMessengerKey,
-          title: 'Liem Barber Shop',
-          theme: AppTheme.lightTheme,
-          darkTheme: AppTheme.darkTheme,
-          themeMode: themeMode,
-          home: const AuthGate(),
-          debugShowCheckedModeBanner: false,
+    // The sign-in screens are designed for light mode only, so the saved
+    // dark/light preference applies once someone is signed in.
+    return StreamBuilder<AuthState>(
+      stream: Supabase.instance.client.auth.onAuthStateChange,
+      builder: (context, _) {
+        final signedIn = Supabase.instance.client.auth.currentSession != null;
+        return ValueListenableBuilder<ThemeMode>(
+          valueListenable: ThemeService.themeModeNotifier,
+          builder: (context, themeMode, _) {
+            return MaterialApp(
+              scaffoldMessengerKey: appMessengerKey,
+              title: 'Liem Barber Shop',
+              theme: AppTheme.lightTheme,
+              darkTheme: AppTheme.darkTheme,
+              themeMode: signedIn ? themeMode : ThemeMode.light,
+              home: const AuthGate(),
+              debugShowCheckedModeBanner: false,
+            );
+          },
         );
       },
     );
@@ -125,7 +133,8 @@ class _AuthGateState extends State<AuthGate> {
 
         if (role == 'admin' || role == 'manager' || role == 'cashier') {
           setState(() {
-            _targetScreen = AdminHomeScreen(username: user['username'] as String?);
+            _targetScreen =
+                AdminHomeScreen(username: user['username'] as String?);
             _isChecking = false;
           });
         } else if (role == 'barber' || role == 'staff') {
@@ -207,7 +216,8 @@ class _ConnectionErrorScreen extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.wifi_off_rounded, size: 56, color: Colors.grey),
+                const Icon(Icons.wifi_off_rounded,
+                    size: 56, color: Colors.grey),
                 const SizedBox(height: 16),
                 Text(
                   "Can't reach Liem Barber Shop",

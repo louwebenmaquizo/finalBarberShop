@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../../services/theme_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../services/auth_session_service.dart';
 import '../../services/booking_service.dart';
@@ -241,7 +242,7 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
           children: [
             Text(
               'Customer: ${appointment['customer_name'] ?? 'Guest'} • ${appointment['service_name'] ?? 'Service'}',
-              style: GoogleFonts.manrope(fontSize: 13, color: Colors.grey[600]),
+              style: GoogleFonts.manrope(fontSize: 13, color: AppColors.textSecondary(context)),
             ),
             const SizedBox(height: 16),
             TextField(
@@ -255,7 +256,7 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
                 border:
                     OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 filled: true,
-                fillColor: Colors.grey[50],
+                fillColor: AppColors.inputBackground(context),
               ),
               style: GoogleFonts.manrope(fontSize: 14),
             ),
@@ -265,7 +266,7 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: Text('Cancel',
-                style: GoogleFonts.manrope(color: Colors.grey[600])),
+                style: GoogleFonts.manrope(color: AppColors.textSecondary(context))),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -321,7 +322,7 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: Text('Cancel',
-                style: GoogleFonts.manrope(color: Colors.grey[600])),
+                style: GoogleFonts.manrope(color: AppColors.textSecondary(context))),
           ),
           ElevatedButton(
             onPressed: () {
@@ -353,8 +354,8 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
+        color: AppColors.surface(context),
+        border: Border(bottom: BorderSide(color: AppColors.cardBorder(context))),
       ),
       child: Row(
         children: [
@@ -376,7 +377,7 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
                         style: GoogleFonts.manrope(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                          color: AppColors.textPrimary(context),
                         ),
                       ),
                     ),
@@ -404,7 +405,7 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
                   "Today's Customer Queue",
                   style: GoogleFonts.manrope(
                     fontSize: 13,
-                    color: Colors.grey[600],
+                    color: AppColors.textSecondary(context),
                   ),
                 ),
               ],
@@ -418,8 +419,8 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
                 icon: Stack(
                   clipBehavior: Clip.none,
                   children: [
-                    const Icon(Icons.notifications_outlined,
-                        color: Colors.black87),
+                    Icon(Icons.notifications_outlined,
+                        color: AppColors.textPrimary(context)),
                     if (unreadCount > 0)
                       Positioned(
                         right: -2,
@@ -520,7 +521,7 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
             label,
             style: GoogleFonts.manrope(
                 fontSize: 10,
-                color: Colors.grey[700],
+                color: AppColors.textSecondary(context),
                 fontWeight: FontWeight.w500),
           ),
         ],
@@ -557,11 +558,11 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
       },
       selectedColor: const Color(0xFF5BBCFF),
       labelStyle: GoogleFonts.manrope(
-        color: isSelected ? Colors.white : Colors.black87,
+        color: isSelected ? Colors.white : AppColors.textPrimary(context),
         fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
         fontSize: 13,
       ),
-      backgroundColor: Colors.grey[100],
+      backgroundColor: AppColors.inputBackground(context),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
     );
   }
@@ -600,14 +601,14 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface(context),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: status == 'in_progress'
               ? const Color(0xFF5BBCFF)
               : status == 'pending'
                   ? Colors.orange[300]!
-                  : Colors.grey[200]!,
+                  : AppColors.cardBorder(context),
           width: status == 'in_progress' || status == 'pending' ? 2 : 1,
         ),
         boxShadow: [
@@ -637,7 +638,7 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
                         style: GoogleFonts.manrope(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                          color: AppColors.textPrimary(context),
                         ),
                       ),
                       if (customerPhone.isNotEmpty) ...[
@@ -650,7 +651,7 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
                             Text(
                               customerPhone,
                               style: GoogleFonts.manrope(
-                                  fontSize: 12, color: Colors.grey[600]),
+                                  fontSize: 12, color: AppColors.textSecondary(context)),
                             ),
                           ],
                         ),
@@ -715,7 +716,7 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
                 Text(
                   '$timeStr  •  $dateStr',
                   style: GoogleFonts.manrope(
-                      fontSize: 13, color: Colors.grey[700]),
+                      fontSize: 13, color: AppColors.textSecondary(context)),
                 ),
               ],
             ),
@@ -881,7 +882,7 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: Text('Cancel',
-                style: GoogleFonts.manrope(color: Colors.grey[600])),
+                style: GoogleFonts.manrope(color: AppColors.textSecondary(context))),
           ),
           ElevatedButton(
             onPressed: () {
@@ -968,7 +969,7 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
         if (didPop) return;
       },
       child: Scaffold(
-        backgroundColor: Colors.grey[50],
+        backgroundColor: AppColors.inputBackground(context),
         body: SafeArea(
           child: RefreshIndicator(
             onRefresh: _loadAppointments,
@@ -1013,7 +1014,7 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
                                     ? 'No customers scheduled for cuts today.'
                                     : 'No appointments found for this filter.',
                                 style: GoogleFonts.manrope(
-                                    color: Colors.grey[600], fontSize: 13),
+                                    color: AppColors.textSecondary(context), fontSize: 13),
                                 textAlign: TextAlign.center,
                               ),
                             ],

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import '../../services/theme_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../config/countries.dart';
@@ -30,7 +31,8 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _dateOfBirthController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
 
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
@@ -53,8 +55,12 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
   void initState() {
     super.initState();
     final data = widget.userData ?? {};
-    final existingName = (data['full_name'] ?? data['name'] ?? data['username'] ?? '').toString();
-    if (existingName.isNotEmpty && !existingName.contains('@') && existingName.toLowerCase() != 'user') {
+    final existingName =
+        (data['full_name'] ?? data['name'] ?? data['username'] ?? '')
+            .toString();
+    if (existingName.isNotEmpty &&
+        !existingName.contains('@') &&
+        existingName.toLowerCase() != 'user') {
       _fullNameController.text = existingName;
     }
     final existingEmail = (data['email'] ?? '').toString();
@@ -76,9 +82,12 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
           _barbers = employees.where((e) {
             final isActive = e['is_active'];
             bool active = false;
-            if (isActive is bool) active = isActive;
-            else if (isActive is int) active = isActive == 1;
-            else if (isActive is String) active = isActive == '1' || isActive.toLowerCase() == 'true';
+            if (isActive is bool)
+              active = isActive;
+            else if (isActive is int)
+              active = isActive == 1;
+            else if (isActive is String)
+              active = isActive == '1' || isActive.toLowerCase() == 'true';
             return active;
           }).toList();
           _isLoadingBarbers = false;
@@ -115,7 +124,8 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
       if (pass.isNotEmpty && pass.length < 8) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Password must be at least 8 characters', style: GoogleFonts.manrope()),
+            content: Text('Password must be at least 8 characters',
+                style: GoogleFonts.manrope()),
             backgroundColor: Colors.red,
           ),
         );
@@ -124,7 +134,8 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
       if (pass.isNotEmpty && pass != confirm) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Passwords do not match', style: GoogleFonts.manrope()),
+            content:
+                Text('Passwords do not match', style: GoogleFonts.manrope()),
             backgroundColor: Colors.red,
           ),
         );
@@ -172,7 +183,8 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
     if (phone.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Phone number is required', style: GoogleFonts.manrope()),
+          content:
+              Text('Phone number is required', style: GoogleFonts.manrope()),
           backgroundColor: Colors.red,
         ),
       );
@@ -197,7 +209,8 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
     });
 
     try {
-      final phoneNumber = '${_selectedCountry.dialCode}${_phoneController.text.trim()}';
+      final phoneNumber =
+          '${_selectedCountry.dialCode}${_phoneController.text.trim()}';
 
       final customerData = <String, dynamic>{
         'full_name': fullName,
@@ -252,6 +265,16 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
             await AuthSessionService.saveSession(updatedUser);
           }
 
+          if (mounted && result['warning'] != null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(result['warning'].toString()),
+                backgroundColor: Colors.orange[800],
+                duration: const Duration(seconds: 6),
+              ),
+            );
+          }
+
           if (mounted) {
             Navigator.pushAndRemoveUntil(
               context,
@@ -263,7 +286,8 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
             );
           }
         } else {
-          final errorMsg = result['message'] ?? 'Failed to save profile. Please try again.';
+          final errorMsg =
+              result['message'] ?? 'Failed to save profile. Please try again.';
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(errorMsg, style: GoogleFonts.manrope()),
@@ -431,55 +455,59 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      resizeToAvoidBottomInset: false,
-      appBar: AppBar(
+    return Theme(
+      // Sign-in flow screens are designed for light mode only.
+      data: AppTheme.lightTheme,
+      child: Scaffold(
         backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () {
-            if (_currentStep > 0) {
-              _previousStep();
-            } else {
-              _confirmSignOut();
-            }
-          },
-        ),
-        actions: [
-          TextButton(
-            onPressed: _confirmSignOut,
-            child: Text(
-              'Sign Out',
-              style: GoogleFonts.manrope(
-                color: Colors.grey[600],
-                fontWeight: FontWeight.w600,
-                fontSize: 13,
-              ),
-            ),
+        resizeToAvoidBottomInset: false,
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.black),
+            onPressed: () {
+              if (_currentStep > 0) {
+                _previousStep();
+              } else {
+                _confirmSignOut();
+              }
+            },
           ),
-        ],
-      ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 520),
-          child: Column(
-            children: [
-              _buildProgressIndicator(),
-              Expanded(
-                child: PageView(
-                  controller: _pageController,
-                  physics: const NeverScrollableScrollPhysics(),
-                  children: [
-                    _buildPersonalInformationStep(),
-                    _buildUploadPictureStep(),
-                    _buildPreferenceStep(),
-                    _buildTermsStep(),
-                  ],
+          actions: [
+            TextButton(
+              onPressed: _confirmSignOut,
+              child: Text(
+                'Sign Out',
+                style: GoogleFonts.manrope(
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
                 ),
               ),
-            ],
+            ),
+          ],
+        ),
+        body: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 520),
+            child: Column(
+              children: [
+                _buildProgressIndicator(),
+                Expanded(
+                  child: PageView(
+                    controller: _pageController,
+                    physics: const NeverScrollableScrollPhysics(),
+                    children: [
+                      _buildPersonalInformationStep(),
+                      _buildUploadPictureStep(),
+                      _buildPreferenceStep(),
+                      _buildTermsStep(),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -490,7 +518,8 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Sign Out?', style: GoogleFonts.manrope(fontWeight: FontWeight.bold)),
+        title: Text('Sign Out?',
+            style: GoogleFonts.manrope(fontWeight: FontWeight.bold)),
         content: Text(
           'Are you sure you want to exit setup and sign out?',
           style: GoogleFonts.manrope(),
@@ -644,7 +673,8 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                       color: Color(0xFF22C55E),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.check, size: 14, color: Colors.white),
+                    child:
+                        const Icon(Icons.check, size: 14, color: Colors.white),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -751,7 +781,9 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                 labelStyle: GoogleFonts.manrope(color: Colors.grey[600]),
                 suffixIcon: IconButton(
                   icon: Icon(
-                    _obscureConfirmPassword ? Icons.visibility_off : Icons.visibility,
+                    _obscureConfirmPassword
+                        ? Icons.visibility_off
+                        : Icons.visibility,
                     size: 20,
                     color: Colors.grey[600],
                   ),
@@ -856,8 +888,8 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                 ),
                 filled: true,
                 fillColor: Colors.grey[50],
-                contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 16),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               ),
               style: GoogleFonts.manrope(),
             ),
@@ -1011,7 +1043,6 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
             ),
           ),
           const SizedBox(height: 36),
-
           Center(
             child: GestureDetector(
               onTap: _showImagePickerOptions,
@@ -1114,7 +1145,6 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
               ),
             ),
           const SizedBox(height: 36),
-
           SizedBox(
             width: double.infinity,
             height: 55,
@@ -1158,7 +1188,6 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
             ),
           ),
           const SizedBox(height: 32),
-
           Container(
             decoration: BoxDecoration(
               color: Colors.grey[50],
@@ -1187,7 +1216,8 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                 : DropdownButtonFormField<String>(
                     value: _selectedBarber,
                     dropdownColor: Colors.white,
-                    icon: const Icon(Icons.arrow_drop_down, color: Colors.black87),
+                    icon: const Icon(Icons.arrow_drop_down,
+                        color: Colors.black87),
                     style: GoogleFonts.manrope(
                       color: Colors.black87,
                       fontSize: 14,
@@ -1264,7 +1294,6 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                   ),
           ),
           const SizedBox(height: 24),
-
           Container(
             decoration: BoxDecoration(
               color: Colors.grey[50],
@@ -1312,7 +1341,6 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
             ),
           ),
           const SizedBox(height: 48),
-
           SizedBox(
             width: double.infinity,
             height: 55,
@@ -1356,7 +1384,6 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
             ),
           ),
           const SizedBox(height: 24),
-
           RichText(
             text: TextSpan(
               style: GoogleFonts.manrope(
@@ -1378,13 +1405,13 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                   ),
                 ),
                 const TextSpan(
-                  text: '.\n\nBy checking the box below, you agree to these terms.',
+                  text:
+                      '.\n\nBy checking the box below, you agree to these terms.',
                 ),
               ],
             ),
           ),
           const SizedBox(height: 24),
-
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -1426,13 +1453,13 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
             ],
           ),
           const SizedBox(height: 48),
-
           SizedBox(
             width: double.infinity,
             height: 55,
             child: ElevatedButton(
-              onPressed:
-                  (_agreeToTerms && !_isLoading) ? _handleCompleteProfile : null,
+              onPressed: (_agreeToTerms && !_isLoading)
+                  ? _handleCompleteProfile
+                  : null,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xB25BBCFF),
                 disabledBackgroundColor: Colors.grey[300],

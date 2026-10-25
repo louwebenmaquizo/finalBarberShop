@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../../services/theme_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../services/api_service.dart';
 import '../../services/booking_service.dart';
@@ -198,7 +199,7 @@ class _CustomerAppointmentsScreenState
             onPressed: () => Navigator.pop(context, false),
             child: Text(
               'No',
-              style: GoogleFonts.manrope(color: Colors.grey[600]),
+              style: GoogleFonts.manrope(color: AppColors.textSecondary(context)),
             ),
           ),
           ElevatedButton(
@@ -287,7 +288,7 @@ class _CustomerAppointmentsScreenState
                     'How would you rate your experience?',
                     style: GoogleFonts.manrope(
                       fontSize: 14,
-                      color: Colors.grey[700],
+                      color: AppColors.textSecondary(context),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -330,7 +331,7 @@ class _CustomerAppointmentsScreenState
                     style: GoogleFonts.manrope(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: Colors.black87,
+                      color: AppColors.textPrimary(context),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -344,11 +345,11 @@ class _CustomerAppointmentsScreenState
                       ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey[300]!),
+                        borderSide: BorderSide(color: AppColors.cardBorder(context)),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey[300]!),
+                        borderSide: BorderSide(color: AppColors.cardBorder(context)),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -358,7 +359,7 @@ class _CustomerAppointmentsScreenState
                         ),
                       ),
                       filled: true,
-                      fillColor: Colors.grey[50],
+                      fillColor: AppColors.inputBackground(context),
                       contentPadding: const EdgeInsets.all(12),
                     ),
                     style: GoogleFonts.manrope(),
@@ -378,7 +379,7 @@ class _CustomerAppointmentsScreenState
               child: Text(
                 'Cancel',
                 style: GoogleFonts.manrope(
-                  color: Colors.grey[600],
+                  color: AppColors.textSecondary(context),
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -559,12 +560,12 @@ class _CustomerAppointmentsScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: AppColors.inputBackground(context),
       body: Column(
         children: [
           // Fixed Header Section
           Container(
-            color: Colors.white,
+            color: AppColors.surface(context),
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -572,7 +573,7 @@ class _CustomerAppointmentsScreenState
                 // Search Bar
                 Container(
                   decoration: BoxDecoration(
-                    color: Colors.grey[100],
+                    color: AppColors.inputBackground(context),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: TextField(
@@ -580,9 +581,9 @@ class _CustomerAppointmentsScreenState
                     decoration: InputDecoration(
                       hintText: 'Search appointments...',
                       hintStyle: GoogleFonts.manrope(
-                        color: Colors.grey[600],
+                        color: AppColors.textSecondary(context),
                       ),
-                      prefixIcon: Icon(Icons.search, color: Colors.grey[600]),
+                      prefixIcon: Icon(Icons.search, color: AppColors.textSecondary(context)),
                       border: InputBorder.none,
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 16,
@@ -635,7 +636,7 @@ class _CustomerAppointmentsScreenState
                               'No appointments found',
                               style: GoogleFonts.manrope(
                                 fontSize: 16,
-                                color: Colors.grey[600],
+                                color: AppColors.textSecondary(context),
                               ),
                             ),
                           ],
@@ -663,10 +664,10 @@ class _CustomerAppointmentsScreenState
     return ElevatedButton(
       onPressed: () => _setStatusFilter(status),
       style: ElevatedButton.styleFrom(
-        backgroundColor: isSelected ? const Color(0xB25BBCFF) : Colors.white,
-        foregroundColor: isSelected ? Colors.white : Colors.black87,
+        backgroundColor: isSelected ? const Color(0xB25BBCFF) : AppColors.surface(context),
+        foregroundColor: isSelected ? Colors.white : AppColors.textPrimary(context),
         side: BorderSide(
-          color: isSelected ? const Color(0xB25BBCFF) : Colors.grey[300]!,
+          color: isSelected ? const Color(0xB25BBCFF) : AppColors.cardBorder(context),
           width: 1,
         ),
         shape: RoundedRectangleBorder(
@@ -699,10 +700,10 @@ class _CustomerAppointmentsScreenState
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface(context),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Colors.grey[300]!,
+          color: AppColors.cardBorder(context),
           width: 1,
         ),
         boxShadow: [
@@ -739,7 +740,7 @@ class _CustomerAppointmentsScreenState
                     style: GoogleFonts.manrope(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                      color: AppColors.textPrimary(context),
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -749,24 +750,24 @@ class _CustomerAppointmentsScreenState
                   Row(
                     children: [
                       Icon(Icons.calendar_today,
-                          size: 14, color: Colors.grey[600]),
+                          size: 14, color: AppColors.textSecondary(context)),
                       const SizedBox(width: 4),
                       Text(
                         date,
                         style: GoogleFonts.manrope(
                           fontSize: 12,
-                          color: Colors.grey[600],
+                          color: AppColors.textSecondary(context),
                         ),
                       ),
                       const SizedBox(width: 12),
                       Icon(Icons.access_time,
-                          size: 14, color: Colors.grey[600]),
+                          size: 14, color: AppColors.textSecondary(context)),
                       const SizedBox(width: 4),
                       Text(
                         time,
                         style: GoogleFonts.manrope(
                           fontSize: 12,
-                          color: Colors.grey[600],
+                          color: AppColors.textSecondary(context),
                         ),
                       ),
                     ],
@@ -775,13 +776,13 @@ class _CustomerAppointmentsScreenState
                   // Barber Name
                   Row(
                     children: [
-                      Icon(Icons.person, size: 14, color: Colors.grey[600]),
+                      Icon(Icons.person, size: 14, color: AppColors.textSecondary(context)),
                       const SizedBox(width: 4),
                       Text(
                         staffName,
                         style: GoogleFonts.manrope(
                           fontSize: 12,
-                          color: Colors.grey[600],
+                          color: AppColors.textSecondary(context),
                         ),
                       ),
                     ],

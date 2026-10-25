@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../services/theme_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../config/shop_info.dart';
 import '../../services/booking_service.dart';
@@ -358,7 +359,7 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
                 style: GoogleFonts.manrope(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+                  color: AppColors.textPrimary(context),
                 ),
               ),
               const SizedBox(height: 16),
@@ -366,7 +367,7 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.grey[50],
+                  color: AppColors.inputBackground(context),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Column(
@@ -392,7 +393,7 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
-                          side: BorderSide(color: Colors.grey[300]!),
+                          side: BorderSide(color: AppColors.cardBorder(context)),
                         ),
                       ),
                       child: Text(
@@ -400,7 +401,7 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
                         style: GoogleFonts.manrope(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: Colors.black87,
+                          color: AppColors.textPrimary(context),
                         ),
                       ),
                     ),
@@ -451,7 +452,7 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
             style: GoogleFonts.manrope(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: Colors.grey[700],
+              color: AppColors.textSecondary(context),
             ),
           ),
         ),
@@ -460,7 +461,7 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
             value,
             style: GoogleFonts.manrope(
               fontSize: 14,
-              color: Colors.black87,
+              color: AppColors.textPrimary(context),
             ),
           ),
         ),
@@ -579,12 +580,12 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background(context),
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.surface(context),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black87),
+          icon: Icon(Icons.arrow_back, color: AppColors.textPrimary(context)),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -592,7 +593,7 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
           style: GoogleFonts.manrope(
             fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: Colors.black87,
+            color: AppColors.textPrimary(context),
           ),
         ),
       ),
@@ -637,7 +638,7 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
                     style: GoogleFonts.manrope(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                      color: AppColors.textPrimary(context),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -647,9 +648,9 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
                     child: Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.grey[50],
+                        color: AppColors.inputBackground(context),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey[300]!),
+                        border: Border.all(color: AppColors.cardBorder(context)),
                       ),
                       child: Row(
                         children: [
@@ -663,13 +664,13 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
                               style: GoogleFonts.manrope(
                                 fontSize: 16,
                                 color: _selectedDate != null
-                                    ? Colors.black87
-                                    : Colors.grey[600],
+                                    ? AppColors.textPrimary(context)
+                                    : AppColors.textSecondary(context),
                               ),
                             ),
                           ),
                           Icon(Icons.arrow_forward_ios,
-                              size: 16, color: Colors.grey[600]!),
+                              size: 16, color: AppColors.textSecondary(context)),
                         ],
                       ),
                     ),
@@ -682,7 +683,7 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
                     style: GoogleFonts.manrope(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                      color: AppColors.textPrimary(context),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -692,9 +693,9 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
                     child: Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.grey[50],
+                        color: AppColors.inputBackground(context),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey[300]!),
+                        border: Border.all(color: AppColors.cardBorder(context)),
                       ),
                       child: Row(
                         children: [
@@ -708,13 +709,13 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
                               style: GoogleFonts.manrope(
                                 fontSize: 16,
                                 color: _selectedTime != null
-                                    ? Colors.black87
-                                    : Colors.grey[600],
+                                    ? AppColors.textPrimary(context)
+                                    : AppColors.textSecondary(context),
                               ),
                             ),
                           ),
                           Icon(Icons.arrow_forward_ios,
-                              size: 16, color: Colors.grey[600]!),
+                              size: 16, color: AppColors.textSecondary(context)),
                         ],
                       ),
                     ),
@@ -727,7 +728,7 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
                     style: GoogleFonts.manrope(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                      color: AppColors.textPrimary(context),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -745,7 +746,7 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
                                 child: Text(
                                   'No barbers available',
                                   style: GoogleFonts.manrope(
-                                    color: Colors.grey[600],
+                                    color: AppColors.textSecondary(context),
                                   ),
                                 ),
                               ),
@@ -805,10 +806,10 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
         margin: const EdgeInsets.only(right: 16),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: isSelected ? blueColor : Colors.grey[50],
+          color: isSelected ? blueColor : AppColors.inputBackground(context),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected ? blueColor : Colors.grey[300]!,
+            color: isSelected ? blueColor : AppColors.cardBorder(context),
             width: isSelected ? 2 : 1,
           ),
           boxShadow: isSelected
@@ -841,13 +842,13 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
                     decoration: BoxDecoration(
                       color: isSelected
                           ? Colors.white.withOpacity(0.3)
-                          : Colors.grey[300],
+                          : AppColors.cardBorder(context),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(
                       Icons.person,
                       size: 35,
-                      color: isSelected ? Colors.white : Colors.grey[600],
+                      color: isSelected ? Colors.white : AppColors.textSecondary(context),
                     ),
                   );
                 },
@@ -860,7 +861,7 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
               style: GoogleFonts.manrope(
                 fontSize: 13,
                 fontWeight: FontWeight.bold,
-                color: isSelected ? Colors.black : Colors.black87,
+                color: isSelected ? AppColors.textPrimary(context) : AppColors.textPrimary(context),
               ),
               textAlign: TextAlign.left,
               maxLines: 2,
@@ -874,7 +875,7 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
                 fontSize: 11,
                 color: isSelected
                     ? Colors.white.withOpacity(0.9)
-                    : Colors.grey[600],
+                    : AppColors.textSecondary(context),
               ),
               textAlign: TextAlign.left,
               maxLines: 1,

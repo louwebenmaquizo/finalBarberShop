@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import '../services/theme_service.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../config/api_config.dart';
@@ -17,11 +18,6 @@ import '../services/employee_service.dart';
 // Modern Executive Brand Palette (Liem Barber & Store Operations)
 const Color _primaryBlue = Color(0xFF5BBCFF); // App brand primary seed
 const Color _primaryDeep = Color(0xFF1E88E5); // Rich royal blue
-const Color _surfaceDark = Color(0xFF18181B); // Deep slate / Zinc 900
-const Color _surfaceBorder = Color(0xFFE4E4E7); // Subtle hairline border / Zinc 200
-const Color _surfaceLight = Color(0xFFF4F4F5); // Clean light neutral fill / Zinc 100
-const Color _textPrimary = Color(0xFF18181B);
-const Color _textSecondary = Color(0xFF71717A); // Neutral slate / Zinc 500
 const Color _accentOnline = Color(0xFF10B981); // Emerald green for online badge
 const LinearGradient _brandGradient = LinearGradient(
   colors: [Color(0xFF5BBCFF), Color(0xFF1E88E5)],
@@ -128,7 +124,7 @@ class _AiChatScreenState extends State<AiChatScreen>
               'New conversation started after 10 minutes of inactivity.',
               style: GoogleFonts.manrope(fontSize: 13, color: Colors.white),
             ),
-            backgroundColor: _surfaceDark,
+            backgroundColor: AppColors.strongFill(context),
             duration: const Duration(seconds: 3),
             behavior: SnackBarBehavior.floating,
           ),
@@ -517,7 +513,7 @@ class _AiChatScreenState extends State<AiChatScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background(context),
       body: SafeArea(
         child: Column(
           children: [
@@ -539,16 +535,16 @@ class _AiChatScreenState extends State<AiChatScreen>
   Widget _buildAppBar() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: AppColors.surface(context),
         border: Border(
-          bottom: BorderSide(color: _surfaceBorder, width: 1),
+          bottom: BorderSide(color: AppColors.cardBorder(context), width: 1),
         ),
       ),
       child: Row(
         children: [
           IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new, size: 18, color: _surfaceDark),
+            icon: Icon(Icons.arrow_back_ios_new, size: 18, color: AppColors.textPrimary(context)),
             onPressed: () => Navigator.of(context).pop(),
             splashRadius: 20,
           ),
@@ -601,7 +597,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                   style: GoogleFonts.manrope(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
-                    color: _surfaceDark,
+                    color: AppColors.textPrimary(context),
                     letterSpacing: -0.2,
                   ),
                 ),
@@ -612,7 +608,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                       : 'Liem Barber Shop · Online',
                   style: GoogleFonts.manrope(
                     fontSize: 11.5,
-                    color: _textSecondary,
+                    color: AppColors.textSecondary(context),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -620,7 +616,7 @@ class _AiChatScreenState extends State<AiChatScreen>
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.history_rounded, size: 21, color: _surfaceDark),
+            icon: Icon(Icons.history_rounded, size: 21, color: AppColors.textPrimary(context)),
             tooltip: 'Chat History',
             onPressed: _showHistorySheet,
             splashRadius: 20,
@@ -633,20 +629,20 @@ class _AiChatScreenState extends State<AiChatScreen>
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
-                  border: Border.all(color: _surfaceBorder),
+                  border: Border.all(color: AppColors.cardBorder(context)),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.add_rounded, size: 14, color: _surfaceDark),
+                    Icon(Icons.add_rounded, size: 14, color: AppColors.textPrimary(context)),
                     const SizedBox(width: 4),
                     Text(
                       'New',
                       style: GoogleFonts.manrope(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: _surfaceDark,
+                        color: AppColors.textPrimary(context),
                       ),
                     ),
                   ],
@@ -692,7 +688,7 @@ class _AiChatScreenState extends State<AiChatScreen>
             style: GoogleFonts.manrope(
               fontSize: 22,
               fontWeight: FontWeight.w700,
-              color: _surfaceDark,
+              color: AppColors.textPrimary(context),
               letterSpacing: -0.5,
             ),
           ),
@@ -704,7 +700,7 @@ class _AiChatScreenState extends State<AiChatScreen>
             textAlign: TextAlign.center,
             style: GoogleFonts.manrope(
               fontSize: 14,
-              color: _textSecondary,
+              color: AppColors.textSecondary(context),
               height: 1.4,
             ),
           ),
@@ -835,7 +831,7 @@ class _AiChatScreenState extends State<AiChatScreen>
             ),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: isUser ? null : Colors.white,
+              color: isUser ? null : AppColors.surface(context),
               gradient: isUser ? _brandGradient : null,
               borderRadius: BorderRadius.only(
                 topLeft: const Radius.circular(16),
@@ -843,7 +839,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                 bottomLeft: Radius.circular(isUser ? 16 : 4),
                 bottomRight: Radius.circular(isUser ? 4 : 16),
               ),
-              border: isUser ? null : Border.all(color: _surfaceBorder, width: 1),
+              border: isUser ? null : Border.all(color: AppColors.cardBorder(context), width: 1),
               boxShadow: [
                 BoxShadow(
                   color: isUser
@@ -896,9 +892,9 @@ class _AiChatScreenState extends State<AiChatScreen>
                         baseStyle: GoogleFonts.manrope(
                           fontSize: 14,
                           height: 1.5,
-                          color: _textPrimary,
+                          color: AppColors.textPrimary(context),
                         ),
-                        boldColor: _surfaceDark,
+                        boldColor: AppColors.textPrimary(context),
                       ),
                     ],
                   ),
@@ -992,14 +988,14 @@ class _AiChatScreenState extends State<AiChatScreen>
                   padding: const EdgeInsets.only(left: 4, bottom: 6),
                   child: Row(
                     children: [
-                      const Icon(Icons.content_cut_rounded, size: 13, color: _surfaceDark),
+                      Icon(Icons.content_cut_rounded, size: 13, color: AppColors.textPrimary(context)),
                       const SizedBox(width: 5),
                       Text(
                         'Recommended Styles:',
                         style: GoogleFonts.manrope(
                           fontSize: 11.5,
                           fontWeight: FontWeight.bold,
-                          color: _surfaceDark,
+                          color: AppColors.textPrimary(context),
                           letterSpacing: 0.3,
                         ),
                       ),
@@ -1022,14 +1018,14 @@ class _AiChatScreenState extends State<AiChatScreen>
                   padding: const EdgeInsets.only(left: 4, bottom: 6),
                   child: Row(
                     children: [
-                      const Icon(Icons.badge_outlined, size: 14, color: _surfaceDark),
+                      Icon(Icons.badge_outlined, size: 14, color: AppColors.textPrimary(context)),
                       const SizedBox(width: 5),
                       Text(
                         'Our Barbers & Stylists:',
                         style: GoogleFonts.manrope(
                           fontSize: 11.5,
                           fontWeight: FontWeight.bold,
-                          color: _surfaceDark,
+                          color: AppColors.textPrimary(context),
                           letterSpacing: 0.3,
                         ),
                       ),
@@ -1057,9 +1053,9 @@ class _AiChatScreenState extends State<AiChatScreen>
     return Container(
       margin: const EdgeInsets.only(bottom: 8, right: 24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface(context),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _surfaceBorder, width: 1),
+        border: Border.all(color: AppColors.cardBorder(context), width: 1),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.03),
@@ -1104,7 +1100,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                         style: GoogleFonts.manrope(
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
-                          color: _surfaceDark,
+                          color: AppColors.textPrimary(context),
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -1113,16 +1109,16 @@ class _AiChatScreenState extends State<AiChatScreen>
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
                             decoration: BoxDecoration(
-                              color: _surfaceLight,
+                              color: AppColors.inputBackground(context),
                               borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: _surfaceBorder),
+                              border: Border.all(color: AppColors.cardBorder(context)),
                             ),
                             child: Text(
                               price,
                               style: GoogleFonts.manrope(
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
-                                color: _surfaceDark,
+                                color: AppColors.textPrimary(context),
                               ),
                             ),
                           ),
@@ -1131,7 +1127,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                             '• $duration',
                             style: GoogleFonts.manrope(
                               fontSize: 12,
-                              color: _textSecondary,
+                              color: AppColors.textSecondary(context),
                             ),
                           ),
                         ],
@@ -1144,7 +1140,7 @@ class _AiChatScreenState extends State<AiChatScreen>
           ),
 
           // Divider
-          const Divider(height: 1, color: _surfaceBorder),
+          Divider(height: 1, color: AppColors.cardBorder(context)),
 
           // Action buttons: "View Hairstyle" and "Book Now"
           Row(
@@ -1159,14 +1155,14 @@ class _AiChatScreenState extends State<AiChatScreen>
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.remove_red_eye_outlined, size: 15, color: _surfaceDark),
+                        Icon(Icons.remove_red_eye_outlined, size: 15, color: AppColors.textPrimary(context)),
                         const SizedBox(width: 6),
                         Text(
                           'View Style',
                           style: GoogleFonts.manrope(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
-                            color: _surfaceDark,
+                            color: AppColors.textPrimary(context),
                           ),
                         ),
                       ],
@@ -1175,7 +1171,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                 ),
               ),
 
-              Container(height: 28, width: 1, color: _surfaceBorder),
+              Container(height: 28, width: 1, color: AppColors.cardBorder(context)),
 
               // Book Now button
               Expanded(
@@ -1187,14 +1183,14 @@ class _AiChatScreenState extends State<AiChatScreen>
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.calendar_month_rounded, size: 15, color: _surfaceDark),
+                        Icon(Icons.calendar_month_rounded, size: 15, color: AppColors.textPrimary(context)),
                         const SizedBox(width: 6),
                         Text(
                           'Book This',
                           style: GoogleFonts.manrope(
                             fontSize: 13,
                             fontWeight: FontWeight.bold,
-                            color: _surfaceDark,
+                            color: AppColors.textPrimary(context),
                           ),
                         ),
                       ],
@@ -1213,8 +1209,8 @@ class _AiChatScreenState extends State<AiChatScreen>
     return Container(
       width: 54,
       height: 54,
-      color: _surfaceLight,
-      child: const Icon(Icons.content_cut_rounded, color: _surfaceDark, size: 22),
+      color: AppColors.inputBackground(context),
+      child: Icon(Icons.content_cut_rounded, color: AppColors.textPrimary(context), size: 22),
     );
   }
 
@@ -1288,7 +1284,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                       style: GoogleFonts.manrope(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: Colors.black87,
+                        color: AppColors.textPrimary(context),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -1296,7 +1292,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                       description,
                       style: GoogleFonts.manrope(
                         fontSize: 14,
-                        color: Colors.grey[700],
+                        color: AppColors.textSecondary(context),
                         height: 1.4,
                       ),
                     ),
@@ -1312,7 +1308,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                           _showInChatBookingModal(service: service);
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: _surfaceDark,
+                          backgroundColor: AppColors.strongFill(context),
                           elevation: 0,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                         ),
@@ -1346,10 +1342,10 @@ class _AiChatScreenState extends State<AiChatScreen>
     return Container(
       margin: const EdgeInsets.only(bottom: 10, right: 24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface(context),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: _surfaceBorder,
+          color: AppColors.cardBorder(context),
           width: 1,
         ),
         boxShadow: [
@@ -1383,7 +1379,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                               style: GoogleFonts.manrope(
                                 fontSize: 15,
                                 fontWeight: FontWeight.bold,
-                                color: _surfaceDark,
+                                color: AppColors.textPrimary(context),
                               ),
                             ),
                           ),
@@ -1391,16 +1387,16 @@ class _AiChatScreenState extends State<AiChatScreen>
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 7, vertical: 2.5),
                             decoration: BoxDecoration(
-                              color: _surfaceLight,
+                              color: AppColors.inputBackground(context),
                               borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: _surfaceBorder),
+                              border: Border.all(color: AppColors.cardBorder(context)),
                             ),
                             child: Text(
                               role,
                               style: GoogleFonts.manrope(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
-                                color: _surfaceDark,
+                                color: AppColors.textPrimary(context),
                               ),
                             ),
                           ),
@@ -1410,8 +1406,8 @@ class _AiChatScreenState extends State<AiChatScreen>
                         const SizedBox(height: 4),
                         Row(
                           children: [
-                            const Icon(Icons.workspace_premium_outlined,
-                                size: 13, color: _textSecondary),
+                            Icon(Icons.workspace_premium_outlined,
+                                size: 13, color: AppColors.textSecondary(context)),
                             const SizedBox(width: 4),
                             Expanded(
                               child: Text(
@@ -1420,7 +1416,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                                 overflow: TextOverflow.ellipsis,
                                 style: GoogleFonts.manrope(
                                   fontSize: 12,
-                                  color: _textSecondary,
+                                  color: AppColors.textSecondary(context),
                                 ),
                               ),
                             ),
@@ -1435,7 +1431,7 @@ class _AiChatScreenState extends State<AiChatScreen>
           ),
 
           // Divider
-          const Divider(height: 1, color: _surfaceBorder),
+          Divider(height: 1, color: AppColors.cardBorder(context)),
 
           // Action buttons: "View Profile" and "Book Barber"
           Row(
@@ -1451,15 +1447,15 @@ class _AiChatScreenState extends State<AiChatScreen>
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.person_outline_rounded,
-                            size: 15, color: _surfaceDark),
+                        Icon(Icons.person_outline_rounded,
+                            size: 15, color: AppColors.textPrimary(context)),
                         const SizedBox(width: 6),
                         Text(
                           'View Profile',
                           style: GoogleFonts.manrope(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
-                            color: _surfaceDark,
+                            color: AppColors.textPrimary(context),
                           ),
                         ),
                       ],
@@ -1468,7 +1464,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                 ),
               ),
 
-              Container(height: 28, width: 1, color: _surfaceBorder),
+              Container(height: 28, width: 1, color: AppColors.cardBorder(context)),
 
               // Book with Barber
               Expanded(
@@ -1481,15 +1477,15 @@ class _AiChatScreenState extends State<AiChatScreen>
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.calendar_month_rounded,
-                            size: 15, color: _surfaceDark),
+                        Icon(Icons.calendar_month_rounded,
+                            size: 15, color: AppColors.textPrimary(context)),
                         const SizedBox(width: 6),
                         Text(
                           'Book Barber',
                           style: GoogleFonts.manrope(
                             fontSize: 13,
                             fontWeight: FontWeight.bold,
-                            color: _surfaceDark,
+                            color: AppColors.textPrimary(context),
                           ),
                         ),
                       ],
@@ -1534,7 +1530,7 @@ class _AiChatScreenState extends State<AiChatScreen>
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: _surfaceDark,
+        color: AppColors.strongFill(context),
         borderRadius: BorderRadius.circular(size / 3.5),
         boxShadow: [
           BoxShadow(
@@ -1569,7 +1565,7 @@ class _AiChatScreenState extends State<AiChatScreen>
     showDialog(
       context: context,
       builder: (ctx) => Dialog(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.surface(context),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         child: SingleChildScrollView(
           child: Padding(
@@ -1585,16 +1581,16 @@ class _AiChatScreenState extends State<AiChatScreen>
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: _surfaceLight,
+                        color: AppColors.inputBackground(context),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: _surfaceBorder),
+                        border: Border.all(color: AppColors.cardBorder(context)),
                       ),
                       child: Text(
                         'Barber Profile',
                         style: GoogleFonts.manrope(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
-                          color: _surfaceDark,
+                          color: AppColors.textPrimary(context),
                         ),
                       ),
                     ),
@@ -1615,7 +1611,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                   style: GoogleFonts.manrope(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
-                    color: _surfaceDark,
+                    color: AppColors.textPrimary(context),
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -1623,7 +1619,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                   role,
                   style: GoogleFonts.manrope(
                     fontSize: 14,
-                    color: _textSecondary,
+                    color: AppColors.textSecondary(context),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -1634,24 +1630,24 @@ class _AiChatScreenState extends State<AiChatScreen>
                   width: double.infinity,
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade50,
+                    color: AppColors.inputBackground(context),
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: Colors.grey.shade200),
+                    border: Border.all(color: AppColors.cardBorder(context)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.workspace_premium_outlined,
-                              size: 16, color: _surfaceDark),
+                          Icon(Icons.workspace_premium_outlined,
+                              size: 16, color: AppColors.textPrimary(context)),
                           const SizedBox(width: 6),
                           Text(
                             'Specialties & Skills',
                             style: GoogleFonts.manrope(
                               fontSize: 13,
                               fontWeight: FontWeight.bold,
-                              color: _surfaceDark,
+                              color: AppColors.textPrimary(context),
                             ),
                           ),
                         ],
@@ -1661,24 +1657,24 @@ class _AiChatScreenState extends State<AiChatScreen>
                         skills,
                         style: GoogleFonts.manrope(
                           fontSize: 13,
-                          color: Colors.grey[700],
+                          color: AppColors.textSecondary(context),
                           height: 1.4,
                         ),
                       ),
                       if (phone.isNotEmpty || email.isNotEmpty) ...[
                         const SizedBox(height: 10),
-                        Divider(height: 1, color: Colors.grey[200]),
+                        Divider(height: 1, color: AppColors.cardBorder(context)),
                         const SizedBox(height: 10),
                         if (phone.isNotEmpty)
                           Row(
                             children: [
                               Icon(Icons.phone_outlined,
-                                  size: 14, color: Colors.grey[600]),
+                                  size: 14, color: AppColors.textSecondary(context)),
                               const SizedBox(width: 6),
                               Text(phone,
                                   style: GoogleFonts.manrope(
                                       fontSize: 12.5,
-                                      color: Colors.grey[600])),
+                                      color: AppColors.textSecondary(context))),
                             ],
                           ),
                       ],
@@ -1707,7 +1703,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                       ),
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: _surfaceDark,
+                      backgroundColor: AppColors.strongFill(context),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14)),
                       elevation: 0,
@@ -1836,14 +1832,14 @@ class _AiChatScreenState extends State<AiChatScreen>
         margin: const EdgeInsets.only(top: 4, bottom: 4, right: 60),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.surface(context),
           borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(16),
             topRight: Radius.circular(16),
             bottomLeft: Radius.circular(4),
             bottomRight: Radius.circular(16),
           ),
-          border: Border.all(color: _surfaceBorder, width: 1),
+          border: Border.all(color: AppColors.cardBorder(context), width: 1),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.03),
@@ -1902,16 +1898,13 @@ class _AiChatScreenState extends State<AiChatScreen>
 
   Widget _buildInputBar() {
     return Container(
-      padding: EdgeInsets.fromLTRB(
-        16,
-        10,
-        16,
-        12 + MediaQuery.of(context).viewInsets.bottom,
-      ),
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      // The Scaffold already lifts the body above the keyboard; adding the
+      // keyboard height here as well left a keyboard-sized gap.
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+      decoration: BoxDecoration(
+        color: AppColors.surface(context),
         border: Border(
-          top: BorderSide(color: _surfaceBorder, width: 1),
+          top: BorderSide(color: AppColors.cardBorder(context), width: 1),
         ),
       ),
       child: Column(
@@ -1974,9 +1967,9 @@ class _AiChatScreenState extends State<AiChatScreen>
               Expanded(
                 child: Container(
                   decoration: BoxDecoration(
-                    color: _surfaceLight,
+                    color: AppColors.inputBackground(context),
                     borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: _surfaceBorder, width: 1),
+                    border: Border.all(color: AppColors.cardBorder(context), width: 1),
                   ),
                   child: TextField(
                     controller: _controller,
@@ -1987,14 +1980,14 @@ class _AiChatScreenState extends State<AiChatScreen>
                     onSubmitted: _send,
                     style: GoogleFonts.manrope(
                       fontSize: 14,
-                      color: _surfaceDark,
+                      color: AppColors.textPrimary(context),
                     ),
                     decoration: InputDecoration(
                       hintText: _isAdmin
                           ? 'Ask bookings, revenue, or store tasks...'
                           : 'Ask anything about services & barbers...',
                       hintStyle: GoogleFonts.manrope(
-                        color: _textSecondary,
+                        color: AppColors.textSecondary(context),
                         fontSize: 13.5,
                       ),
                       border: InputBorder.none,
@@ -2054,19 +2047,19 @@ class _AiChatScreenState extends State<AiChatScreen>
     return Container(
       margin: const EdgeInsets.only(right: 8),
       child: ActionChip(
-        avatar: Icon(icon, size: 13, color: _surfaceDark),
+        avatar: Icon(icon, size: 13, color: AppColors.textPrimary(context)),
         label: Text(
           label,
           style: GoogleFonts.manrope(
             fontSize: 11.5,
             fontWeight: FontWeight.w600,
-            color: _surfaceDark,
+            color: AppColors.textPrimary(context),
           ),
         ),
-        backgroundColor: _surfaceLight,
+        backgroundColor: AppColors.inputBackground(context),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: _surfaceBorder, width: 1),
+          side: BorderSide(color: AppColors.cardBorder(context), width: 1),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 4),
         onPressed: onTap,
@@ -2106,10 +2099,10 @@ class _AiChatScreenState extends State<AiChatScreen>
     return Container(
       margin: const EdgeInsets.only(top: 8, bottom: 8, right: 20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface(context),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isConfirmed ? Colors.green.shade400 : _surfaceBorder,
+          color: isConfirmed ? Colors.green.shade400 : AppColors.cardBorder(context),
           width: 1,
         ),
         boxShadow: [
@@ -2129,7 +2122,7 @@ class _AiChatScreenState extends State<AiChatScreen>
             decoration: BoxDecoration(
               color: isConfirmed
                   ? Colors.green.shade50
-                  : _surfaceLight,
+                  : AppColors.inputBackground(context),
               borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
             ),
             child: Row(
@@ -2137,7 +2130,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                 Icon(
                   isConfirmed ? Icons.check_circle_rounded : Icons.inventory_2_outlined,
                   size: 16,
-                  color: isConfirmed ? Colors.green.shade700 : _surfaceDark,
+                  color: isConfirmed ? Colors.green.shade700 : AppColors.textPrimary(context),
                 ),
                 const SizedBox(width: 8),
                 Text(
@@ -2146,7 +2139,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
                     letterSpacing: 0.5,
-                    color: isConfirmed ? Colors.green.shade800 : _surfaceDark,
+                    color: isConfirmed ? Colors.green.shade800 : AppColors.textPrimary(context),
                   ),
                 ),
               ],
@@ -2164,7 +2157,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                   style: GoogleFonts.manrope(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                    color: AppColors.textPrimary(context),
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -2173,15 +2166,15 @@ class _AiChatScreenState extends State<AiChatScreen>
                   runSpacing: 4,
                   children: [
                     _buildParamBadge(Icons.payments_outlined, price, const Color(0xFF2E7D32)),
-                    _buildParamBadge(Icons.timer_outlined, duration, Colors.black87),
-                    _buildParamBadge(Icons.category_outlined, category, Colors.black87),
+                    _buildParamBadge(Icons.timer_outlined, duration, AppColors.textPrimary(context)),
+                    _buildParamBadge(Icons.category_outlined, category, AppColors.textPrimary(context)),
                   ],
                 ),
                 if (description.isNotEmpty) ...[
                   const SizedBox(height: 8),
                   Text(
                     description,
-                    style: GoogleFonts.manrope(fontSize: 12.5, color: Colors.grey[700]),
+                    style: GoogleFonts.manrope(fontSize: 12.5, color: AppColors.textSecondary(context)),
                   ),
                 ],
                 const SizedBox(height: 12),
@@ -2232,7 +2225,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                             ),
                           ),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.black87,
+                            backgroundColor: AppColors.strongFill(context),
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 11),
                             shape: RoundedRectangleBorder(
@@ -2268,10 +2261,10 @@ class _AiChatScreenState extends State<AiChatScreen>
     return Container(
       margin: const EdgeInsets.only(top: 8, bottom: 8, right: 20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface(context),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isConfirmed ? Colors.green.shade400 : _surfaceBorder,
+          color: isConfirmed ? Colors.green.shade400 : AppColors.cardBorder(context),
           width: 1,
         ),
         boxShadow: [
@@ -2291,7 +2284,7 @@ class _AiChatScreenState extends State<AiChatScreen>
             decoration: BoxDecoration(
               color: isConfirmed
                   ? Colors.green.shade50
-                  : _surfaceLight,
+                  : AppColors.inputBackground(context),
               borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
             ),
             child: Row(
@@ -2299,7 +2292,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                 Icon(
                   isConfirmed ? Icons.check_circle_rounded : Icons.person_add_alt_1_rounded,
                   size: 16,
-                  color: isConfirmed ? Colors.green.shade700 : _surfaceDark,
+                  color: isConfirmed ? Colors.green.shade700 : AppColors.textPrimary(context),
                 ),
                 const SizedBox(width: 8),
                 Text(
@@ -2308,7 +2301,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
                     letterSpacing: 0.5,
-                    color: isConfirmed ? Colors.green.shade800 : _surfaceDark,
+                    color: isConfirmed ? Colors.green.shade800 : AppColors.textPrimary(context),
                   ),
                 ),
               ],
@@ -2326,7 +2319,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                   style: GoogleFonts.manrope(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                    color: AppColors.textPrimary(context),
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -2334,19 +2327,19 @@ class _AiChatScreenState extends State<AiChatScreen>
                   spacing: 8,
                   runSpacing: 4,
                   children: [
-                    _buildParamBadge(Icons.badge_outlined, role, _surfaceDark),
+                    _buildParamBadge(Icons.badge_outlined, role, AppColors.textPrimary(context)),
                     if (phone.isNotEmpty)
-                      _buildParamBadge(Icons.phone_outlined, phone, Colors.black87),
+                      _buildParamBadge(Icons.phone_outlined, phone, AppColors.textPrimary(context)),
                     if (email.isNotEmpty)
-                      _buildParamBadge(Icons.email_outlined, email, Colors.black87),
-                    _buildParamBadge(Icons.lock_outline_rounded, 'Pass: Barber@1234', Colors.grey.shade700),
+                      _buildParamBadge(Icons.email_outlined, email, AppColors.textPrimary(context)),
+                    _buildParamBadge(Icons.lock_outline_rounded, 'Temp password shown after saving', AppColors.textSecondary(context)),
                   ],
                 ),
                 if (specialties.isNotEmpty) ...[
                   const SizedBox(height: 8),
                   Text(
                     'Skills: $specialties',
-                    style: GoogleFonts.manrope(fontSize: 12.5, color: Colors.grey[700]),
+                    style: GoogleFonts.manrope(fontSize: 12.5, color: AppColors.textSecondary(context)),
                   ),
                 ],
                 const SizedBox(height: 12),
@@ -2362,7 +2355,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                     ),
                     child: Center(
                       child: Text(
-                        '✓ Staff Account Active (Default pass: Barber@1234)',
+                        '✓ Staff account created',
                         style: GoogleFonts.manrope(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
@@ -2397,7 +2390,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                             ),
                           ),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.black87,
+                            backgroundColor: AppColors.strongFill(context),
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 11),
                             shape: RoundedRectangleBorder(
@@ -2420,9 +2413,9 @@ class _AiChatScreenState extends State<AiChatScreen>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
+        color: AppColors.inputBackground(context),
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: Colors.grey.shade300, width: 0.6),
+        border: Border.all(color: AppColors.cardBorder(context), width: 0.6),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -2714,9 +2707,9 @@ class _AdminBarberFormCardState extends State<_AdminBarberFormCard> {
     return Container(
       margin: const EdgeInsets.only(top: 8, bottom: 8, right: 20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface(context),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _surfaceBorder, width: 1),
+        border: Border.all(color: AppColors.cardBorder(context), width: 1),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -2834,7 +2827,7 @@ class _AdminBarberFormCardState extends State<_AdminBarberFormCard> {
                         style: GoogleFonts.manrope(
                           fontSize: 11.5,
                           fontWeight: FontWeight.w600,
-                          color: _textSecondary,
+                          color: AppColors.textSecondary(context),
                           letterSpacing: 0.3,
                         ),
                       ),
@@ -2843,9 +2836,9 @@ class _AdminBarberFormCardState extends State<_AdminBarberFormCard> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 2),
                         decoration: BoxDecoration(
-                          color: _surfaceLight,
+                          color: AppColors.inputBackground(context),
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: _surfaceBorder),
+                          border: Border.all(color: AppColors.cardBorder(context)),
                         ),
                         child: DropdownButtonHideUnderline(
                           child: DropdownButton<String>(
@@ -2853,11 +2846,11 @@ class _AdminBarberFormCardState extends State<_AdminBarberFormCard> {
                             isExpanded: true,
                             style: GoogleFonts.manrope(
                               fontSize: 13.5,
-                              color: _textPrimary,
+                              color: AppColors.textPrimary(context),
                               fontWeight: FontWeight.w500,
                             ),
-                            icon: const Icon(Icons.keyboard_arrow_down_rounded,
-                                size: 18, color: _textSecondary),
+                            icon: Icon(Icons.keyboard_arrow_down_rounded,
+                                size: 18, color: AppColors.textSecondary(context)),
                             items: _roles
                                 .map((r) => DropdownMenuItem(
                                       value: r,
@@ -2893,7 +2886,7 @@ class _AdminBarberFormCardState extends State<_AdminBarberFormCard> {
                         style: GoogleFonts.manrope(
                           fontSize: 11.5,
                           fontWeight: FontWeight.w600,
-                          color: _textSecondary,
+                          color: AppColors.textSecondary(context),
                           letterSpacing: 0.3,
                         ),
                       ),
@@ -2902,37 +2895,37 @@ class _AdminBarberFormCardState extends State<_AdminBarberFormCard> {
                         controller: _passwordCtrl,
                         obscureText: _obscurePassword,
                         style: GoogleFonts.manrope(
-                            fontSize: 13.5, color: _textPrimary),
+                            fontSize: 13.5, color: AppColors.textPrimary(context)),
                         decoration: InputDecoration(
                           hintText: 'Leave blank to auto-generate',
                           hintStyle: GoogleFonts.manrope(
-                              fontSize: 13, color: _textSecondary),
-                          prefixIcon: const Icon(Icons.lock_outline_rounded,
-                              size: 17, color: _textSecondary),
+                              fontSize: 13, color: AppColors.textSecondary(context)),
+                          prefixIcon: Icon(Icons.lock_outline_rounded,
+                              size: 17, color: AppColors.textSecondary(context)),
                           suffixIcon: IconButton(
                             icon: Icon(
                               _obscurePassword
                                   ? Icons.visibility_off_outlined
                                   : Icons.visibility_outlined,
                               size: 17,
-                              color: _textSecondary,
+                              color: AppColors.textSecondary(context),
                             ),
                             onPressed: () => setState(
                                 () => _obscurePassword = !_obscurePassword),
                           ),
                           filled: true,
-                          fillColor: _surfaceLight,
+                          fillColor: AppColors.inputBackground(context),
                           contentPadding: const EdgeInsets.symmetric(
                               horizontal: 12, vertical: 10),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                             borderSide:
-                                const BorderSide(color: _surfaceBorder),
+                                BorderSide(color: AppColors.cardBorder(context)),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                             borderSide:
-                                const BorderSide(color: _surfaceBorder),
+                                BorderSide(color: AppColors.cardBorder(context)),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
@@ -2977,7 +2970,7 @@ class _AdminBarberFormCardState extends State<_AdminBarberFormCard> {
                         ),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: _surfaceDark,
+                        backgroundColor: AppColors.strongFill(context),
                         foregroundColor: Colors.white,
                         elevation: 0,
                         shape: RoundedRectangleBorder(
@@ -2991,7 +2984,7 @@ class _AdminBarberFormCardState extends State<_AdminBarberFormCard> {
                     child: Text(
                       '* Required fields',
                       style: GoogleFonts.manrope(
-                          fontSize: 11, color: _textSecondary),
+                          fontSize: 11, color: AppColors.textSecondary(context)),
                     ),
                   ),
                   if (_errorMessage != null) ...[
@@ -3049,7 +3042,7 @@ class _AdminBarberFormCardState extends State<_AdminBarberFormCard> {
           style: GoogleFonts.manrope(
             fontSize: 11.5,
             fontWeight: FontWeight.w600,
-            color: _textSecondary,
+            color: AppColors.textSecondary(context),
             letterSpacing: 0.3,
           ),
         ),
@@ -3058,24 +3051,24 @@ class _AdminBarberFormCardState extends State<_AdminBarberFormCard> {
           controller: controller,
           keyboardType: keyboardType,
           style:
-              GoogleFonts.manrope(fontSize: 13.5, color: _textPrimary),
+              GoogleFonts.manrope(fontSize: 13.5, color: AppColors.textPrimary(context)),
           decoration: InputDecoration(
             hintText: hint,
             hintStyle:
-                GoogleFonts.manrope(fontSize: 13, color: _textSecondary),
+                GoogleFonts.manrope(fontSize: 13, color: AppColors.textSecondary(context)),
             prefixIcon:
-                Icon(icon, size: 17, color: _textSecondary),
+                Icon(icon, size: 17, color: AppColors.textSecondary(context)),
             filled: true,
-            fillColor: _surfaceLight,
+            fillColor: AppColors.inputBackground(context),
             contentPadding: const EdgeInsets.symmetric(
                 horizontal: 12, vertical: 10),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: _surfaceBorder),
+              borderSide: BorderSide(color: AppColors.cardBorder(context)),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: _surfaceBorder),
+              borderSide: BorderSide(color: AppColors.cardBorder(context)),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
@@ -3258,9 +3251,9 @@ class _AdminCatalogFormCardState extends State<_AdminCatalogFormCard> {
     return Container(
       margin: const EdgeInsets.only(top: 8, bottom: 8, right: 20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface(context),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _surfaceBorder, width: 1),
+        border: Border.all(color: AppColors.cardBorder(context), width: 1),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -3335,7 +3328,7 @@ class _AdminCatalogFormCardState extends State<_AdminCatalogFormCard> {
                         style: GoogleFonts.manrope(
                           fontSize: 11.5,
                           fontWeight: FontWeight.w600,
-                          color: _textSecondary,
+                          color: AppColors.textSecondary(context),
                           letterSpacing: 0.3,
                         ),
                       ),
@@ -3343,9 +3336,9 @@ class _AdminCatalogFormCardState extends State<_AdminCatalogFormCard> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
                         decoration: BoxDecoration(
-                          color: _surfaceLight,
+                          color: AppColors.inputBackground(context),
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: _surfaceBorder),
+                          border: Border.all(color: AppColors.cardBorder(context)),
                         ),
                         child: DropdownButtonHideUnderline(
                           child: DropdownButton<String>(
@@ -3355,11 +3348,11 @@ class _AdminCatalogFormCardState extends State<_AdminCatalogFormCard> {
                             isExpanded: true,
                             style: GoogleFonts.manrope(
                               fontSize: 13.5,
-                              color: _textPrimary,
+                              color: AppColors.textPrimary(context),
                               fontWeight: FontWeight.w500,
                             ),
-                            icon: const Icon(Icons.keyboard_arrow_down_rounded,
-                                size: 18, color: _textSecondary),
+                            icon: Icon(Icons.keyboard_arrow_down_rounded,
+                                size: 18, color: AppColors.textSecondary(context)),
                             items: categoryItems,
                             onChanged: (v) {
                               if (v != null) {
@@ -3393,7 +3386,7 @@ class _AdminCatalogFormCardState extends State<_AdminCatalogFormCard> {
                               style: GoogleFonts.manrope(
                                 fontSize: 11.5,
                                 fontWeight: FontWeight.w600,
-                                color: _textSecondary,
+                                color: AppColors.textSecondary(context),
                                 letterSpacing: 0.3,
                               ),
                             ),
@@ -3401,26 +3394,26 @@ class _AdminCatalogFormCardState extends State<_AdminCatalogFormCard> {
                             TextFormField(
                               controller: _priceCtrl,
                               keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                              style: GoogleFonts.manrope(fontSize: 13.5, color: _textPrimary),
+                              style: GoogleFonts.manrope(fontSize: 13.5, color: AppColors.textPrimary(context)),
                               decoration: InputDecoration(
                                 hintText: '250',
-                                hintStyle: GoogleFonts.manrope(fontSize: 13, color: _textSecondary),
+                                hintStyle: GoogleFonts.manrope(fontSize: 13, color: AppColors.textSecondary(context)),
                                 prefixText: '₱ ',
                                 prefixStyle: GoogleFonts.manrope(
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,
-                                  color: _textPrimary,
+                                  color: AppColors.textPrimary(context),
                                 ),
                                 filled: true,
-                                fillColor: _surfaceLight,
+                                fillColor: AppColors.inputBackground(context),
                                 contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(10),
-                                  borderSide: const BorderSide(color: _surfaceBorder),
+                                  borderSide: BorderSide(color: AppColors.cardBorder(context)),
                                 ),
                                 enabledBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(10),
-                                  borderSide: const BorderSide(color: _surfaceBorder),
+                                  borderSide: BorderSide(color: AppColors.cardBorder(context)),
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(10),
@@ -3461,7 +3454,7 @@ class _AdminCatalogFormCardState extends State<_AdminCatalogFormCard> {
                               style: GoogleFonts.manrope(
                                 fontSize: 11.5,
                                 fontWeight: FontWeight.w600,
-                                color: _textSecondary,
+                                color: AppColors.textSecondary(context),
                                 letterSpacing: 0.3,
                               ),
                             ),
@@ -3469,9 +3462,9 @@ class _AdminCatalogFormCardState extends State<_AdminCatalogFormCard> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
                               decoration: BoxDecoration(
-                                color: _surfaceLight,
+                                color: AppColors.inputBackground(context),
                                 borderRadius: BorderRadius.circular(10),
-                                border: Border.all(color: _surfaceBorder),
+                                border: Border.all(color: AppColors.cardBorder(context)),
                               ),
                               child: DropdownButtonHideUnderline(
                                 child: DropdownButton<int>(
@@ -3479,11 +3472,11 @@ class _AdminCatalogFormCardState extends State<_AdminCatalogFormCard> {
                                   isExpanded: true,
                                   style: GoogleFonts.manrope(
                                     fontSize: 13.5,
-                                    color: _textPrimary,
+                                    color: AppColors.textPrimary(context),
                                     fontWeight: FontWeight.w500,
                                   ),
-                                  icon: const Icon(Icons.keyboard_arrow_down_rounded,
-                                      size: 18, color: _textSecondary),
+                                  icon: Icon(Icons.keyboard_arrow_down_rounded,
+                                      size: 18, color: AppColors.textSecondary(context)),
                                   items: _durationOptions
                                       .map((d) => DropdownMenuItem(
                                             value: d,
@@ -3535,7 +3528,7 @@ class _AdminCatalogFormCardState extends State<_AdminCatalogFormCard> {
                         ),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: _surfaceDark,
+                        backgroundColor: AppColors.strongFill(context),
                         foregroundColor: Colors.white,
                         elevation: 0,
                         shape: RoundedRectangleBorder(
@@ -3548,7 +3541,7 @@ class _AdminCatalogFormCardState extends State<_AdminCatalogFormCard> {
                   Center(
                     child: Text(
                       '* Required fields',
-                      style: GoogleFonts.manrope(fontSize: 11, color: _textSecondary),
+                      style: GoogleFonts.manrope(fontSize: 11, color: AppColors.textSecondary(context)),
                     ),
                   ),
                   if (_errorMessage != null) ...[
@@ -3604,7 +3597,7 @@ class _AdminCatalogFormCardState extends State<_AdminCatalogFormCard> {
           style: GoogleFonts.manrope(
             fontSize: 11.5,
             fontWeight: FontWeight.w600,
-            color: _textSecondary,
+            color: AppColors.textSecondary(context),
             letterSpacing: 0.3,
           ),
         ),
@@ -3612,21 +3605,21 @@ class _AdminCatalogFormCardState extends State<_AdminCatalogFormCard> {
         TextFormField(
           controller: controller,
           keyboardType: keyboardType,
-          style: GoogleFonts.manrope(fontSize: 13.5, color: _textPrimary),
+          style: GoogleFonts.manrope(fontSize: 13.5, color: AppColors.textPrimary(context)),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: GoogleFonts.manrope(fontSize: 13, color: _textSecondary),
-            prefixIcon: Icon(icon, size: 17, color: _textSecondary),
+            hintStyle: GoogleFonts.manrope(fontSize: 13, color: AppColors.textSecondary(context)),
+            prefixIcon: Icon(icon, size: 17, color: AppColors.textSecondary(context)),
             filled: true,
-            fillColor: _surfaceLight,
+            fillColor: AppColors.inputBackground(context),
             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: _surfaceBorder),
+              borderSide: BorderSide(color: AppColors.cardBorder(context)),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: _surfaceBorder),
+              borderSide: BorderSide(color: AppColors.cardBorder(context)),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
@@ -3842,7 +3835,7 @@ class _InChatBookingSheetState extends State<_InChatBookingSheet> {
     final initial = name.trim().isNotEmpty ? name.trim()[0].toUpperCase() : 'B';
     return CircleAvatar(
       radius: 17,
-      backgroundColor: _surfaceDark,
+      backgroundColor: AppColors.strongFill(context),
       child: Text(
         initial,
         style: const TextStyle(
@@ -3862,8 +3855,8 @@ class _InChatBookingSheetState extends State<_InChatBookingSheet> {
     return Container(
       padding: EdgeInsets.fromLTRB(
           20, 16, 20, 20 + MediaQuery.of(context).viewInsets.bottom),
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: AppColors.surface(context),
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: SingleChildScrollView(
@@ -3878,7 +3871,7 @@ class _InChatBookingSheetState extends State<_InChatBookingSheet> {
                 height: 4,
                 margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
-                  color: Colors.grey[300],
+                  color: AppColors.cardBorder(context),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -3896,7 +3889,7 @@ class _InChatBookingSheetState extends State<_InChatBookingSheet> {
                         style: GoogleFonts.manrope(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
-                          color: _surfaceDark,
+                          color: AppColors.textPrimary(context),
                         ),
                       ),
                       Text(
@@ -3904,7 +3897,7 @@ class _InChatBookingSheetState extends State<_InChatBookingSheet> {
                         style: GoogleFonts.manrope(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                          color: AppColors.textPrimary(context),
                         ),
                       ),
                     ],
@@ -3914,16 +3907,16 @@ class _InChatBookingSheetState extends State<_InChatBookingSheet> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                    color: _surfaceLight,
+                    color: AppColors.inputBackground(context),
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: _surfaceBorder),
+                    border: Border.all(color: AppColors.cardBorder(context)),
                   ),
                   child: Text(
                     '$price • $duration',
                     style: GoogleFonts.manrope(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
-                      color: _surfaceDark,
+                      color: AppColors.textPrimary(context),
                     ),
                   ),
                 ),
@@ -3957,17 +3950,17 @@ class _InChatBookingSheetState extends State<_InChatBookingSheet> {
                           fontSize: 12,
                           fontWeight:
                               isSel ? FontWeight.bold : FontWeight.normal,
-                          color: isSel ? Colors.white : _surfaceDark,
+                          color: isSel ? Colors.white : AppColors.textPrimary(context),
                         ),
                       ),
                       selected: isSel,
                       onSelected: (_) => setState(() => _selectedService = s),
-                      selectedColor: _surfaceDark,
-                      backgroundColor: _surfaceLight,
+                      selectedColor: AppColors.strongFill(context),
+                      backgroundColor: AppColors.inputBackground(context),
                       side: BorderSide(
                         color: isSel
-                            ? _surfaceDark
-                            : _surfaceBorder,
+                            ? AppColors.strongFill(context)
+                            : AppColors.cardBorder(context),
                       ),
                     );
                   },
@@ -4001,12 +3994,12 @@ class _InChatBookingSheetState extends State<_InChatBookingSheet> {
                           horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
                         color: isSelected
-                            ? _surfaceLight
-                            : Colors.white,
+                            ? AppColors.inputBackground(context)
+                            : AppColors.surface(context),
                         border: Border.all(
                           color: isSelected
-                              ? _surfaceDark
-                              : _surfaceBorder,
+                              ? AppColors.strongFill(context)
+                              : AppColors.cardBorder(context),
                           width: 1.5,
                         ),
                         borderRadius: BorderRadius.circular(14),
@@ -4025,13 +4018,13 @@ class _InChatBookingSheetState extends State<_InChatBookingSheet> {
                                 style: GoogleFonts.manrope(
                                   fontSize: 13,
                                   fontWeight: FontWeight.bold,
-                                  color: _surfaceDark,
+                                  color: AppColors.textPrimary(context),
                                 ),
                               ),
                               Text(
                                 (barber['role'] ?? 'Barber').toString(),
                                 style: GoogleFonts.manrope(
-                                    fontSize: 10, color: _textSecondary),
+                                    fontSize: 10, color: AppColors.textSecondary(context)),
                               ),
                             ],
                           ),
@@ -4099,11 +4092,11 @@ class _InChatBookingSheetState extends State<_InChatBookingSheet> {
                         horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
                       color: isSelected
-                          ? _surfaceDark
-                          : _surfaceLight,
+                          ? AppColors.strongFill(context)
+                          : AppColors.inputBackground(context),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: isSelected ? _surfaceDark : _surfaceBorder,
+                        color: isSelected ? AppColors.strongFill(context) : AppColors.cardBorder(context),
                       ),
                     ),
                     child: Text(
@@ -4112,7 +4105,7 @@ class _InChatBookingSheetState extends State<_InChatBookingSheet> {
                         fontSize: 12,
                         fontWeight:
                             isSelected ? FontWeight.bold : FontWeight.normal,
-                        color: isSelected ? Colors.white : _surfaceDark,
+                        color: isSelected ? Colors.white : AppColors.textPrimary(context),
                       ),
                     ),
                   ),
@@ -4138,7 +4131,7 @@ class _InChatBookingSheetState extends State<_InChatBookingSheet> {
               child: ElevatedButton(
                 onPressed: _isSubmitting ? null : _confirmBooking,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: _surfaceDark,
+                  backgroundColor: AppColors.strongFill(context),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14)),
                   elevation: 0,
@@ -4385,9 +4378,9 @@ class _SuggestionChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.surface(context),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFFE4E4E7), width: 1),
+          border: Border.all(color: AppColors.cardBorder(context), width: 1),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.03),
@@ -4400,7 +4393,7 @@ class _SuggestionChip extends StatelessWidget {
           label,
           style: GoogleFonts.manrope(
             fontSize: 13,
-            color: const Color(0xFF18181B),
+            color: AppColors.textPrimary(context),
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -4788,7 +4781,7 @@ class _ChatHistorySheetState extends State<_ChatHistorySheet> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text('Cancel', style: GoogleFonts.manrope(color: Colors.grey[600])),
+            child: Text('Cancel', style: GoogleFonts.manrope(color: AppColors.textSecondary(context))),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
@@ -4831,7 +4824,7 @@ class _ChatHistorySheetState extends State<_ChatHistorySheet> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text('Cancel', style: GoogleFonts.manrope(color: Colors.grey[600])),
+            child: Text('Cancel', style: GoogleFonts.manrope(color: AppColors.textSecondary(context))),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
@@ -4867,8 +4860,8 @@ class _ChatHistorySheetState extends State<_ChatHistorySheet> {
         maxHeight: MediaQuery.of(context).size.height * 0.8,
       ),
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: AppColors.surface(context),
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
@@ -4882,7 +4875,7 @@ class _ChatHistorySheetState extends State<_ChatHistorySheet> {
               height: 4,
               margin: const EdgeInsets.only(bottom: 16),
               decoration: BoxDecoration(
-                color: Colors.grey[300],
+                color: AppColors.cardBorder(context),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -4895,11 +4888,11 @@ class _ChatHistorySheetState extends State<_ChatHistorySheet> {
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                  color: _surfaceLight,
+                  color: AppColors.inputBackground(context),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: _surfaceBorder),
+                  border: Border.all(color: AppColors.cardBorder(context)),
                 ),
-                child: const Icon(Icons.history_rounded, color: _surfaceDark, size: 20),
+                child: Icon(Icons.history_rounded, color: AppColors.textPrimary(context), size: 20),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -4908,7 +4901,7 @@ class _ChatHistorySheetState extends State<_ChatHistorySheet> {
                   style: GoogleFonts.manrope(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: _surfaceDark,
+                    color: AppColors.textPrimary(context),
                   ),
                 ),
               ),
@@ -4935,7 +4928,7 @@ class _ChatHistorySheetState extends State<_ChatHistorySheet> {
           // Sessions List
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator(color: _surfaceDark, strokeWidth: 2))
+                ? Center(child: CircularProgressIndicator(color: AppColors.textPrimary(context), strokeWidth: 2))
                 : _sessions.isEmpty
                     ? Center(
                         child: Padding(
@@ -4950,7 +4943,7 @@ class _ChatHistorySheetState extends State<_ChatHistorySheet> {
                                 style: GoogleFonts.manrope(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
-                                  color: _surfaceDark,
+                                  color: AppColors.textPrimary(context),
                                 ),
                               ),
                               const SizedBox(height: 6),
@@ -4959,7 +4952,7 @@ class _ChatHistorySheetState extends State<_ChatHistorySheet> {
                                 textAlign: TextAlign.center,
                                 style: GoogleFonts.manrope(
                                   fontSize: 13,
-                                  color: _textSecondary,
+                                  color: AppColors.textSecondary(context),
                                 ),
                               ),
                             ],
@@ -4976,7 +4969,7 @@ class _ChatHistorySheetState extends State<_ChatHistorySheet> {
                               '${date.month}/${date.day}/${date.year} • ${date.hour > 12 ? date.hour - 12 : (date.hour == 0 ? 12 : date.hour)}:${date.minute.toString().padLeft(2, '0')} ${date.hour >= 12 ? 'PM' : 'AM'}';
 
                           return Material(
-                            color: Colors.white,
+                            color: AppColors.surface(context),
                             borderRadius: BorderRadius.circular(14),
                             child: InkWell(
                               onTap: () => widget.onSelectSession(session),
@@ -4984,7 +4977,7 @@ class _ChatHistorySheetState extends State<_ChatHistorySheet> {
                               child: Container(
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
-                                  border: Border.all(color: _surfaceBorder),
+                                  border: Border.all(color: AppColors.cardBorder(context)),
                                   borderRadius: BorderRadius.circular(14),
                                 ),
                                 child: Row(
@@ -4993,11 +4986,11 @@ class _ChatHistorySheetState extends State<_ChatHistorySheet> {
                                       width: 38,
                                       height: 38,
                                       decoration: BoxDecoration(
-                                        color: _surfaceLight,
+                                        color: AppColors.inputBackground(context),
                                         borderRadius: BorderRadius.circular(10),
-                                        border: Border.all(color: _surfaceBorder),
+                                        border: Border.all(color: AppColors.cardBorder(context)),
                                       ),
-                                      child: const Icon(Icons.chat_bubble_outline_rounded, color: _surfaceDark, size: 18),
+                                      child: Icon(Icons.chat_bubble_outline_rounded, color: AppColors.textPrimary(context), size: 18),
                                     ),
                                     const SizedBox(width: 12),
                                     Expanded(
@@ -5011,7 +5004,7 @@ class _ChatHistorySheetState extends State<_ChatHistorySheet> {
                                             style: GoogleFonts.manrope(
                                               fontSize: 14,
                                               fontWeight: FontWeight.bold,
-                                              color: Colors.black87,
+                                              color: AppColors.textPrimary(context),
                                             ),
                                           ),
                                           const SizedBox(height: 4),
@@ -5029,7 +5022,7 @@ class _ChatHistorySheetState extends State<_ChatHistorySheet> {
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                                       decoration: BoxDecoration(
-                                        color: Colors.grey[200],
+                                        color: AppColors.cardBorder(context),
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: Text(
@@ -5037,7 +5030,7 @@ class _ChatHistorySheetState extends State<_ChatHistorySheet> {
                                         style: GoogleFonts.manrope(
                                           fontSize: 11,
                                           fontWeight: FontWeight.w600,
-                                          color: Colors.grey[700],
+                                          color: AppColors.textSecondary(context),
                                         ),
                                       ),
                                     ),

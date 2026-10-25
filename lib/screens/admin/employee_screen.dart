@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../../services/theme_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../services/employee_service.dart';
 import 'employee_detail_screen.dart';
@@ -163,7 +164,7 @@ class _EmployeeScreenState extends State<EmployeeScreen> {
                     style: GoogleFonts.manrope(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                      color: AppColors.textPrimary(context),
                     ),
                   ),
                   IconButton(
@@ -246,13 +247,13 @@ class _EmployeeScreenState extends State<EmployeeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background(context),
       body: Column(
         children: [
           // Fixed Header Section
           Container(
             padding: const EdgeInsets.all(23),
-            color: Colors.white,
+            color: AppColors.surface(context),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -262,7 +263,7 @@ class _EmployeeScreenState extends State<EmployeeScreen> {
                   style: GoogleFonts.manrope(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                    color: AppColors.textPrimary(context),
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -270,9 +271,9 @@ class _EmployeeScreenState extends State<EmployeeScreen> {
                 // Search Bar
                 Container(
                   decoration: BoxDecoration(
-                    color: Colors.grey[50],
+                    color: AppColors.inputBackground(context),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey[300]!),
+                    border: Border.all(color: AppColors.cardBorder(context)),
                   ),
                   child: TextField(
                     controller: _searchController,
@@ -300,7 +301,7 @@ class _EmployeeScreenState extends State<EmployeeScreen> {
                 Container(
                   decoration: BoxDecoration(
                     border: Border.all(
-                      color: Colors.grey[300]!,
+                      color: AppColors.cardBorder(context),
                       width: 1,
                     ),
                     borderRadius: BorderRadius.circular(12),
@@ -314,8 +315,8 @@ class _EmployeeScreenState extends State<EmployeeScreen> {
                             height: 30,
                             decoration: BoxDecoration(
                               color: _statusFilter == 'active'
-                                  ? Colors.black
-                                  : Colors.white,
+                                  ? AppColors.strongFill(context)
+                                  : AppColors.surface(context),
                               borderRadius: const BorderRadius.only(
                                 topLeft: Radius.circular(11),
                                 bottomLeft: Radius.circular(11),
@@ -329,7 +330,7 @@ class _EmployeeScreenState extends State<EmployeeScreen> {
                                 fontWeight: FontWeight.w500,
                                 color: _statusFilter == 'active'
                                     ? Colors.white
-                                    : Colors.black87,
+                                    : AppColors.textPrimary(context),
                               ),
                             ),
                           ),
@@ -342,8 +343,8 @@ class _EmployeeScreenState extends State<EmployeeScreen> {
                             height: 30,
                             decoration: BoxDecoration(
                               color: _statusFilter == 'inactive'
-                                  ? Colors.black
-                                  : Colors.white,
+                                  ? AppColors.strongFill(context)
+                                  : AppColors.surface(context),
                               borderRadius: const BorderRadius.only(
                                 topRight: Radius.circular(11),
                                 bottomRight: Radius.circular(11),
@@ -357,7 +358,7 @@ class _EmployeeScreenState extends State<EmployeeScreen> {
                                 fontWeight: FontWeight.w500,
                                 color: _statusFilter == 'inactive'
                                     ? Colors.white
-                                    : Colors.black87,
+                                    : AppColors.textPrimary(context),
                               ),
                             ),
                           ),
@@ -383,14 +384,14 @@ class _EmployeeScreenState extends State<EmployeeScreen> {
                         style: GoogleFonts.manrope(
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
-                          color: Colors.black87,
+                          color: AppColors.textPrimary(context),
                         ),
                       ),
                       const SizedBox(width: 8),
-                      const Icon(
+                      Icon(
                         Icons.filter_list,
                         size: 18,
-                        color: Colors.black87,
+                        color: AppColors.textPrimary(context),
                       ),
                     ],
                   ),
@@ -444,7 +445,7 @@ class _EmployeeScreenState extends State<EmployeeScreen> {
                                     child: Text(
                                       'No employees found',
                                       style: GoogleFonts.manrope(
-                                        color: Colors.grey[600],
+                                        color: AppColors.textSecondary(context),
                                       ),
                                     ),
                                   ),
@@ -482,7 +483,7 @@ class _EmployeeScreenState extends State<EmployeeScreen> {
               _loadEmployees();
             }
           },
-          backgroundColor: Colors.black,
+          backgroundColor: AppColors.strongFill(context),
           elevation: 4,
           icon: const Icon(Icons.add, color: Colors.white, size: 20),
           label: Text(
@@ -526,10 +527,10 @@ class _EmployeeScreenState extends State<EmployeeScreen> {
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.surface(context),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isActive ? Colors.grey[200]! : Colors.red[200]!,
+            color: isActive ? AppColors.cardBorder(context) : Colors.red[200]!,
             width: isActive ? 1 : 1.5,
           ),
           boxShadow: [
@@ -559,7 +560,7 @@ class _EmployeeScreenState extends State<EmployeeScreen> {
                           style: GoogleFonts.manrope(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            color: Colors.black87,
+                            color: AppColors.textPrimary(context),
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -589,7 +590,7 @@ class _EmployeeScreenState extends State<EmployeeScreen> {
                     employee['role'] ?? 'N/A',
                     style: GoogleFonts.manrope(
                       fontSize: 14,
-                      color: Colors.grey[600],
+                      color: AppColors.textSecondary(context),
                     ),
                   ),
                 ],

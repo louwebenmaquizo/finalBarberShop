@@ -109,7 +109,10 @@ class AppTheme {
 
 /// Convenience accessors for theme-adaptive colors.
 class AppColors {
-  static bool isDark(BuildContext context) => ThemeService.isDark(context);
+  /// Follows the theme actually applied above [context], so screens that force
+  /// a light theme (sign-in screens) also get light colors.
+  static bool isDark(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark;
 
   static Color background(BuildContext context) =>
       isDark(context) ? AppTheme.darkBackground : Colors.white;
@@ -137,4 +140,9 @@ class AppColors {
 
   static Color divider(BuildContext context) =>
       isDark(context) ? AppTheme.darkBorder : Colors.grey[200]!;
+
+  /// Fill for strong/primary controls (selected tabs, main action buttons):
+  /// black in light mode, brand blue in dark mode (black would vanish).
+  static Color strongFill(BuildContext context) =>
+      isDark(context) ? const Color(0xFF1E88E5) : Colors.black;
 }

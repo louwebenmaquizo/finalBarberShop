@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import '../../services/theme_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../services/api_service.dart';
@@ -253,7 +254,7 @@ class _EditProfileDialogContentState extends State<_EditProfileDialogContent> {
                     style: GoogleFonts.manrope(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                      color: AppColors.textPrimary(context),
                     ),
                   ),
                   IconButton(
@@ -363,7 +364,7 @@ class _EditProfileDialogContentState extends State<_EditProfileDialogContent> {
                   border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12)),
                   filled: true,
-                  fillColor: Colors.grey[50],
+                  fillColor: AppColors.inputBackground(context),
                 ),
                 style: GoogleFonts.manrope(),
               ),
@@ -380,9 +381,9 @@ class _EditProfileDialogContentState extends State<_EditProfileDialogContent> {
                   border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12)),
                   filled: true,
-                  fillColor: Colors.grey[100],
+                  fillColor: AppColors.inputBackground(context),
                 ),
-                style: GoogleFonts.manrope(color: Colors.grey[700]),
+                style: GoogleFonts.manrope(color: AppColors.textSecondary(context)),
               ),
               const SizedBox(height: 16),
 
@@ -396,7 +397,7 @@ class _EditProfileDialogContentState extends State<_EditProfileDialogContent> {
                   border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12)),
                   filled: true,
-                  fillColor: Colors.grey[50],
+                  fillColor: AppColors.inputBackground(context),
                 ),
                 style: GoogleFonts.manrope(),
               ),
@@ -411,7 +412,7 @@ class _EditProfileDialogContentState extends State<_EditProfileDialogContent> {
                   border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12)),
                   filled: true,
-                  fillColor: Colors.grey[50],
+                  fillColor: AppColors.inputBackground(context),
                 ),
                 items: ['Male', 'Female', 'Other']
                     .map((g) => DropdownMenuItem(

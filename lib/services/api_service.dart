@@ -88,19 +88,6 @@ class ApiService {
 
       String? customerId = existing != null ? existing['id']?.toString() : null;
 
-      // 3. Handle profile picture upload if needed
-      String? profilePicturePath;
-      final rawPicture = customerData['profile_picture'];
-      if (rawPicture != null && SupabaseStorageService.isDataImage(rawPicture)) {
-        try {
-          profilePicturePath = await SupabaseStorageService.uploadDataImage(
-            bucket: SupabaseConfig.customerAvatarsBucket,
-            ownerId: customerId ?? user.id,
-            dataUri: rawPicture.toString(),
-          );
-        } catch (_) {}
-      }
-
       final customerPayload = <String, dynamic>{
         'user_id': user.id,
         'full_name': fullName,
@@ -110,7 +97,6 @@ class ApiService {
         if (customerData['date_of_birth'] != null)
           'date_of_birth': customerData['date_of_birth'],
         if (customerData['notes'] != null) 'notes': customerData['notes'],
-        if (profilePicturePath != null) 'profile_picture': profilePicturePath,
       };
 
       Map<String, dynamic> savedCustomer;
@@ -129,6 +115,35 @@ class ApiService {
             .select()
             .single();
         savedCustomer = SupabaseServiceHelpers.asMap(res);
+      }
+
+      // 3. Upload the profile picture AFTER the customer record exists: the
+      // storage rules only allow uploads into the customer's own folder
+      // (named by customer id), which a brand-new account doesn't have yet.
+      String? photoWarning;
+      final rawPicture = customerData['profile_picture'];
+      final savedId = savedCustomer['id']?.toString();
+      if (savedId != null && SupabaseStorageService.isDataImage(rawPicture)) {
+        try {
+          final path = await SupabaseStorageService.uploadDataImage(
+            bucket: SupabaseConfig.customerAvatarsBucket,
+            ownerId: savedId,
+            dataUri: rawPicture.toString(),
+          );
+          if (path != null) {
+            final res = await SupabaseConfig.client
+                .from(SupabaseConfig.customersTable)
+                .update({'profile_picture': path})
+                .eq('id', savedId)
+                .select()
+                .single();
+            savedCustomer = SupabaseServiceHelpers.asMap(res);
+          }
+        } catch (error) {
+          photoWarning =
+              'Your profile was saved, but the photo could not be uploaded. '
+              'You can add it later in Settings > Edit Profile.';
+        }
       }
 
       // Update auth user metadata and password (if provided)
@@ -151,6 +166,7 @@ class ApiService {
         'success': true,
         'customer': savedCustomer,
         'user': session,
+        if (photoWarning != null) 'warning': photoWarning,
       };
     } catch (error) {
       return SupabaseServiceHelpers.failure(error);

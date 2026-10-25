@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/theme_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/notification_service.dart';
 
@@ -100,8 +101,8 @@ class _NotificationsModalContentState
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.78,
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: AppColors.surface(context),
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
@@ -112,7 +113,7 @@ class _NotificationsModalContentState
             width: 44,
             height: 4.5,
             decoration: BoxDecoration(
-              color: Colors.grey[300],
+              color: AppColors.cardBorder(context),
               borderRadius: BorderRadius.circular(3),
             ),
           ),
@@ -131,7 +132,7 @@ class _NotificationsModalContentState
                       style: GoogleFonts.manrope(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF18181B),
+                        color: AppColors.textPrimary(context),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -177,7 +178,7 @@ class _NotificationsModalContentState
               ],
             ),
           ),
-          const Divider(height: 1, color: Color(0xFFE4E4E7)),
+          Divider(height: 1, color: AppColors.cardBorder(context)),
 
           // Notification List / Loading / Empty
           Expanded(
@@ -218,7 +219,7 @@ class _NotificationsModalContentState
                                 style: GoogleFonts.manrope(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF18181B),
+                                  color: AppColors.textPrimary(context),
                                 ),
                               ),
                               const SizedBox(height: 6),
@@ -227,7 +228,7 @@ class _NotificationsModalContentState
                                 textAlign: TextAlign.center,
                                 style: GoogleFonts.manrope(
                                   fontSize: 13,
-                                  color: const Color(0xFF71717A),
+                                  color: AppColors.textSecondary(context),
                                 ),
                               ),
                             ],
@@ -252,12 +253,12 @@ class _NotificationsModalContentState
                               padding: const EdgeInsets.all(14),
                               decoration: BoxDecoration(
                                 color: isRead
-                                    ? const Color(0xFFFAFAFA)
+                                    ? AppColors.inputBackground(context)
                                     : const Color(0xFFF0F7FF),
                                 borderRadius: BorderRadius.circular(14),
                                 border: Border.all(
                                   color: isRead
-                                      ? const Color(0xFFE4E4E7)
+                                      ? AppColors.cardBorder(context)
                                       : const Color(0xFFBAE6FD),
                                   width: isRead ? 1 : 1.2,
                                 ),
@@ -299,7 +300,7 @@ class _NotificationsModalContentState
                                                       ? FontWeight.w600
                                                       : FontWeight.bold,
                                                   color:
-                                                      const Color(0xFF18181B),
+                                                      AppColors.textPrimary(context),
                                                 ),
                                               ),
                                             ),
@@ -323,7 +324,7 @@ class _NotificationsModalContentState
                                           item.body,
                                           style: GoogleFonts.manrope(
                                             fontSize: 13,
-                                            color: const Color(0xFF4B5563),
+                                            color: AppColors.textSecondary(context),
                                             height: 1.35,
                                           ),
                                         ),
@@ -364,7 +365,7 @@ class _NotificationsModalContentState
                   label: Text(
                     'Clear all notifications',
                     style: GoogleFonts.manrope(
-                        color: Colors.grey[700], fontWeight: FontWeight.w600),
+                        color: AppColors.textSecondary(context), fontWeight: FontWeight.w600),
                   ),
                 ),
               ),

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../../services/theme_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../services/api_service.dart';
 import '../../services/catalog_service.dart';
@@ -39,7 +40,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     if (widget.userData != null) {
       final email = widget.userData!['email'] ?? '';
       final phone = widget.userData!['phone'] ?? '';
-      final directId = widget.userData!['customer_id'] ?? widget.userData!['id'];
+      final directId =
+          widget.userData!['customer_id'] ?? widget.userData!['id'];
       final photo = widget.userData!['profile_picture'] ??
           widget.userData!['profile_photo'];
 
@@ -60,7 +62,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     if (_customerId != null && _customerId!.isNotEmpty) return;
     if (widget.userData != null) {
       final userId =
-          (widget.userData!['user_id'] ?? widget.userData!['id'] ?? '').toString();
+          (widget.userData!['user_id'] ?? widget.userData!['id'] ?? '')
+              .toString();
       if (userId.isNotEmpty) {
         try {
           final customer = await ApiService.getCustomerByUserId(userId);
@@ -92,7 +95,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
       _loadAppointments(),
       _loadServices(),
     ]);
-    NotificationService.refreshUnreadCount(isAdmin: false, customerId: _customerId);
+    NotificationService.refreshUnreadCount(
+        isAdmin: false, customerId: _customerId);
   }
 
   Future<void> _loadAppointments() async {
@@ -215,7 +219,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background(context),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async {
@@ -248,9 +252,9 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                             width: 42,
                             height: 42,
                             decoration: BoxDecoration(
-                              color: Colors.grey[50],
+                              color: AppColors.inputBackground(context),
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.grey[200]!),
+                              border: Border.all(color: AppColors.cardBorder(context)),
                             ),
                             child: ValueListenableBuilder<int>(
                               valueListenable:
@@ -260,8 +264,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                                   icon: Stack(
                                     clipBehavior: Clip.none,
                                     children: [
-                                      const Icon(Icons.notifications_outlined,
-                                          size: 20, color: Colors.black87),
+                                      Icon(Icons.notifications_outlined,
+                                          size: 20, color: AppColors.textPrimary(context)),
                                       if (unreadCount > 0)
                                         Positioned(
                                           right: -2,
@@ -308,13 +312,13 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                             width: 42,
                             height: 42,
                             decoration: BoxDecoration(
-                              color: Colors.grey[50],
+                              color: AppColors.inputBackground(context),
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.grey[200]!),
+                              border: Border.all(color: AppColors.cardBorder(context)),
                             ),
                             child: IconButton(
-                              icon: const Icon(Icons.search,
-                                  size: 20, color: Colors.black87),
+                              icon: Icon(Icons.search,
+                                  size: 20, color: AppColors.textPrimary(context)),
                               onPressed: () {
                                 Navigator.push(
                                   context,
@@ -338,7 +342,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                         style: GoogleFonts.manrope(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                          color: AppColors.textPrimary(context),
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -346,13 +350,13 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                         Row(
                           children: [
                             Icon(Icons.phone,
-                                size: 15, color: Colors.grey[600]),
+                                size: 15, color: AppColors.textSecondary(context)),
                             const SizedBox(width: 6),
                             Text(
                               _customerPhone,
                               style: GoogleFonts.manrope(
                                 fontSize: 13,
-                                color: Colors.grey[600],
+                                color: AppColors.textSecondary(context),
                               ),
                             ),
                           ],
@@ -368,7 +372,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                             style: GoogleFonts.manrope(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              color: Colors.black87,
+                              color: AppColors.textPrimary(context),
                             ),
                           ),
                           if (_appointments.isNotEmpty && !_isLoading)
@@ -377,7 +381,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                               style: GoogleFonts.manrope(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
-                                color: Colors.grey[600],
+                                color: AppColors.textSecondary(context),
                               ),
                             ),
                         ],
@@ -455,37 +459,48 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Row(
-                        children: [
-                          Text(
-                            'Services',
-                            style: GoogleFonts.manrope(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          if (_services.isNotEmpty)
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: const Color(0x1A5BBCFF),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
+                      Flexible(
+                        child: Row(
+                          children: [
+                            Flexible(
                               child: Text(
-                                '${_services.length}',
+                                'Services',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: GoogleFonts.manrope(
-                                  fontSize: 12,
+                                  fontSize: 20,
                                   fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF1E88E5),
+                                  color: AppColors.textPrimary(context),
                                 ),
                               ),
                             ),
-                        ],
+                            const SizedBox(width: 8),
+                            if (_services.isNotEmpty)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: const Color(0x1A5BBCFF),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  '${_services.length}',
+                                  style: GoogleFonts.manrope(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: const Color(0xFF1E88E5),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
                       ),
                       TextButton(
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          minimumSize: const Size(0, 36),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
                         onPressed: () {
                           Navigator.push(
                             context,
@@ -523,7 +538,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                         'No services available',
                         style: GoogleFonts.manrope(
                           fontSize: 16,
-                          color: Colors.grey[600],
+                          color: AppColors.textSecondary(context),
                         ),
                       ),
                     ),
@@ -534,8 +549,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                     child: GridView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate:
-                          SliverGridDelegateWithFixedCrossAxisCount(
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: MediaQuery.of(context).size.width > 900
                             ? 4
                             : MediaQuery.of(context).size.width > 600
@@ -543,7 +557,10 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                                 : 2,
                         mainAxisSpacing: 14,
                         crossAxisSpacing: 14,
-                        childAspectRatio: 0.95,
+                        // Height fits the 90px photo, name, 2-line description and the
+                        // price/button row; grows with the phone's text size.
+                        mainAxisExtent: 112 +
+                            104 * MediaQuery.textScalerOf(context).scale(1),
                       ),
                       itemCount: _services.length,
                       itemBuilder: (context, index) {
@@ -712,7 +729,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppColors.surface(context),
                 borderRadius: const BorderRadius.only(
                   topRight: Radius.circular(16),
                   bottomLeft: Radius.circular(16),
@@ -836,10 +853,10 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface(context),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Colors.grey[200]!,
+          color: AppColors.cardBorder(context),
           width: 1.2,
         ),
         boxShadow: [
@@ -892,7 +909,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.92),
+                    color: AppColors.surface(context).withOpacity(0.92),
                     borderRadius: BorderRadius.circular(10),
                     boxShadow: [
                       BoxShadow(
@@ -911,7 +928,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                         style: GoogleFonts.manrope(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                          color: AppColors.textPrimary(context),
                         ),
                       ),
                     ],
@@ -938,7 +955,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                         style: GoogleFonts.manrope(
                           fontSize: 13.5,
                           fontWeight: FontWeight.w700,
-                          color: Colors.black87,
+                          color: AppColors.textPrimary(context),
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -949,7 +966,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                           description,
                           style: GoogleFonts.manrope(
                             fontSize: 10.5,
-                            color: Colors.grey[600],
+                            color: AppColors.textSecondary(context),
                             height: 1.2,
                           ),
                           maxLines: 2,
@@ -971,14 +988,21 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Text(
-                        _formatPrice(price),
-                        style: GoogleFonts.manrope(
-                          fontSize: 14.5,
-                          fontWeight: FontWeight.w800,
-                          color: const Color(0xFF0F8751),
+                      Flexible(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            _formatPrice(price),
+                            style: GoogleFonts.manrope(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              color: const Color(0xFF0F8751),
+                            ),
+                          ),
                         ),
                       ),
+                      const SizedBox(width: 6),
                       ElevatedButton(
                         onPressed: () async {
                           final result = await Navigator.push(
@@ -1006,8 +1030,9 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                           backgroundColor: const Color(0xFF5BBCFF),
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 0),
-                          minimumSize: const Size(60, 26),
+                              horizontal: 12, vertical: 0),
+                          minimumSize: const Size(0, 32),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
@@ -1016,7 +1041,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                         child: Text(
                           'Book Now',
                           style: GoogleFonts.manrope(
-                            fontSize: 10.5,
+                            fontSize: 11.5,
                             fontWeight: FontWeight.bold,
                             color: Colors.white,
                           ),
@@ -1039,9 +1064,12 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     if (n.contains('classic')) return 'assets/catalog/1.png';
     if (n.contains('fade') || n.contains('skin')) return 'assets/catalog/2.jpg';
     if (n.contains('kid') || n.contains('child')) return 'assets/catalog/3.jpg';
-    if (n.contains('styling') || n.contains('style') || c.contains('styling')) return 'assets/catalog/4.png';
-    if ((n.contains('beard') && !n.contains('haircut')) || c.contains('beard')) return 'assets/catalog/5.jpg';
-    if (n.contains('beard') || n.contains('package')) return 'assets/catalog/6.jpg';
+    if (n.contains('styling') || n.contains('style') || c.contains('styling'))
+      return 'assets/catalog/4.png';
+    if ((n.contains('beard') && !n.contains('haircut')) || c.contains('beard'))
+      return 'assets/catalog/5.jpg';
+    if (n.contains('beard') || n.contains('package'))
+      return 'assets/catalog/6.jpg';
     return 'assets/catalog/1.png';
   }
 

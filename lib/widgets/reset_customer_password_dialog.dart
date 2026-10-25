@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/theme_service.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -100,7 +101,7 @@ class _ResetCustomerPasswordDialogState
                   Text(
                     'For customers who forgot their password. Staff passwords are changed '
                     'in the Employee screen.',
-                    style: GoogleFonts.manrope(color: Colors.grey[700]),
+                    style: GoogleFonts.manrope(color: AppColors.textSecondary(context)),
                   ),
                   const SizedBox(height: 12),
                   TextField(

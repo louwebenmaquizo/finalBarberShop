@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import '../../services/theme_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../services/dashboard_service.dart';
 import '../../services/api_service.dart';
@@ -129,7 +130,7 @@ class _DashboardScreenState extends State<DashboardScreen>
             Icon(Icons.wifi_off_rounded, size: 64, color: Colors.grey[400]),
             const SizedBox(height: 16),
             Text('Failed to load dashboard',
-                style: GoogleFonts.manrope(color: Colors.grey[600])),
+                style: GoogleFonts.manrope(color: AppColors.textSecondary(context))),
             const SizedBox(height: 16),
             ElevatedButton.icon(
               onPressed: _loadDashboardData,
@@ -183,7 +184,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                   style: GoogleFonts.manrope(
                       fontSize: 26,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black87)),
+                      color: AppColors.textPrimary(context))),
               Text('Overview & Analytics',
                   style: GoogleFonts.manrope(
                       fontSize: 13, color: Colors.grey[500])),
@@ -268,6 +269,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                 decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.35),
                     borderRadius: BorderRadius.circular(8)),
+                // Stat cards keep their pastel brand colors in both themes,
+                // so their content stays dark for contrast.
                 child: Icon(icon, size: 16, color: Colors.black87),
               ),
             ],
@@ -303,7 +306,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface(context),
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
@@ -321,7 +324,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                   style: GoogleFonts.manrope(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black87)),
+                      color: AppColors.textPrimary(context))),
               const Spacer(),
               Container(
                 padding:
@@ -395,7 +398,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                 color: color, borderRadius: BorderRadius.circular(3))),
         const SizedBox(width: 4),
         Text(label,
-            style: GoogleFonts.manrope(fontSize: 11, color: Colors.grey[600])),
+            style: GoogleFonts.manrope(fontSize: 11, color: AppColors.textSecondary(context))),
       ],
     );
   }
@@ -409,7 +412,7 @@ class _DashboardScreenState extends State<DashboardScreen>
             style: GoogleFonts.manrope(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: Colors.black87)),
+                color: AppColors.textPrimary(context))),
         Text(label,
             style: GoogleFonts.manrope(fontSize: 11, color: Colors.grey[500])),
       ],
@@ -424,7 +427,7 @@ class _DashboardScreenState extends State<DashboardScreen>
             style: GoogleFonts.manrope(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: Colors.black87)),
+                color: AppColors.textPrimary(context))),
         const SizedBox(height: 12),
         FutureBuilder<Map<String, dynamic>?>(
           future: _getNextClient(),
@@ -433,7 +436,7 @@ class _DashboardScreenState extends State<DashboardScreen>
               return Container(
                 height: 120,
                 decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppColors.surface(context),
                     borderRadius: BorderRadius.circular(18),
                     boxShadow: [
                       BoxShadow(
@@ -447,7 +450,7 @@ class _DashboardScreenState extends State<DashboardScreen>
               return Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppColors.surface(context),
                     borderRadius: BorderRadius.circular(18),
                     boxShadow: [
                       BoxShadow(
@@ -458,7 +461,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                     Container(
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                            color: Colors.grey[100],
+                            color: AppColors.inputBackground(context),
                             borderRadius: BorderRadius.circular(12)),
                         child: Icon(Icons.calendar_today_outlined,
                             color: Colors.grey[400], size: 28)),
@@ -563,7 +566,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface(context),
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
@@ -581,7 +584,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                   style: GoogleFonts.manrope(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black87)),
+                      color: AppColors.textPrimary(context))),
               const Spacer(),
               Text('${bookings.length} records',
                   style: GoogleFonts.manrope(
@@ -621,7 +624,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12),
       decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: Colors.grey[100]!, width: 1)),
+        border: Border(bottom: BorderSide(color: AppColors.divider(context), width: 1)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -653,7 +656,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                             style: GoogleFonts.manrope(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
-                                color: Colors.black87),
+                                color: AppColors.textPrimary(context)),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis)),
                     Container(
@@ -673,7 +676,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                 const SizedBox(height: 3),
                 Text(booking['service'] ?? 'N/A',
                     style: GoogleFonts.manrope(
-                        fontSize: 12, color: Colors.grey[600]),
+                        fontSize: 12, color: AppColors.textSecondary(context)),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 3),
@@ -721,7 +724,7 @@ class _DashboardScreenState extends State<DashboardScreen>
             style: GoogleFonts.manrope(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: Colors.black87)),
+                color: AppColors.textPrimary(context))),
         const SizedBox(height: 12),
         SizedBox(
           height: 170,

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import '../../services/theme_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../services/catalog_service.dart';
@@ -204,7 +205,7 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
           style: GoogleFonts.manrope(
             fontSize: 14,
             fontWeight: FontWeight.bold,
-            color: Colors.black87,
+            color: AppColors.textPrimary(context),
           ),
         ),
         const SizedBox(height: 8),
@@ -214,12 +215,12 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
             width: double.infinity,
             height: 170,
             decoration: BoxDecoration(
-              color: Colors.grey[50],
+              color: AppColors.inputBackground(context),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: _imageBytes != null
                     ? const Color(0xFF5BBCFF)
-                    : Colors.grey[300]!,
+                    : AppColors.cardBorder(context),
                 width: _imageBytes != null ? 2 : 1,
               ),
             ),
@@ -326,20 +327,20 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background(context),
       appBar: AppBar(
         title: Text(
           'Add Service',
           style: GoogleFonts.manrope(
             fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: Colors.black87,
+            color: AppColors.textPrimary(context),
           ),
         ),
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.surface(context),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black87),
+          icon: Icon(Icons.arrow_back, color: AppColors.textPrimary(context)),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -365,7 +366,7 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
                         border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12)),
                         filled: true,
-                        fillColor: Colors.grey[50],
+                        fillColor: AppColors.inputBackground(context),
                         prefixIcon: const Icon(Icons.content_cut),
                         hintText: 'e.g. Skin Fade + Beard Trim',
                       ),
@@ -382,22 +383,22 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
                     // Category Dropdown (Clean, full-width without add button)
                     DropdownButtonFormField<String>(
                       value: _selectedCategoryId,
-                      dropdownColor: Colors.white,
-                      icon: const Icon(Icons.arrow_drop_down, color: Colors.black87),
+                      dropdownColor: AppColors.surface(context),
+                      icon: Icon(Icons.arrow_drop_down, color: AppColors.textPrimary(context)),
                       decoration: InputDecoration(
                         labelText: 'Category',
                         labelStyle: GoogleFonts.manrope(
-                          color: Colors.grey[700],
+                          color: AppColors.textSecondary(context),
                           fontWeight: FontWeight.w500,
                         ),
                         border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12)),
                         filled: true,
-                        fillColor: Colors.grey[50],
-                        prefixIcon: const Icon(Icons.category_outlined, color: Colors.black87),
+                        fillColor: AppColors.inputBackground(context),
+                        prefixIcon: Icon(Icons.category_outlined, color: AppColors.textPrimary(context)),
                       ),
                       style: GoogleFonts.manrope(
-                        color: Colors.black87,
+                        color: AppColors.textPrimary(context),
                         fontSize: 15,
                         fontWeight: FontWeight.w500,
                       ),
@@ -407,7 +408,7 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
                           child: Text(
                             'No Category',
                             style: GoogleFonts.manrope(
-                              color: Colors.black87,
+                              color: AppColors.textPrimary(context),
                               fontSize: 14,
                             ),
                           ),
@@ -418,7 +419,7 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
                             child: Text(
                               category['name'] ?? '',
                               style: GoogleFonts.manrope(
-                                color: Colors.black87,
+                                color: AppColors.textPrimary(context),
                                 fontSize: 14,
                                 fontWeight: FontWeight.w500,
                               ),
@@ -443,7 +444,7 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
                         border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12)),
                         filled: true,
-                        fillColor: Colors.grey[50],
+                        fillColor: AppColors.inputBackground(context),
                         prefixIcon: const Icon(Icons.timer_outlined),
                       ),
                       style: GoogleFonts.manrope(),
@@ -470,7 +471,7 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
                         border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12)),
                         filled: true,
-                        fillColor: Colors.grey[50],
+                        fillColor: AppColors.inputBackground(context),
                         prefixIcon: const Icon(Icons.attach_money),
                         hintText: 'e.g. 35.00',
                       ),
@@ -499,7 +500,7 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
                         border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12)),
                         filled: true,
-                        fillColor: Colors.grey[50],
+                        fillColor: AppColors.inputBackground(context),
                         prefixIcon: const Icon(Icons.money_off_outlined),
                         hintText: 'e.g. 10.00',
                       ),
@@ -518,7 +519,7 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
                         border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12)),
                         filled: true,
-                        fillColor: Colors.grey[50],
+                        fillColor: AppColors.inputBackground(context),
                         prefixIcon: const Icon(Icons.description_outlined),
                         hintText: 'Describe this service, styling, or package',
                       ),
