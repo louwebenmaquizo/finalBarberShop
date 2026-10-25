@@ -15,6 +15,7 @@ dependencies:
   supabase_flutter: ^2.17.2
   http: ^1.6.0
   shared_preferences: ^2.5.5
+  url_launcher: ^6.3.2
 
 dev_dependencies:
   flutter_test:
@@ -26,3 +27,6 @@ flutter:
   assets:
     - assets/images/
     - assets/catalog/
+    # Manrope is bundled so text renders correctly offline / on slow
+    # connections (google_fonts loads these instead of downloading).
+    - assets/google_fonts/

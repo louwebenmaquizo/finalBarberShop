@@ -748,6 +748,13 @@ class _BookingScreenState extends State<BookingScreen> {
           ),
         );
         _loadBookings();
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not accept booking: ${result['message'] ?? 'please try again.'}'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -802,8 +809,24 @@ class _BookingScreenState extends State<BookingScreen> {
                     ),
                   );
                   _loadBookings();
+                } else if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Could not decline booking: ${result['message'] ?? 'please try again.'}'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
                 }
-              } catch (_) {}
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Could not decline booking: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,

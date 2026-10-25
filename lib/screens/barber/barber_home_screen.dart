@@ -270,21 +270,29 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(context);
+              Map<String, dynamic> result;
               try {
-                await BookingService.updateBooking(
+                result = await BookingService.updateBooking(
                   appointment['appointment_id'].toString(),
                   {'notes': noteController.text.trim()},
                 );
-                _loadAppointments();
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                        content: Text('Haircut note saved!',
-                            style: GoogleFonts.manrope()),
-                        backgroundColor: Colors.green),
-                  );
-                }
-              } catch (_) {}
+              } catch (e) {
+                result = {'success': false, 'message': e.toString()};
+              }
+              if (!mounted) return;
+              if (result['success'] == true) _loadAppointments();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    result['success'] == true
+                        ? 'Haircut note saved!'
+                        : 'Could not save note: ${result['message'] ?? 'please try again.'}',
+                    style: GoogleFonts.manrope(),
+                  ),
+                  backgroundColor:
+                      result['success'] == true ? Colors.green : Colors.red,
+                ),
+              );
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF5BBCFF),
@@ -360,12 +368,16 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
               children: [
                 Row(
                   children: [
-                    Text(
-                      _barberName,
-                      style: GoogleFonts.manrope(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
+                    Flexible(
+                      child: Text(
+                        _barberName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.manrope(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 6),

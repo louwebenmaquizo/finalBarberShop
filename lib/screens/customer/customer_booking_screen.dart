@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../config/shop_info.dart';
 import '../../services/api_service.dart';
 import '../../services/booking_service.dart';
 import '../../services/catalog_service.dart';
@@ -38,30 +39,16 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
   bool _isLoadingIntervals = false;
   Map<String, dynamic>? _conflictingInterval;
 
-  // Standard business hour slots (8:00 AM to 6:00 PM)
-  static final List<TimeOfDay> _standardTimeSlots = [
-    const TimeOfDay(hour: 8, minute: 0),
-    const TimeOfDay(hour: 8, minute: 30),
-    const TimeOfDay(hour: 9, minute: 0),
-    const TimeOfDay(hour: 9, minute: 30),
-    const TimeOfDay(hour: 10, minute: 0),
-    const TimeOfDay(hour: 10, minute: 30),
-    const TimeOfDay(hour: 11, minute: 0),
-    const TimeOfDay(hour: 11, minute: 30),
-    const TimeOfDay(hour: 12, minute: 0),
-    const TimeOfDay(hour: 12, minute: 30),
-    const TimeOfDay(hour: 13, minute: 0),
-    const TimeOfDay(hour: 13, minute: 30),
-    const TimeOfDay(hour: 14, minute: 0),
-    const TimeOfDay(hour: 14, minute: 30),
-    const TimeOfDay(hour: 15, minute: 0),
-    const TimeOfDay(hour: 15, minute: 30),
-    const TimeOfDay(hour: 16, minute: 0),
-    const TimeOfDay(hour: 16, minute: 30),
-    const TimeOfDay(hour: 17, minute: 0),
-    const TimeOfDay(hour: 17, minute: 30),
-    const TimeOfDay(hour: 18, minute: 0),
-  ];
+  /// Start times customers may book (shared shop hours).
+  static List<TimeOfDay> get _standardTimeSlots => ShopInfo.bookingSlots;
+
+  /// Slots earlier than now on today's date can't be booked.
+  bool _isSlotInPast(TimeOfDay time) {
+    final date = _selectedDate;
+    if (date == null) return false;
+    final start = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+    return !start.isAfter(DateTime.now());
+  }
 
   @override
   void initState() {
@@ -252,7 +239,7 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
   Future<void> _selectDate() async {
     final now = DateTime.now();
     final firstDate = DateTime(now.year, now.month, now.day);
-    final lastDate = now.add(const Duration(days: 90));
+    final lastDate = now.add(const Duration(days: ShopInfo.maxDaysAhead));
 
     try {
       final DateTime? picked = await showDatePicker(
@@ -932,10 +919,16 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
   }
 
   Widget _buildTimeSlotsGrid() {
+    if (_standardTimeSlots.every(_isSlotInPast)) {
+      return Text(
+        'No more times available on this date. Please pick another date.',
+        style: GoogleFonts.manrope(color: Colors.grey[700]),
+      );
+    }
     return Wrap(
       spacing: 8,
       runSpacing: 8,
-      children: _standardTimeSlots.map((slot) {
+      children: _standardTimeSlots.where((s) => !_isSlotInPast(s)).map((slot) {
         final isBooked = _isSlotBooked(slot);
         final isSelected = _selectedTime != null &&
             _selectedTime!.hour == slot.hour &&

@@ -235,7 +235,7 @@ class _CustomerAppointmentsScreenState
           _loadAppointments();
         }
       } else {
-        throw Exception('Failed to cancel appointment');
+        throw Exception(result['message'] ?? 'Failed to cancel appointment');
       }
     } catch (e) {
       if (mounted) {

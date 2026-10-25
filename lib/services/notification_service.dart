@@ -73,6 +73,41 @@ class NotificationService {
 
   static String get _readKey => 'notifications_read_v2_$_currentUid';
   static String get _clearedKey => 'notifications_cleared_v2_$_currentUid';
+  static String get _prefsKey => 'notification_prefs_v1_$_currentUid';
+
+  /// In-app notification preferences, saved per user on this device.
+  /// Keys: reminders, booking_updates, promotions. All default to on.
+  static Future<Map<String, bool>> loadPreferences() async {
+    final prefs = await SharedPreferences.getInstance();
+    final stored = prefs.getStringList(_prefsKey);
+    final off = stored == null ? <String>{} : stored.toSet();
+    return {
+      for (final key in const ['reminders', 'booking_updates', 'promotions'])
+        key: !off.contains(key),
+    };
+  }
+
+  static Future<void> savePreferences(Map<String, bool> values) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(
+      _prefsKey,
+      [for (final e in values.entries) if (!e.value) e.key],
+    );
+  }
+
+  static bool _allowedByPreferences(AppNotification n, Map<String, bool> p) {
+    switch (n.type) {
+      case 'reminder':
+        return p['reminders'] ?? true;
+      case 'booking':
+      case 'status':
+        return p['booking_updates'] ?? true;
+      case 'offer':
+        return p['promotions'] ?? true;
+      default:
+        return true;
+    }
+  }
 
   /// Fetches grounded, dynamic notifications from the database.
   static Future<List<AppNotification>> getNotifications({
@@ -100,8 +135,13 @@ class NotificationService {
       debugPrint('Error generating dynamic notifications: $e');
     }
 
-    // Filter out cleared notifications and apply read status
-    final filtered = notifications.where((n) => !clearedIds.contains(n.id)).toList();
+    // Filter out cleared notifications and ones the user turned off, then
+    // apply read status.
+    final preferences = await loadPreferences();
+    final filtered = notifications
+        .where((n) => !clearedIds.contains(n.id))
+        .where((n) => _allowedByPreferences(n, preferences))
+        .toList();
     for (final item in filtered) {
       if (readIds.contains(item.id)) {
         item.isRead = true;
@@ -333,6 +373,30 @@ class NotificationService {
           type: 'status',
           metadata: appt,
         ));
+      } else if (status == 'declined') {
+        output.add(AppNotification(
+          id: 'cust_appt_declined_$id',
+          title: 'Booking Not Accepted',
+          body: 'Sorry, the shop could not accept your "$serviceName" booking on $timeStr. Please choose another time.',
+          timestamp: startTime,
+          icon: Icons.event_busy_rounded,
+          color: Colors.redAccent,
+          type: 'status',
+          metadata: appt,
+        ));
+      } else if (status == 'no-show') {
+        continue;
+      } else if (status == 'pending') {
+        output.add(AppNotification(
+          id: 'cust_appt_pending_$id',
+          title: 'Booking Received ⏳',
+          body: 'Your "$serviceName" with $staffName on $timeStr is waiting for the shop to confirm.',
+          timestamp: startTime.isAfter(now) ? now.subtract(const Duration(hours: 1)) : startTime,
+          icon: Icons.hourglass_top_rounded,
+          color: Colors.orange,
+          type: 'booking',
+          metadata: appt,
+        ));
       } else {
         // Confirmed / Upcoming
         final isUpcomingSoon = startTime.isAfter(now) &&
@@ -394,7 +458,9 @@ class NotificationService {
       final startTime = SupabaseServiceHelpers.parseDateTime(appt['start_time']) ?? now;
       final timeStr = _formatFriendlyDateTime(startTime);
 
-      if (status != 'canceled') {
+      // Only appointments that are still coming up or in progress.
+      if (const {'pending', 'booked', 'confirmed', 'checked-in', 'in-service', 'in_progress'}
+          .contains(status)) {
         output.add(AppNotification(
           id: 'barber_appt_$id',
           title: 'Client Scheduled: $customerName 💈',

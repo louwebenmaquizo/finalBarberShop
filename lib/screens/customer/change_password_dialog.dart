@@ -28,6 +28,17 @@ class _ChangePasswordDialogContentState
   bool _obscureConfirm = true;
   bool _isLoading = false;
 
+  /// Accounts created with Google have no password yet, so they cannot be
+  /// asked for a "current password"; they set one directly instead.
+  late final bool _hasPassword = _accountHasPassword();
+
+  bool _accountHasPassword() {
+    final user = Supabase.instance.client.auth.currentUser;
+    final providers = user?.appMetadata['providers'];
+    if (providers is List) return providers.contains('email');
+    return user?.appMetadata['provider'] == 'email';
+  }
+
   @override
   void dispose() {
     _currentPassController.dispose();
@@ -41,7 +52,7 @@ class _ChangePasswordDialogContentState
     final newPass = _newPassController.text;
     final confirm = _confirmPassController.text;
 
-    if (current.isEmpty) {
+    if (_hasPassword && current.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
             content: Text('Current password is required',
@@ -84,7 +95,10 @@ class _ChangePasswordDialogContentState
 
     setState(() => _isLoading = true);
     try {
-      await client.auth.signInWithPassword(email: email, password: current);
+      if (_hasPassword) {
+        // Re-check the current password before changing it.
+        await client.auth.signInWithPassword(email: email, password: current);
+      }
       await client.auth.updateUser(UserAttributes(password: newPass));
       if (mounted) {
         Navigator.pop(context);
@@ -135,7 +149,7 @@ class _ChangePasswordDialogContentState
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Change Password',
+                  _hasPassword ? 'Change Password' : 'Set a Password',
                   style: GoogleFonts.manrope(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -149,8 +163,17 @@ class _ChangePasswordDialogContentState
             ),
             const SizedBox(height: 16),
 
+            if (!_hasPassword) ...[
+              Text(
+                'You signed in with Google. Set a password if you also want '
+                'to log in with your email and password.',
+                style: GoogleFonts.manrope(fontSize: 13, color: Colors.grey[700]),
+              ),
+              const SizedBox(height: 16),
+            ],
+
             // Current Password
-            TextField(
+            if (_hasPassword) TextField(
               controller: _currentPassController,
               obscureText: _obscureCurrent,
               decoration: InputDecoration(
@@ -170,7 +193,7 @@ class _ChangePasswordDialogContentState
               ),
               style: GoogleFonts.manrope(),
             ),
-            const SizedBox(height: 16),
+            if (_hasPassword) const SizedBox(height: 16),
 
             // New Password
             TextField(

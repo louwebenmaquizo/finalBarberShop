@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../services/notification_service.dart';
 
 void showNotificationSettingsDialog(BuildContext context) {
   showDialog(
@@ -18,10 +19,18 @@ class _NotificationSettingsDialogContent extends StatefulWidget {
 
 class _NotificationSettingsDialogContentState
     extends State<_NotificationSettingsDialogContent> {
-  bool _pushReminders = true;
-  bool _smsUpdates = true;
-  bool _promoAlerts = false;
-  bool _emailReceipts = true;
+  Map<String, bool>? _values;
+
+  @override
+  void initState() {
+    super.initState();
+    NotificationService.loadPreferences().then((v) {
+      if (mounted) setState(() => _values = v);
+    });
+  }
+
+  void _set(String key, bool value) =>
+      setState(() => _values = {...?_values, key: value});
 
   @override
   Widget build(BuildContext context) {
@@ -51,34 +60,46 @@ class _NotificationSettingsDialogContentState
               ],
             ),
             const SizedBox(height: 16),
-            _buildSwitchTile(
-                'Appointment Reminders',
-                'Get notified 2 hours prior to your scheduled haircut',
-                _pushReminders,
-                (val) => setState(() => _pushReminders = val)),
-            _buildSwitchTile(
-                'SMS Confirmations',
-                'Receive booking confirmations via SMS',
-                _smsUpdates,
-                (val) => setState(() => _smsUpdates = val)),
-            _buildSwitchTile(
-                'Promotions & Discounts',
-                'Exclusive seasonal haircuts & styling discount offers',
-                _promoAlerts,
-                (val) => setState(() => _promoAlerts = val)),
-            _buildSwitchTile(
-                'Email Invoices & Receipts',
-                'Get digital receipts sent directly to your email',
-                _emailReceipts,
-                (val) => setState(() => _emailReceipts = val)),
+            if (_values == null)
+              const Padding(
+                padding: EdgeInsets.all(16),
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else ...[
+              _buildSwitchTile(
+                  'Appointment Reminders',
+                  'Show a reminder in the app when your haircut is within the next day and a half',
+                  _values!['reminders']!,
+                  (val) => _set('reminders', val)),
+              _buildSwitchTile(
+                  'Booking Updates',
+                  'Show when a booking is received, confirmed, declined, canceled or completed',
+                  _values!['booking_updates']!,
+                  (val) => _set('booking_updates', val)),
+              _buildSwitchTile(
+                  'Shop News',
+                  'Show welcome messages and news from the shop',
+                  _values!['promotions']!,
+                  (val) => _set('promotions', val)),
+              const SizedBox(height: 8),
+              Text(
+                'These are in-app notifications (the bell icon). The app does not send SMS or email.',
+                style: GoogleFonts.manrope(fontSize: 12, color: Colors.grey[600]),
+              ),
+            ],
             const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
               height: 48,
               child: ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
+                onPressed: _values == null
+                    ? null
+                    : () async {
+                  final messenger = ScaffoldMessenger.of(context);
+                  final navigator = Navigator.of(context);
+                  await NotificationService.savePreferences(_values!);
+                  navigator.pop();
+                  messenger.showSnackBar(
                     SnackBar(
                         content: Text('Notification preferences saved!',
                             style: GoogleFonts.manrope()),
@@ -127,7 +148,7 @@ class _NotificationSettingsDialogContentState
           ),
           Switch(
             value: value,
-            activeColor: const Color(0xFF5BBCFF),
+            activeThumbColor: const Color(0xFF5BBCFF),
             onChanged: onChanged,
           ),
         ],

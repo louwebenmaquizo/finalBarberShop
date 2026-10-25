@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../config/shop_info.dart';
 
 void showHelpSupportModal(BuildContext context) {
   showModalBottomSheet(
@@ -69,14 +71,13 @@ class _HelpSupportModalContent extends StatelessWidget {
                       child: _buildContactCard(
                         icon: Icons.phone,
                         title: 'Phone',
-                        subtitle: '+63 (02) 8123-4567',
+                        subtitle: ShopInfo.phoneDisplay,
                         color: Colors.green,
-                        onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text('Calling +63 (02) 8123-4567...')),
-                          );
-                        },
+                        onTap: () => _openContact(
+                          context,
+                          Uri(scheme: 'tel', path: ShopInfo.phoneDial),
+                          fallback: ShopInfo.phoneDisplay,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -84,15 +85,17 @@ class _HelpSupportModalContent extends StatelessWidget {
                       child: _buildContactCard(
                         icon: Icons.email_outlined,
                         title: 'Email',
-                        subtitle: 'support@liembarber.com',
+                        subtitle: ShopInfo.email,
                         color: const Color(0xFF1E88E5),
-                        onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text(
-                                    'Opening email to support@liembarber.com...')),
-                          );
-                        },
+                        onTap: () => _openContact(
+                          context,
+                          Uri(
+                            scheme: 'mailto',
+                            path: ShopInfo.email,
+                            query: 'subject=Liem%20Barber%20Shop%20app%20support',
+                          ),
+                          fallback: ShopInfo.email,
+                        ),
                       ),
                     ),
                   ],
@@ -110,7 +113,7 @@ class _HelpSupportModalContent extends StatelessWidget {
                 ),
                 _buildFaqItem(
                   'Can I reschedule or cancel?',
-                  'Yes! Go to "Appointments", find your booking, and tap "Reschedule" or "Cancel". Free cancellations are available up to 2 hours before the appointment.',
+                  'Yes. Go to "Appointments", find your booking, and tap "Reschedule" or "Cancel". You can change or cancel a booking until your service starts.',
                 ),
                 _buildFaqItem(
                   'What payment methods are accepted?',
@@ -118,7 +121,7 @@ class _HelpSupportModalContent extends StatelessWidget {
                 ),
                 _buildFaqItem(
                   'Where is Liem Barber Shop located?',
-                  'Our flagship branch is located at 123 Barber Street, Metro Manila. We are open Mondays to Sundays from 9:00 AM to 8:00 PM.',
+                  '${ShopInfo.address}. ${ShopInfo.bookingHoursLabel}.',
                 ),
               ],
             ),
@@ -190,6 +193,23 @@ class _HelpSupportModalContent extends StatelessWidget {
                   fontSize: 13, color: Colors.grey[700], height: 1.5)),
         ],
       ),
+    );
+  }
+}
+
+/// Opens the phone dialer or email app. If the device has no app for it,
+/// shows the number/address so the customer can copy it instead.
+Future<void> _openContact(BuildContext context, Uri uri,
+    {required String fallback}) async {
+  var opened = false;
+  try {
+    opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+  } catch (_) {
+    opened = false;
+  }
+  if (!opened && context.mounted) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('No app available to open this. Contact us at $fallback')),
     );
   }
 }

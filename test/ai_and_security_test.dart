@@ -1,4 +1,4 @@
-import 'package:barber/screens/ai_chat_screen.dart';
+import 'package:barber/services/password_generator.dart';
 import 'package:barber/services/ai_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 

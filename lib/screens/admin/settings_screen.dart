@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../onboarding.dart';
 import '../../services/auth_session_service.dart';
+import '../../widgets/reset_customer_password_dialog.dart';
 import '../../widgets/terms_modal.dart';
 import '../customer/change_password_dialog.dart';
 import '../customer/help_support_dialog.dart';
@@ -299,6 +300,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
             icon: Icons.badge_outlined,
             title: 'Account Credentials & Role',
             onTap: _showAccountDetailsDialog,
+          ),
+          const SizedBox(height: 16),
+          _buildSettingsItem(
+            icon: Icons.lock_reset,
+            title: "Reset a Customer's Password",
+            onTap: () => showResetCustomerPasswordDialog(context),
           ),
           const SizedBox(height: 16),
           _buildSettingsItem(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../config/shop_info.dart';
 import '../../services/booking_service.dart';
 import '../../services/employee_service.dart';
 
@@ -187,7 +188,7 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
         context: context,
         initialDate: initialDate,
         firstDate: firstDate,
-        lastDate: now.add(const Duration(days: 365)),
+        lastDate: now.add(const Duration(days: ShopInfo.maxDaysAhead)),
         builder: (context, child) {
           return Theme(
             data: Theme.of(context).copyWith(
@@ -237,6 +238,20 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
           );
         },
       );
+      if (picked != null && !ShopInfo.isBookableTime(picked)) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Please pick a time between ${ShopInfo.formatTime(ShopInfo.firstSlot)} '
+              'and ${ShopInfo.formatTime(ShopInfo.lastSlot)}.',
+              style: GoogleFonts.manrope(),
+            ),
+            backgroundColor: Colors.orange[800],
+          ),
+        );
+        return;
+      }
       if (picked != null && picked != _selectedTime) {
         setState(() {
           _selectedTime = picked;

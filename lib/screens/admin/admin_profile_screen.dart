@@ -248,7 +248,9 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
             );
           }
         } catch (_) {
-          photoUrl = base64String;
+          // Never fall back to storing the image itself in the login metadata:
+          // it travels with every request and an oversized token breaks the app.
+          throw Exception('The photo could not be uploaded. Please try again.');
         }
       }
 

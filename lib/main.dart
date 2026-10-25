@@ -19,8 +19,31 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SupabaseConfig.initialize();
   await ThemeService.init();
-  GoogleFonts.config.allowRuntimeFetching = true;
+  // Manrope ships in assets/google_fonts, so never download fonts at runtime.
+  GoogleFonts.config.allowRuntimeFetching = false;
+  TimeoutHttpClient.onConnectionProblem = showConnectionProblem;
   runApp(const MyApp());
+}
+
+final GlobalKey<ScaffoldMessengerState> appMessengerKey =
+    GlobalKey<ScaffoldMessengerState>();
+DateTime? _lastConnectionNotice;
+
+/// Tells the user a request failed because of their connection. Many screens
+/// otherwise just show an empty list. Shown at most once every 8 seconds.
+void showConnectionProblem() {
+  final now = DateTime.now();
+  if (_lastConnectionNotice != null &&
+      now.difference(_lastConnectionNotice!) < const Duration(seconds: 8)) {
+    return;
+  }
+  _lastConnectionNotice = now;
+  appMessengerKey.currentState?.showSnackBar(
+    const SnackBar(
+      content: Text('Connection problem. Check your internet and try again.'),
+      duration: Duration(seconds: 4),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -32,6 +55,7 @@ class MyApp extends StatelessWidget {
       valueListenable: ThemeService.themeModeNotifier,
       builder: (context, themeMode, _) {
         return MaterialApp(
+          scaffoldMessengerKey: appMessengerKey,
           title: 'Liem Barber Shop',
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,

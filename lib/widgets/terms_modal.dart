@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../config/shop_info.dart';
 
 void showTermsAndConditionsModal(BuildContext context) {
   showModalBottomSheet(
@@ -93,7 +94,7 @@ class _TermsModalContent extends StatelessWidget {
                   ),
                   _buildSection(
                     '7. Contact & Inquiries',
-                    'If you have questions regarding these terms, please contact us at support@liembarber.com or call us at (02) 8123-4567.',
+                    'If you have questions regarding these terms, please contact us at ${ShopInfo.email} or call us at ${ShopInfo.phoneDisplay}.',
                   ),
                   const SizedBox(height: 20),
                 ],

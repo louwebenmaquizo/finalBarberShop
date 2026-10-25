@@ -105,21 +105,41 @@ class SupabaseConfig {
 
 /// Fails requests that get no response within [timeout] so slow or dropped
 /// connections surface as errors instead of spinners that never finish.
+///
+/// Many screens show an empty list when a request fails, so every network
+/// failure is also reported to [onConnectionProblem], which the app uses to
+/// show a single "connection problem" message.
 class TimeoutHttpClient extends http.BaseClient {
-  TimeoutHttpClient({this.timeout = const Duration(seconds: 45)});
+  TimeoutHttpClient({
+    this.timeout = const Duration(seconds: 45),
+    http.Client? inner,
+  }) : _inner = inner ?? http.Client();
 
   final Duration timeout;
-  final http.Client _inner = http.Client();
+  final http.Client _inner;
+
+  /// Called when a request fails because of the network (no connection,
+  /// DNS failure, dropped connection or timeout). Not called for HTTP error
+  /// responses such as 401 or 500, which the server did answer.
+  static void Function()? onConnectionProblem;
 
   @override
-  Future<http.StreamedResponse> send(http.BaseRequest request) {
-    return _inner.send(request).timeout(
-          timeout,
-          onTimeout: () => throw TimeoutException(
-            'The server took too long to respond. Check your connection and try again.',
+  Future<http.StreamedResponse> send(http.BaseRequest request) async {
+    try {
+      return await _inner.send(request).timeout(
             timeout,
-          ),
-        );
+            onTimeout: () => throw TimeoutException(
+              'The server took too long to respond. Check your connection and try again.',
+              timeout,
+            ),
+          );
+    } on TimeoutException {
+      onConnectionProblem?.call();
+      rethrow;
+    } on http.ClientException {
+      onConnectionProblem?.call();
+      rethrow;
+    }
   }
 
   @override

@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../config/api_config.dart';
+import '../config/shop_info.dart';
+import '../services/password_generator.dart';
 import '../services/ai_service.dart';
 import '../services/api_service.dart';
 import '../services/auth_session_service.dart';
@@ -3679,23 +3681,13 @@ class _InChatBookingSheetState extends State<_InChatBookingSheet> {
   bool _isSubmitting = false;
   String? _errorMessage;
 
-  static final List<TimeOfDay> _slots = [
-    const TimeOfDay(hour: 9, minute: 0),
-    const TimeOfDay(hour: 9, minute: 30),
-    const TimeOfDay(hour: 10, minute: 0),
-    const TimeOfDay(hour: 10, minute: 30),
-    const TimeOfDay(hour: 11, minute: 0),
-    const TimeOfDay(hour: 11, minute: 30),
-    const TimeOfDay(hour: 13, minute: 0),
-    const TimeOfDay(hour: 13, minute: 30),
-    const TimeOfDay(hour: 14, minute: 0),
-    const TimeOfDay(hour: 14, minute: 30),
-    const TimeOfDay(hour: 15, minute: 0),
-    const TimeOfDay(hour: 15, minute: 30),
-    const TimeOfDay(hour: 16, minute: 0),
-    const TimeOfDay(hour: 16, minute: 30),
-    const TimeOfDay(hour: 17, minute: 0),
-  ];
+  /// Shared shop hours, minus times that have already passed on the
+  /// selected date.
+  List<TimeOfDay> get _slots => ShopInfo.bookingSlots.where((t) {
+        final start = DateTime(_selectedDate.year, _selectedDate.month,
+            _selectedDate.day, t.hour, t.minute);
+        return start.isAfter(DateTime.now());
+      }).toList();
 
   @override
   void initState() {
@@ -3711,7 +3703,12 @@ class _InChatBookingSheetState extends State<_InChatBookingSheet> {
       _selectedStaffId =
           widget.barbers[0]['staff_id'] ?? widget.barbers[0]['id'];
     }
-    _selectedTime = _slots[0];
+    // Late in the day there may be no times left today: start tomorrow.
+    if (_slots.isEmpty) {
+      final now = DateTime.now();
+      _selectedDate = DateTime(now.year, now.month, now.day + 1);
+    }
+    _selectedTime = _slots.first;
   }
 
   Future<void> _confirmBooking() async {
@@ -4060,9 +4057,19 @@ class _InChatBookingSheetState extends State<_InChatBookingSheet> {
                       context: context,
                       initialDate: _selectedDate,
                       firstDate: DateTime.now(),
-                      lastDate: DateTime.now().add(const Duration(days: 60)),
+                      lastDate: DateTime.now()
+                          .add(const Duration(days: ShopInfo.maxDaysAhead)),
                     );
-                    if (picked != null) setState(() => _selectedDate = picked);
+                    if (picked != null) {
+                      setState(() {
+                        _selectedDate = picked;
+                        final available = _slots;
+                        if (!available.contains(_selectedTime)) {
+                          _selectedTime =
+                              available.isEmpty ? null : available.first;
+                        }
+                      });
+                    }
                   },
                   icon: const Icon(Icons.calendar_today, size: 14),
                   label: Text(
@@ -5051,23 +5058,4 @@ class _ChatHistorySheetState extends State<_ChatHistorySheet> {
       ),
     );
   }
-}
-
-/// Random 12-character password with upper, lower, digit and symbol.
-String generateTempPassword() {
-  const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
-  const lower = 'abcdefghijkmnpqrstuvwxyz';
-  const digits = '23456789';
-  const symbols = '!@#\$%*?';
-  const all = upper + lower + digits + symbols;
-  final rng = Random.secure();
-  String pick(String set) => set[rng.nextInt(set.length)];
-  final chars = [
-    pick(upper),
-    pick(lower),
-    pick(digits),
-    pick(symbols),
-    for (var i = 0; i < 8; i++) pick(all),
-  ]..shuffle(rng);
-  return chars.join();
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../config/shop_info.dart';
 
 void showAboutAppDialog(BuildContext context) {
   showDialog(
@@ -91,7 +92,7 @@ class _AboutAppDialogContent extends StatelessWidget {
                 Text('Operating Hours',
                     style: GoogleFonts.manrope(
                         color: Colors.grey[600], fontSize: 13)),
-                Text('9:00 AM - 8:00 PM Daily',
+                Text(ShopInfo.bookingHoursLabel,
                     style: GoogleFonts.manrope(
                         fontWeight: FontWeight.bold, fontSize: 13)),
               ],

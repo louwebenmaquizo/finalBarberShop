@@ -31,6 +31,9 @@ class ApiService {
         OAuthProvider.google,
         redirectTo: redirectTo,
         scopes: 'email profile',
+        // Always show Google's account picker so people can switch accounts
+        // instead of being signed in with the last one used on the device.
+        queryParams: const {'prompt': 'select_account'},
       );
       return {'success': true};
     } catch (error) {

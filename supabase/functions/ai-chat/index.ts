@@ -143,22 +143,23 @@ Deno.serve(async (request) => {
 // Guards
 // ---------------------------------------------------------------------------
 async function enforceRateLimit(admin: SupabaseClient, userId: string) {
-  const now = Date.now();
-  const [{ count: perMinute }, { count: perDay }] = await Promise.all([
-    admin.from('ai_usage').select('id', { count: 'exact', head: true })
-      .eq('user_id', userId)
-      .gte('created_at', new Date(now - 60_000).toISOString()),
-    admin.from('ai_usage').select('id', { count: 'exact', head: true })
-      .eq('user_id', userId)
-      .gte('created_at', new Date(now - 86_400_000).toISOString()),
-  ]);
-  if ((perMinute ?? 0) >= RATE_LIMIT_PER_MINUTE) {
+  // ai_take_quota checks and records usage in one locked step, so a burst
+  // of simultaneous requests cannot slip past the limit.
+  const { data, error } = await admin.rpc('ai_take_quota', {
+    p_user_id: userId,
+    p_per_minute: RATE_LIMIT_PER_MINUTE,
+    p_per_day: RATE_LIMIT_PER_DAY,
+  });
+  if (error) {
+    console.error('ai_take_quota failed', error);
+    throw new HttpError(503, 'The AI assistant is busy right now. Please try again in a moment.');
+  }
+  if (data === 'minute') {
     throw new HttpError(429, "You're sending messages too quickly. Please wait a minute and try again.");
   }
-  if ((perDay ?? 0) >= RATE_LIMIT_PER_DAY) {
+  if (data === 'day') {
     throw new HttpError(429, "You've reached today's AI assistant limit. Please try again tomorrow.");
   }
-  await admin.from('ai_usage').insert({ user_id: userId });
 }
 
 function sanitizeMessages(raw: unknown): ChatMessage[] {

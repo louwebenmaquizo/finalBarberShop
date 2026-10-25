@@ -588,12 +588,16 @@ class _LoginScreenState extends State<LoginScreen> {
                                 children: [
                                   _buildGoogleLogo(),
                                   const SizedBox(width: 12),
-                                  Text(
-                                    'Continue with Google',
-                                    style: GoogleFonts.manrope(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.black87,
+                                  Flexible(
+                                    child: Text(
+                                      'Continue with Google',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: GoogleFonts.manrope(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.black87,
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -621,8 +625,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
                     // "Don't have an account? Register now" at the bottom
                     if (SupabaseConfig.emailSignUpEnabled)
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                    Wrap(
+                      alignment: WrapAlignment.center,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                         Text(
                           'Don\'t have an account? ',
