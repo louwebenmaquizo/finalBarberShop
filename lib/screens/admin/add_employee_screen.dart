@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import '../../config/shop_info.dart';
 import '../../services/theme_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
@@ -190,7 +191,7 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
             : _skillsController.text.trim(),
         'pay_rate': _payRateController.text.trim().isEmpty
             ? null
-            : double.tryParse(_payRateController.text.trim()),
+            : ShopInfo.parsePrice(_payRateController.text.trim()),
         'commission_rate': _commissionRateController.text.trim().isEmpty
             ? null
             : double.tryParse(_commissionRateController.text.trim()),
@@ -527,7 +528,7 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
                     child: TextFormField(
                       controller: _payRateController,
                       decoration: InputDecoration(
-                        labelText: 'Hourly Pay (₱)',
+                        labelText: 'Hourly Pay (₫)',
                         prefixIcon: const Icon(Icons.attach_money),
                         border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12)),

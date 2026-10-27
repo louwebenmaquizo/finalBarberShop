@@ -81,7 +81,7 @@ class _TermsModalContent extends StatelessWidget {
                   ),
                   _buildSection(
                     '4. Pricing & Payment',
-                    '• All service prices displayed in the catalog are current and subject to change with notice.\n• Payment is settled in-store via Cash, Credit/Debit Card, GCash, or Maya upon completion of your service.',
+                    '• All service prices displayed in the catalog are current and subject to change with notice.\n• Payment is settled in-store via Cash, Credit/Debit Card, MoMo, ZaloPay, or bank transfer (QR) upon completion of your service.',
                   ),
                   _buildSection(
                     '5. Hygiene & Safety Standards',

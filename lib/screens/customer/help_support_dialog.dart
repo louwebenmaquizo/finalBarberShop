@@ -118,7 +118,7 @@ class _HelpSupportModalContent extends StatelessWidget {
                 ),
                 _buildFaqItem(
                   'What payment methods are accepted?',
-                  'We accept Cash, GCash, Maya, Visa, Mastercard, and Debit Cards upon completion of your service at our branch.',
+                  'We accept Cash, MoMo, ZaloPay, bank transfer (QR), Visa, Mastercard, and Debit Cards upon completion of your service at our branch.',
                 ),
                 _buildFaqItem(
                   'Where is Liem Barber Shop located?',

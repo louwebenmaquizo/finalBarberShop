@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../../config/shop_info.dart';
 import '../../services/theme_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../services/api_service.dart';
@@ -706,7 +707,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                         ),
                         const SizedBox(width: 12),
                         Text(
-                          '₱${price.toString()}',
+                          ShopInfo.formatPrice(price),
                           style: GoogleFonts.manrope(
                             fontSize: 13,
                             fontWeight: FontWeight.bold,
@@ -824,12 +825,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     }
   }
 
-  String _formatPrice(double price) {
-    if (price == price.roundToDouble()) {
-      return '₱${price.toInt()}';
-    }
-    return '₱${price.toStringAsFixed(2)}';
-  }
+  String _formatPrice(double price) => ShopInfo.formatPrice(price);
 
   Widget _buildServiceCard(Map<String, dynamic> service) {
     final name = service['name'] ?? 'Service';

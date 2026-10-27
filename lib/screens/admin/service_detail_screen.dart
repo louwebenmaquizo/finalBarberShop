@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import '../../config/shop_info.dart';
 import '../../services/theme_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
@@ -167,6 +168,7 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
 
     try {
       final all = await CatalogService.getAllServices();
+      if (!mounted) return;
       if (all.any((s) =>
           s['service_id'] != widget.serviceId &&
           (s['name'] ?? '').toString().trim().toLowerCase() ==
@@ -188,9 +190,9 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
 
     try {
       final duration = int.tryParse(_durationController.text) ?? 0;
-      final price = double.tryParse(_priceController.text) ?? 0.0;
+      final price = ShopInfo.parsePrice(_priceController.text) ?? 0.0;
       final cost = _costController.text.isNotEmpty
-          ? double.tryParse(_costController.text)
+          ? ShopInfo.parsePrice(_costController.text)
           : null;
 
       final serviceData = {
@@ -533,7 +535,7 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
                     TextFormField(
                       controller: _priceController,
                       decoration: InputDecoration(
-                        labelText: 'Price (₱) *',
+                        labelText: 'Price (₫) *',
                         labelStyle: GoogleFonts.manrope(),
                         border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12)),
@@ -548,7 +550,7 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
                         if (value == null || value.trim().isEmpty) {
                           return 'Please enter price';
                         }
-                        final price = double.tryParse(value);
+                        final price = ShopInfo.parsePrice(value);
                         if (price == null || price <= 0) {
                           return 'Please enter a valid price';
                         }

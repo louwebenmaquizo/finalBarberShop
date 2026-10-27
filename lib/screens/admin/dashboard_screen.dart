@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import '../../config/shop_info.dart';
 import '../../services/theme_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../services/dashboard_service.dart';
@@ -238,7 +239,7 @@ class _DashboardScreenState extends State<DashboardScreen>
             Icons.book_online),
         _buildStatCard('Total Barbers', totalBarbers.toString(), pinkColor,
             Icons.content_cut),
-        _buildStatCard('Revenue Today', '₱${revenueToday.toStringAsFixed(2)}',
+        _buildStatCard('Revenue Today', ShopInfo.formatPrice(revenueToday),
             blueColor, Icons.attach_money),
       ],
     );

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../../config/shop_info.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../services/catalog_service.dart';
 import '../../services/employee_service.dart';
@@ -541,12 +542,7 @@ class _CustomerCatalogScreenState extends State<CustomerCatalogScreen> {
     );
   }
 
-  String _formatPrice(double price) {
-    if (price == price.roundToDouble()) {
-      return '₱${price.toInt()}';
-    }
-    return '₱${price.toStringAsFixed(2)}';
-  }
+  String _formatPrice(double price) => ShopInfo.formatPrice(price);
 
   Widget _buildServiceCard(Map<String, dynamic> service) {
     final name = service['name'] ?? 'Service';

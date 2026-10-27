@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../config/shop_info.dart';
 import '../../services/theme_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../services/booking_service.dart';
@@ -806,12 +807,14 @@ class _BookingScreenState extends State<BookingScreen> {
           ),
           ElevatedButton(
             onPressed: () async {
+              // The dialog's context is gone once popped; use the screen's.
+              final messenger = ScaffoldMessenger.of(this.context);
               Navigator.pop(context);
               try {
                 final result = await BookingService.updateBooking(
                     appointmentId.toString(), {'status': 'declined'});
                 if (result['success'] == true && mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  messenger.showSnackBar(
                     SnackBar(
                       content: Text('Booking request declined',
                           style: GoogleFonts.manrope()),
@@ -820,7 +823,7 @@ class _BookingScreenState extends State<BookingScreen> {
                   );
                   _loadBookings();
                 } else if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  messenger.showSnackBar(
                     SnackBar(
                       content: Text('Could not decline booking: ${result['message'] ?? 'please try again.'}'),
                       backgroundColor: Colors.red,
@@ -829,7 +832,7 @@ class _BookingScreenState extends State<BookingScreen> {
                 }
               } catch (e) {
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  messenger.showSnackBar(
                     SnackBar(
                       content: Text('Could not decline booking: $e'),
                       backgroundColor: Colors.red,
@@ -893,10 +896,16 @@ class _BookingScreenState extends State<BookingScreen> {
               'Customer: ${booking['customer_name'] ?? 'Guest'} • ${booking['service_name'] ?? 'Service'}',
               style: GoogleFonts.manrope(fontSize: 13, color: AppColors.textSecondary(context)),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 6),
+            Text(
+              'The customer and the assigned barber will see this note.',
+              style: GoogleFonts.manrope(fontSize: 12, color: const Color(0xFF1E88E5)),
+            ),
+            const SizedBox(height: 12),
             TextField(
               controller: noteController,
               maxLines: 4,
+              maxLength: 500,
               decoration: InputDecoration(
                 hintText:
                     'e.g. Skin fade #1 on sides, scissor cut on top, prefers mint aftershave...',
@@ -1104,6 +1113,7 @@ class _BookingScreenState extends State<BookingScreen> {
       }
 
       // Show payment dialog
+      if (!mounted) return;
       final paymentResult = await _showPaymentDialog(
         context,
         appointmentDetails,
@@ -1247,9 +1257,10 @@ class _BookingScreenState extends State<BookingScreen> {
               : 0.0);
     }
 
-    final tipController = TextEditingController(text: '0.00');
-    final taxController = TextEditingController(text: '0.00');
+    final tipController = TextEditingController(text: '0');
+    final taxController = TextEditingController(text: '0');
 
+    if (!context.mounted) return null;
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
       barrierDismissible: false,
@@ -1297,7 +1308,7 @@ class _BookingScreenState extends State<BookingScreen> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'Base Amount: ₱${baseAmount.toStringAsFixed(2)}',
+                              'Base Amount: ${ShopInfo.formatPrice(baseAmount)}',
                               style: GoogleFonts.manrope(fontSize: 14),
                               overflow: TextOverflow.ellipsis,
                               maxLines: 1,
@@ -1338,7 +1349,9 @@ class _BookingScreenState extends State<BookingScreen> {
                             .map((method) => DropdownMenuItem(
                                   value: method,
                                   child: Text(
-                                    method.toUpperCase(),
+                                    method == 'mobile'
+                                        ? 'E-WALLET (MOMO/ZALOPAY)'
+                                        : method.toUpperCase(),
                                     style: GoogleFonts.manrope(
                                       color: AppColors.textPrimary(context),
                                       fontWeight: FontWeight.w600,
@@ -1370,7 +1383,7 @@ class _BookingScreenState extends State<BookingScreen> {
                         keyboardType: const TextInputType.numberWithOptions(
                             decimal: true),
                         decoration: InputDecoration(
-                          prefixText: '₱ ',
+                          suffixText: '₫',
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
@@ -1399,7 +1412,7 @@ class _BookingScreenState extends State<BookingScreen> {
                         keyboardType: const TextInputType.numberWithOptions(
                             decimal: true),
                         decoration: InputDecoration(
-                          prefixText: '₱ ',
+                          suffixText: '₫',
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
@@ -1418,9 +1431,9 @@ class _BookingScreenState extends State<BookingScreen> {
                       Builder(
                         builder: (context) {
                           final currentTip =
-                              double.tryParse(tipController.text) ?? 0.0;
+                              ShopInfo.parsePrice(tipController.text) ?? 0.0;
                           final currentTax =
-                              double.tryParse(taxController.text) ?? 0.0;
+                              ShopInfo.parsePrice(taxController.text) ?? 0.0;
                           final total = baseAmount + currentTip + currentTax;
 
                           return Container(
@@ -1449,7 +1462,7 @@ class _BookingScreenState extends State<BookingScreen> {
                                 Flexible(
                                   flex: 1,
                                   child: Text(
-                                    '₱${total.toStringAsFixed(2)}',
+                                    ShopInfo.formatPrice(total),
                                     style: GoogleFonts.manrope(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 18,
@@ -1486,8 +1499,8 @@ class _BookingScreenState extends State<BookingScreen> {
                 ElevatedButton(
                   onPressed: () {
                     // Get final values from controllers
-                    final finalTip = double.tryParse(tipController.text) ?? 0.0;
-                    final finalTax = double.tryParse(taxController.text) ?? 0.0;
+                    final finalTip = ShopInfo.parsePrice(tipController.text) ?? 0.0;
+                    final finalTax = ShopInfo.parsePrice(taxController.text) ?? 0.0;
                     final totalAmount = baseAmount + finalTip + finalTax;
 
                     // Get the current payment method from the ref

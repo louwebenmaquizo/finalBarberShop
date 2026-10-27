@@ -35,7 +35,6 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
 
   Uint8List? _newImageBytes;
   String? _existingPhoto;
-  String? _role = 'admin';
 
   @override
   void initState() {
@@ -72,7 +71,6 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
           _emailController.text = session['email']?.toString() ?? '';
           _phoneController.text = session['phone']?.toString() ?? '';
           _existingPhoto = session['profile_photo']?.toString();
-          _role = session['role']?.toString() ?? 'admin';
           _isLoading = false;
         });
       }

@@ -148,8 +148,10 @@ class _EditProfileDialogContentState extends State<_EditProfileDialogContent> {
         }
         await AuthSessionService.saveSession(updatedData);
         widget.onUpdated(updatedData);
+        if (!mounted) return;
+        final messenger = ScaffoldMessenger.of(context);
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(
             content: Text('Profile updated successfully!',
                 style: GoogleFonts.manrope()),

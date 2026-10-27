@@ -631,7 +631,7 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
                               return DropdownMenuItem<String>(
                                 value: service['service_id'] as String?,
                                 child: Text(
-                                  '${service['name']} - ₱$price ($duration mins)',
+                                  '${service['name']} - ${ShopInfo.formatPrice(price)} ($duration mins)',
                                   style: GoogleFonts.manrope(
                                     color: AppColors.textPrimary(context),
                                     fontSize: 14,

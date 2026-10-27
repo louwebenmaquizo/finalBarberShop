@@ -455,6 +455,7 @@ void _showEditCategoryDialog(BuildContext context,
               }
             } catch (_) {}
 
+            if (!ctx.mounted) return;
             Navigator.pop(ctx);
             final result = await CatalogService.updateCategory(
               category['category_id'],

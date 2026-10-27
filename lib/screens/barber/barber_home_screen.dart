@@ -1,13 +1,18 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../../config/shop_info.dart';
 import '../../services/theme_service.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
+import '../../config/api_config.dart';
+import '../../services/supabase_service_helpers.dart';
 import '../../services/auth_session_service.dart';
 import '../../services/booking_service.dart';
 import '../../services/notification_service.dart';
 import '../../services/transaction_service.dart';
 import '../../widgets/notifications_modal.dart';
 import '../onboarding.dart';
+import 'barber_reviews_screen.dart';
 
 class BarberHomeScreen extends StatefulWidget {
   final Map<String, dynamic>? barberData;
@@ -25,6 +30,7 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
   String? _staffId;
   String _barberName = 'Master Barber';
   String? _profilePhoto;
+  bool _isUploadingPhoto = false;
 
   @override
   void initState() {
@@ -153,7 +159,7 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Service: ₱${amount.toStringAsFixed(2)}',
+              Text('Service: ${ShopInfo.formatPrice(amount)}',
                   style: GoogleFonts.manrope(fontWeight: FontWeight.bold)),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
@@ -162,14 +168,14 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
                 items: const [
                   DropdownMenuItem(value: 'cash', child: Text('Cash')),
                   DropdownMenuItem(value: 'card', child: Text('Card')),
-                  DropdownMenuItem(value: 'mobile', child: Text('Mobile (GCash/Maya)')),
+                  DropdownMenuItem(value: 'mobile', child: Text('E-wallet (MoMo/ZaloPay)')),
                 ],
                 onChanged: (v) => setDialogState(() => method = v ?? 'cash'),
               ),
               TextField(
                 controller: tipController,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(labelText: 'Tip (optional)', prefixText: '₱ '),
+                decoration: const InputDecoration(labelText: 'Tip (optional)', suffixText: '₫', hintText: 'e.g. 20000'),
               ),
             ],
           ),
@@ -190,7 +196,7 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
     tipController.dispose();
     if (confirmed != true || !mounted) return;
 
-    final tip = double.tryParse(tipText) ?? 0;
+    final tip = ShopInfo.parsePrice(tipText) ?? 0;
     if (tip < 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Tip cannot be negative.'), backgroundColor: Colors.red),
@@ -244,10 +250,24 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
               'Customer: ${appointment['customer_name'] ?? 'Guest'} • ${appointment['service_name'] ?? 'Service'}',
               style: GoogleFonts.manrope(fontSize: 13, color: AppColors.textSecondary(context)),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                const Icon(Icons.visibility_outlined, size: 14, color: Color(0xFF1E88E5)),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    'The customer will see this note in their Appointments.',
+                    style: GoogleFonts.manrope(fontSize: 12, color: const Color(0xFF1E88E5)),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
             TextField(
               controller: noteController,
               maxLines: 4,
+              maxLength: 500,
               decoration: InputDecoration(
                 hintText:
                     'e.g. Skin fade #1.5 on sides, scissor texture on top, matte clay styling...',
@@ -270,6 +290,9 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
           ),
           ElevatedButton(
             onPressed: () async {
+              // `context` here is the dialog's, which is gone once popped;
+              // show the result with the screen's messenger instead.
+              final messenger = ScaffoldMessenger.of(this.context);
               Navigator.pop(context);
               Map<String, dynamic> result;
               try {
@@ -282,7 +305,7 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
               }
               if (!mounted) return;
               if (result['success'] == true) _loadAppointments();
-              ScaffoldMessenger.of(context).showSnackBar(
+              messenger.showSnackBar(
                 SnackBar(
                   content: Text(
                     result['success'] == true
@@ -359,8 +382,39 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
       ),
       child: Row(
         children: [
-          // Barber Avatar
-          _buildAvatar(_profilePhoto, _barberName, size: 54),
+          // Barber Avatar (tap to change the profile photo)
+          GestureDetector(
+            onTap: _isUploadingPhoto ? null : _changeProfilePhoto,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                _buildAvatar(_profilePhoto, _barberName, size: 54),
+                if (_isUploadingPhoto)
+                  const Positioned.fill(
+                    child: Center(
+                      child: SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    ),
+                  ),
+                Positioned(
+                  right: -2,
+                  bottom: -2,
+                  child: Container(
+                    padding: const EdgeInsets.all(3),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1E88E5),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppColors.surface(context), width: 2),
+                    ),
+                    child: const Icon(Icons.camera_alt, size: 11, color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+          ),
           const SizedBox(width: 14),
           // Info
           Expanded(
@@ -412,6 +466,14 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
             ),
           ),
           // Actions
+          IconButton(
+            icon: const Icon(Icons.star_rounded, color: Colors.amber),
+            tooltip: 'My reviews',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const BarberReviewsScreen()),
+            ),
+          ),
           ValueListenableBuilder<int>(
             valueListenable: NotificationService.unreadCountNotifier,
             builder: (context, unreadCount, _) {
@@ -460,6 +522,7 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
           ),
           IconButton(
             icon: const Icon(Icons.logout, color: Colors.red),
+            tooltip: 'Log out',
             onPressed: _handleLogout,
           ),
         ],
@@ -699,7 +762,7 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
                   ],
                 ),
                 Text(
-                  '₱$price',
+                  ShopInfo.formatPrice(price),
                   style: GoogleFonts.manrope(
                       fontWeight: FontWeight.bold,
                       fontSize: 15,
@@ -901,6 +964,73 @@ class _BarberHomeScreenState extends State<BarberHomeScreen> {
         ],
       ),
     );
+  }
+
+  /// Lets the barber pick a new profile photo, uploads it to their own folder
+  /// in the staff-avatars bucket and saves it via update_my_staff_photo.
+  Future<void> _changeProfilePhoto() async {
+    final staffId = _staffId;
+    if (staffId == null || staffId.isEmpty) return;
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Choose from gallery'),
+              onTap: () => Navigator.pop(sheetContext, ImageSource.gallery),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_camera_outlined),
+              title: const Text('Take a photo'),
+              onTap: () => Navigator.pop(sheetContext, ImageSource.camera),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (source == null || !mounted) return;
+
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final picked = await ImagePicker().pickImage(
+        source: source,
+        maxWidth: 600,
+        maxHeight: 600,
+        imageQuality: 80,
+      );
+      if (picked == null) return;
+      setState(() => _isUploadingPhoto = true);
+      final bytes = await picked.readAsBytes();
+      final path = await SupabaseStorageService.uploadDataImage(
+        bucket: SupabaseConfig.staffAvatarsBucket,
+        ownerId: staffId,
+        dataUri: 'data:image/jpeg;base64,${base64Encode(bytes)}',
+      );
+      if (path == null) throw Exception('Upload failed');
+      await SupabaseConfig.client
+          .rpc('update_my_staff_photo', params: {'p_path': path});
+      final url = await SupabaseStorageService.resolveReference(
+        bucket: SupabaseConfig.staffAvatarsBucket,
+        value: path,
+        isPublic: true,
+      );
+      if (!mounted) return;
+      setState(() => _profilePhoto = url);
+      messenger.showSnackBar(const SnackBar(
+        content: Text('Profile photo updated.'),
+        backgroundColor: Colors.green,
+      ));
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(
+        content: Text('Could not update photo: ${SupabaseServiceHelpers.errorMessage(e)}'),
+        backgroundColor: Colors.red,
+      ));
+    } finally {
+      if (mounted) setState(() => _isUploadingPhoto = false);
+    }
   }
 
   Widget _buildAvatar(String? photo, String name, {double size = 48}) {

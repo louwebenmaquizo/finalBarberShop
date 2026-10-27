@@ -209,6 +209,7 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
         });
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -259,6 +260,7 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
         });
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -493,8 +495,12 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
         _selectedTime!.hour,
         _selectedTime!.minute,
       );
-      final duration = 30; // default duration
+      // Use the booked service's real length (not a fixed 30 minutes) so
+      // longer services are checked against the whole time they take.
+      final duration =
+          (widget.booking['duration_minutes'] as num?)?.toInt() ?? 30;
       final endDt = startDt.add(Duration(minutes: duration));
+      if (!mounted) return;
 
       final conflict = BookingService.findConflictingBooking(
         proposedStart: startDt,

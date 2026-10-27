@@ -53,4 +53,36 @@ class ShopInfo {
   /// e.g. "Daily, bookings from 8:00 AM to 6:00 PM"
   static String get bookingHoursLabel =>
       'Daily, bookings from ${formatTime(firstSlot)} to ${formatTime(lastSlot)}';
+
+  // ── Currency: Vietnamese Dong ────────────────────────────────────────────
+  static const String currencySymbol = '₫';
+  static const String currencyCode = 'VND';
+
+  /// Formats a price in Vietnamese Dong: 80000 -> "80.000 ₫".
+  /// VND has no decimals; values are rounded to whole dong.
+  static String formatPrice(dynamic value) {
+    final amount = value is num
+        ? value
+        : num.tryParse(value?.toString().replaceAll(RegExp(r'[^\d.\-]'), '') ?? '') ?? 0;
+    final whole = amount.round();
+    final digits = whole.abs().toString();
+    final grouped = StringBuffer();
+    for (var i = 0; i < digits.length; i++) {
+      if (i > 0 && (digits.length - i) % 3 == 0) grouped.write('.');
+      grouped.write(digits[i]);
+    }
+    return '${whole < 0 ? '-' : ''}$grouped $currencySymbol';
+  }
+
+  /// Parses a price typed by staff: accepts "80000", "80.000", "80,000",
+  /// "80 000" and "80k". Returns null when no number is present.
+  static double? parsePrice(String input) {
+    final text = input.trim().toLowerCase();
+    final k = RegExp(r'^(\d+(?:[.,]\d+)?)\s*k$').firstMatch(text);
+    if (k != null) {
+      return (double.tryParse(k.group(1)!.replaceAll(',', '.')) ?? 0) * 1000;
+    }
+    final digits = text.replaceAll(RegExp(r'[^\d]'), '');
+    return digits.isEmpty ? null : double.parse(digits);
+  }
 }

@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/api_config.dart';
+import '../config/shop_info.dart';
 import 'catalog_service.dart';
 import 'dashboard_service.dart';
 import 'employee_service.dart';
@@ -361,6 +362,15 @@ class AiService {
     }
 
     final isAdmin = userRole == 'admin' || userRole == 'manager' || userRole == 'cashier';
+
+    // Suggested questions are answered straight from the database (no AI),
+    // so their answers are always exact.
+    final quick = await quickAnswer(
+      messages.isNotEmpty ? messages.last.content : '',
+      userRole: userRole,
+    );
+    if (quick != null) return quick;
+
     if (isAdmin) {
       return _adminExecutiveGemini(messages, sessionId, session);
     }
@@ -377,6 +387,283 @@ class AiService {
       }
       throw Exception(e.message);
     }
+  }
+
+  // ── Suggested questions (answered from live data, never by the AI) ────────
+
+  /// Shown as tappable suggestions in the chat. Each is answered exactly by
+  /// [quickAnswer]; typing the same question works too.
+  static const customerQuickQuestions = [
+    '💈  Who are the barbers?',
+    '✂️  What services are available?',
+    '💰  What are the cheapest services?',
+    '🕐  How long does each service take?',
+    '⭐  Which barber is best for fades?',
+    '📅  What are your booking hours?',
+  ];
+
+  static const adminQuickQuestions = [
+    "📅  Today's bookings",
+    '⏳  Pending approvals',
+    "💰  Today's revenue",
+    '👥  List all barbers',
+    '📋  List all services',
+    '➕  Add Barber',
+    '✂️  Add Service',
+  ];
+
+  static const _dataError =
+      "I couldn't load the latest data right now. Please check your connection and try again.";
+
+  static String _normalizeQuestion(String text) => text
+      .toLowerCase()
+      .replaceAll(RegExp(r"[’']"), '')
+      .replaceAll(RegExp(r'[^a-z0-9 ]'), ' ')
+      .replaceAll(RegExp(r'\s+'), ' ')
+      .trim();
+
+  /// Returns an exact, data-backed answer for a suggested question, or null
+  /// when [text] is not one of them (it then goes to the AI as usual).
+  static Future<String?> quickAnswer(String text, {required String userRole}) async {
+    final q = _normalizeQuestion(text);
+    final isStaffSide = userRole == 'admin' || userRole == 'manager' || userRole == 'cashier';
+    final canManage = userRole == 'admin' || userRole == 'manager';
+    try {
+      if (isStaffSide) {
+        switch (q) {
+          case 'todays bookings':
+            return await _quickTodaysBookings();
+          case 'pending approvals':
+            return await _quickPendingApprovals();
+          case 'todays revenue':
+            return await _quickTodaysRevenue();
+          case 'list all barbers':
+            return await _quickBarbers(forAdmin: true);
+          case 'list all services':
+            return await _quickServices(forAdmin: true);
+          case 'add barber':
+            return canManage
+                ? 'Fill in the new barber\'s details below. A login is created for them, and their temporary password is shown after saving.\n\n[ADMIN_FORM:ADD_BARBER]'
+                : 'Only admins and managers can add barbers.';
+          case 'add service':
+            return canManage
+                ? 'Fill in the new service\'s details below.\n\n[ADMIN_FORM:ADD_CATALOG]'
+                : 'Only admins and managers can add services.';
+        }
+        return null;
+      }
+      switch (q) {
+        case 'who are the barbers':
+          return await _quickBarbers(forAdmin: false);
+        case 'what services are available':
+          return await _quickServices(forAdmin: false);
+        case 'what are the cheapest services':
+          return await _quickCheapest();
+        case 'how long does each service take':
+          return await _quickDurations();
+        case 'which barber is best for fades':
+          return await _quickFadeBarbers();
+        case 'what are your booking hours':
+          return '📅 **Booking hours**\n\n'
+              '• ${ShopInfo.bookingHoursLabel}, in 30-minute slots.\n'
+              '• You can book up to ${ShopInfo.maxDaysAhead} days ahead.\n'
+              '• You can have up to ${ShopInfo.maxUpcomingBookings} upcoming bookings at a time.\n'
+              '• New bookings show as "Pending Approval" until the shop confirms them.';
+      }
+      return null;
+    } catch (_) {
+      return _dataError;
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> _activeServices() async {
+    final rows = SupabaseServiceHelpers.asMapList(await SupabaseConfig.client
+        .from(SupabaseConfig.serviceCatalogView)
+        .select('name, price, duration_minutes, category_name, is_active')
+        .order('name'));
+    return rows.where((s) => s['is_active'] != false).toList();
+  }
+
+  static Future<List<Map<String, dynamic>>> _barberRows() async {
+    final rows = SupabaseServiceHelpers.asMapList(await SupabaseConfig.client
+        .from(SupabaseConfig.staffDirectoryView)
+        .select('name, role, skills, is_active')
+        .order('name'));
+    // Only people who cut hair, never admin/cashier accounts.
+    return rows.where((s) {
+      final role = (s['role'] ?? '').toString().toLowerCase();
+      return !role.contains('admin') && !role.contains('cashier');
+    }).toList();
+  }
+
+  static String _barberLine(Map<String, dynamic> b) {
+    final skills = (b['skills'] ?? '').toString().trim();
+    return '• **${b['name']}** — ${b['role'] ?? 'Barber'}'
+        '${skills.isNotEmpty ? ' (Specialties: $skills)' : ''}';
+  }
+
+  static String _serviceLine(Map<String, dynamic> s) =>
+      '• **${s['name']}** — ${ShopInfo.formatPrice(s['price'])}, ${s['duration_minutes']} min';
+
+  static Future<String> _quickBarbers({required bool forAdmin}) async {
+    final all = await _barberRows();
+    final active = all.where((b) => b['is_active'] != false).toList();
+    if (active.isEmpty) {
+      return forAdmin
+          ? '👥 There are no active barbers yet. Use **Add Barber** to add one.'
+          : '💈 No barbers are available for booking yet. Please check back soon.';
+    }
+    final inactive = all.length - active.length;
+    return '👥 **${forAdmin ? 'Active barbers' : 'Our barbers'} (${active.length})**\n\n'
+        '${active.map(_barberLine).join('\n')}'
+        '${forAdmin && inactive > 0 ? '\n\n_Plus $inactive inactive barber${inactive == 1 ? '' : 's'} (see the Employee tab)._' : ''}';
+  }
+
+  static Future<String> _quickServices({required bool forAdmin}) async {
+    final List<Map<String, dynamic>> all;
+    if (forAdmin) {
+      all = SupabaseServiceHelpers.asMapList(await SupabaseConfig.client
+          .from(SupabaseConfig.serviceCatalogView)
+          .select('name, price, duration_minutes, category_name, is_active')
+          .order('name'));
+    } else {
+      all = await _activeServices();
+    }
+    final active = all.where((s) => s['is_active'] != false).toList();
+    if (active.isEmpty) return '📋 There are no services in the catalog yet.';
+    final byCategory = <String, List<Map<String, dynamic>>>{};
+    for (final s in active) {
+      byCategory.putIfAbsent((s['category_name'] ?? 'Other').toString(), () => []).add(s);
+    }
+    final inactive = all.length - active.length;
+    final sb = StringBuffer('📋 **Services (${active.length})**\n');
+    for (final e in byCategory.entries) {
+      sb.writeln('\n**${e.key}**');
+      for (final s in e.value) {
+        sb.writeln(_serviceLine(s));
+      }
+    }
+    if (forAdmin && inactive > 0) {
+      sb.writeln('\n_Plus $inactive inactive service${inactive == 1 ? '' : 's'} (hidden from customers)._');
+    }
+    return sb.toString().trim();
+  }
+
+  static Future<String> _quickCheapest() async {
+    final services = await _activeServices();
+    if (services.isEmpty) return '💰 There are no services in the catalog yet.';
+    services.sort((a, b) => SupabaseServiceHelpers.asDouble(a['price'])
+        .compareTo(SupabaseServiceHelpers.asDouble(b['price'])));
+    final top = services.take(3).toList();
+    return '💰 **Our most affordable services**\n\n${top.map(_serviceLine).join('\n')}';
+  }
+
+  static Future<String> _quickDurations() async {
+    final services = await _activeServices();
+    if (services.isEmpty) return '🕐 There are no services in the catalog yet.';
+    services.sort((a, b) => SupabaseServiceHelpers.asInt(a['duration_minutes'])
+        .compareTo(SupabaseServiceHelpers.asInt(b['duration_minutes'])));
+    return '🕐 **How long each service takes**\n\n'
+        '${services.map((s) => '• **${s['name']}** — ${s['duration_minutes']} min').join('\n')}';
+  }
+
+  static Future<String> _quickFadeBarbers() async {
+    final barbers = (await _barberRows()).where((b) => b['is_active'] != false).toList();
+    if (barbers.isEmpty) {
+      return '💈 No barbers are available for booking yet. Please check back soon.';
+    }
+    final fade = barbers
+        .where((b) => (b['skills'] ?? '').toString().toLowerCase().contains('fade'))
+        .toList();
+    if (fade.isEmpty) {
+      return '⭐ None of our barbers list fades as a specialty yet, but all of them can be booked for a fade. Our barbers:\n\n'
+          '${barbers.map(_barberLine).join('\n')}';
+    }
+    return '⭐ **Barbers who list fades as a specialty**\n\n${fade.map(_barberLine).join('\n')}';
+  }
+
+  static (String, String) _todayRangeUtc() {
+    final now = DateTime.now();
+    final start = DateTime(now.year, now.month, now.day);
+    final end = start.add(const Duration(days: 1));
+    return (start.toUtc().toIso8601String(), end.toUtc().toIso8601String());
+  }
+
+  static String _apptLine(Map<String, dynamic> a) {
+    final start = SupabaseServiceHelpers.parseDateTime(a['start_time']);
+    final time = start != null ? SupabaseServiceHelpers.displayTime(start) : '--';
+    return '• **$time** — ${a['customer_name'] ?? 'Customer'}: ${a['service_name'] ?? 'Service'}'
+        ' with ${a['staff_name'] ?? 'unassigned'} (`${a['status']}`)';
+  }
+
+  static Future<String> _quickTodaysBookings() async {
+    final (from, to) = _todayRangeUtc();
+    final rows = SupabaseServiceHelpers.asMapList(await SupabaseConfig.client
+        .from(SupabaseConfig.appointmentDetailsView)
+        .select('start_time, status, customer_name, service_name, staff_name')
+        .gte('start_time', from)
+        .lt('start_time', to)
+        .order('start_time'));
+    const inactive = {'canceled', 'declined', 'no-show'};
+    final active = rows.where((a) => !inactive.contains(a['status'])).toList();
+    final dropped = rows.length - active.length;
+    if (rows.isEmpty) return '📅 There are no bookings for today.';
+    final sb = StringBuffer('📅 **Today\'s bookings: ${active.length}**');
+    if (dropped > 0) sb.write(' _(plus $dropped canceled/declined/no-show)_');
+    sb.writeln('\n');
+    for (final a in active) {
+      sb.writeln(_apptLine(a));
+    }
+    return sb.toString().trim();
+  }
+
+  static Future<String> _quickPendingApprovals() async {
+    final rows = SupabaseServiceHelpers.asMapList(await SupabaseConfig.client
+        .from(SupabaseConfig.appointmentDetailsView)
+        .select('start_time, status, customer_name, service_name, staff_name')
+        .eq('status', 'pending')
+        .gte('start_time', DateTime.now().toUtc().toIso8601String())
+        .order('start_time'));
+    if (rows.isEmpty) return '⏳ There are no bookings waiting for approval.';
+    final sb = StringBuffer('⏳ **Waiting for approval: ${rows.length}**\n\n');
+    for (final a in rows) {
+      final start = SupabaseServiceHelpers.parseDateTime(a['start_time']);
+      final date = start != null ? SupabaseServiceHelpers.displayDate(start) : '';
+      sb.writeln('${_apptLine(a)} on $date');
+    }
+    sb.write('\nApprove or decline them in the **Booking** tab.');
+    return sb.toString().trim();
+  }
+
+  static Future<String> _quickTodaysRevenue() async {
+    final (from, to) = _todayRangeUtc();
+    final rows = SupabaseServiceHelpers.asMapList(await SupabaseConfig.client
+        .from(SupabaseConfig.transactionDetailsView)
+        .select('amount, tip_amount, payment_method, status')
+        .eq('status', 'completed')
+        .gte('created_at', from)
+        .lt('created_at', to));
+    if (rows.isEmpty) {
+      return '💰 **Today\'s revenue: ${ShopInfo.formatPrice(0)}**\n\nNo payments have been recorded today.';
+    }
+    double services = 0, tips = 0;
+    final byMethod = <String, double>{};
+    for (final t in rows) {
+      final amount = SupabaseServiceHelpers.asDouble(t['amount']);
+      final tip = SupabaseServiceHelpers.asDouble(t['tip_amount']);
+      services += amount;
+      tips += tip;
+      final method = (t['payment_method'] ?? 'other').toString();
+      byMethod[method] = (byMethod[method] ?? 0) + amount + tip;
+    }
+    final sb = StringBuffer('💰 **Today\'s revenue: ${ShopInfo.formatPrice(services + tips)}**\n\n')
+      ..writeln('• Services: ${ShopInfo.formatPrice(services)}')
+      ..writeln('• Tips: ${ShopInfo.formatPrice(tips)}')
+      ..writeln('• Payments recorded: ${rows.length}');
+    for (final e in byMethod.entries) {
+      sb.writeln('• ${e.key[0].toUpperCase()}${e.key.substring(1)}: ${ShopInfo.formatPrice(e.value)}');
+    }
+    return sb.toString().trim();
   }
 
   static const int _maxMessagesSent = 20;
@@ -665,14 +952,13 @@ class AiService {
           lowerQuery.startsWith('are we able') ||
           lowerQuery.startsWith('do you allow') ||
           (lowerQuery.endsWith('?') &&
-              !lowerQuery.contains('₱') &&
-              !lowerQuery.contains('php') &&
-              !lowerQuery.contains('pesos'));
+              // A question without any number is an inquiry, not a request.
+              !RegExp(r'[0-9]').hasMatch(lowerQuery));
 
       if (isCatalogInquiry) {
         return 'Yes, absolutely! You can add new hairstyles and services in two ways:\n\n'
             '1. **Directly in this Chat:** Use the form below or provide details like:\n'
-            '   👉 *"Add a hairstyle to catalog: Low Fade for ₱250, 30 mins"*\n\n'
+            '   👉 *"Add a hairstyle to catalog: Low Fade for 80000đ, 30 mins"*\n\n'
             '2. **Via the Catalog Screen:** Go to the **Catalog** tab and tap the **+ Add Catalog** button.\n\n'
             '[ADMIN_FORM:ADD_CATALOG]';
       }
@@ -936,6 +1222,7 @@ class AiService {
       int total = rows.length;
       int completed = 0;
       int pending = 0;
+      int inProgress = 0;
       int canceled = 0;
       double revenue = 0.0;
       final barberCounts = <String, int>{};
@@ -948,6 +1235,8 @@ class AiService {
           revenue += SupabaseServiceHelpers.asDouble(r['total_amount'] ?? r['price'] ?? r['service_price']);
         } else if (s == 'pending' || s == 'confirmed' || s == 'booked') {
           pending++;
+        } else if (s == 'in_progress' || s == 'checked-in' || s == 'in-service') {
+          inProgress++;
         } else if (s == 'canceled' || s == 'cancelled' || s == 'declined' || s == 'no-show') {
           canceled++;
         }
@@ -979,6 +1268,7 @@ class AiService {
         'total_bookings': total,
         'completed': completed,
         'pending': pending,
+        'in_progress': inProgress,
         'canceled': canceled,
         'revenue': revenue,
         'barbers': barberCounts,
@@ -1018,6 +1308,7 @@ class AiService {
     final total = (data['total_bookings'] as num?)?.toInt() ?? 0;
     final completed = (data['completed'] as num?)?.toInt() ?? 0;
     final pending = (data['pending'] as num?)?.toInt() ?? 0;
+    final inProgress = (data['in_progress'] as num?)?.toInt() ?? 0;
     final canceled = (data['canceled'] as num?)?.toInt() ?? 0;
     final revenue = (data['revenue'] as num?)?.toDouble() ?? 0.0;
     final barbers = SupabaseServiceHelpers.asMap(data['barbers']);
@@ -1033,8 +1324,9 @@ class AiService {
     sb.writeln('📊 **$timeframe Bookings Overview**');
     sb.writeln('Here is the live report directly from the shop database:\n');
     sb.writeln('• **Total Bookings:** $total appointment${total == 1 ? '' : 's'}');
-    sb.writeln('• **Completed:** $completed (est. ₱${revenue.toStringAsFixed(2)} at list price)');
+    sb.writeln('• **Completed:** $completed (est. ${ShopInfo.formatPrice(revenue)} at list price)');
     sb.writeln('• **Pending / Confirmed:** $pending');
+    sb.writeln('• **In progress:** $inProgress');
     sb.writeln('• **Canceled / No-show:** $canceled\n');
 
     if (bList.isNotEmpty) {
@@ -1112,7 +1404,7 @@ class AiService {
         final sName = b['service_name'] ?? b['service'] ?? 'Haircut Service';
         final barber = b['staff_name'] ?? b['employee'] ?? b['employee_name'] ?? 'Assigned Staff';
         final price = b['price'] ?? b['service_price'] ?? b['total_amount'];
-        final priceStr = price != null ? '₱${price.toString()}' : '';
+        final priceStr = price != null ? ShopInfo.formatPrice(price) : '';
         final status = (b['status'] ?? 'Confirmed').toString().toUpperCase();
         final rawTime = b['start_time'] ?? b['date'];
         final timeStr = _formatBookingTime(rawTime);
@@ -1192,7 +1484,7 @@ class AiService {
 
       final sb = StringBuffer();
       sb.writeln('💰 **Shop Financial & Performance Summary**\n');
-      sb.writeln('• **Today\'s Revenue:** ₱${todayRevenue.toStringAsFixed(2)}');
+      sb.writeln('• **Today\'s Revenue:** ${ShopInfo.formatPrice(todayRevenue)}');
       sb.writeln('• **Today\'s Bookings:** $todayBookings');
       sb.writeln('• **All-Time Total Bookings:** $totalBookings\n');
 
@@ -1201,7 +1493,7 @@ class AiService {
         for (final b in recent.take(4)) {
           final cName = b['customer_name'] ?? b['customer'] ?? b['full_name'] ?? 'Customer';
           final sName = b['service_name'] ?? b['service'] ?? 'Service';
-          final price = b['price'] != null ? ' (₱${b['price']})' : '';
+          final price = b['price'] != null ? ' (${ShopInfo.formatPrice(b['price'])})' : '';
           sb.writeln('• $cName - $sName$price');
         }
       }
@@ -1215,7 +1507,7 @@ class AiService {
   static String _formatCatalogReport(List<Map<String, dynamic>> services) {
     if (services.isEmpty) {
       return '📋 **Shop Catalog**\nThere are currently no services listed in the shop catalog.\n\n'
-          'To add a service, prompt:\n*"Add a hairstyle to catalog: [Name] for ₱[Price], [Duration] mins"*';
+          'To add a service, prompt:\n*"Add a hairstyle to catalog: [Name] for [Price]đ, [Duration] mins"*';
     }
 
     // Group services by category
@@ -1232,7 +1524,7 @@ class AiService {
       sb.writeln('### ${entry.key}');
       for (final s in entry.value) {
         final name = s['name'] ?? 'Service';
-        final price = s['price'] != null ? '₱${s['price']}' : '₱0.00';
+        final price = ShopInfo.formatPrice(s['price'] ?? 0);
         final duration = s['duration_minutes'] != null ? '${s['duration_minutes']} min' : '30 min';
         final desc = (s['description'] != null && s['description'].toString().trim().isNotEmpty)
             ? ' — _${s['description'].toString().trim()}_'
@@ -1243,7 +1535,7 @@ class AiService {
       sb.writeln();
     }
 
-    sb.writeln('💡 *Tip: You can say "Add a hairstyle to catalog: [Name] for ₱[Price]" to add a new service.*');
+    sb.writeln('💡 *Tip: You can say "Add a hairstyle to catalog: [Name] for [Price]đ" to add a new service.*');
     return sb.toString().trim();
   }
 
@@ -1378,30 +1670,35 @@ class AiService {
         '',
       ).trim();
 
-      // Extract price (e.g. ₱250, 250 pesos, for 300)
-      double price = 250.0;
-      final priceMatch = RegExp(
-        r'(?:(?:for|price[:\s]+|at)\s*)?(?:₱|php\s*)?(\d+(?:\.\d{1,2})?)\s*(?:pesos?|php|₱)?',
-        caseSensitive: false,
-      ).firstMatch(clean);
-      if (priceMatch != null) {
-        final parsed = double.tryParse(priceMatch.group(1)!);
-        if (parsed != null && parsed > 0) {
-          price = parsed;
-        }
-      }
-
-      // Extract duration (e.g. 30 mins, 45 minutes)
+      // Extract duration first (e.g. 30 mins, 45 minutes, 30 phút) so its
+      // number is never mistaken for the price.
       int duration = 30;
-      final durMatch = RegExp(r'(\d+)\s*(?:mins?|minutes?)', caseSensitive: false).firstMatch(clean);
+      final durMatch = RegExp(r'(\d+)\s*(?:mins?|minutes?|phút)', caseSensitive: false)
+          .firstMatch(clean);
       if (durMatch != null) {
         duration = int.tryParse(durMatch.group(1)!) ?? 30;
       }
+      final priceSource = durMatch == null
+          ? clean
+          : clean.replaceRange(durMatch.start, durMatch.end, ' ');
 
-      // Extract name
+      // Extract the price in VND: 80000, 80.000, 80,000, 80k, 80.000đ, 80000 VND.
+      // No price given -> return null so the admin fills in the form instead
+      // of the app guessing one.
+      final priceMatch = RegExp(
+        r'(\d{1,3}(?:[.,]\d{3})+|\d+(?:[.,]\d+)?)\s*(k\b|nghìn|ngàn)?',
+        caseSensitive: false,
+      ).firstMatch(priceSource);
+      if (priceMatch == null) return null;
+      final price = priceMatch.group(2) != null
+          ? (double.tryParse(priceMatch.group(1)!.replaceAll(',', '.')) ?? 0) * 1000
+          : ShopInfo.parsePrice(priceMatch.group(1)!) ?? 0;
+      if (price <= 0) return null;
+
+      // Extract name: everything before the first price/duration keyword or number.
       var name = clean;
       final sepIdx = name.indexOf(RegExp(
-        r'\b(?:for|price|priced|at\s+₱?|\d+\s*(?:pesos|php|₱|mins|minutes))\b',
+        r'\b(?:for|price|priced|at|giá)\b|\d',
         caseSensitive: false,
       ));
       if (sepIdx > 0) {
@@ -1638,7 +1935,7 @@ class AiService {
 
       final bullets = sList
           .map((s) =>
-              '• **${s['name']}** — ₱${s['price']} (${s['duration_minutes']} mins)${s['description'] != null && s['description'].toString().isNotEmpty ? '\n  _${s['description']}_' : ''}')
+              '• **${s['name']}** — ${ShopInfo.formatPrice(s['price'])} (${s['duration_minutes']} mins)${s['description'] != null && s['description'].toString().isNotEmpty ? '\n  _${s['description']}_' : ''}')
           .join('\n\n');
 
       final countIntro = serviceCount != null && serviceCount > 0

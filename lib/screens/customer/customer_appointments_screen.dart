@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../../config/shop_info.dart';
 import '../../services/theme_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../services/api_service.dart';
@@ -372,10 +373,7 @@ class _CustomerAppointmentsScreenState
             TextButton(
               onPressed: isSubmitting
                   ? null
-                  : () {
-                      Navigator.pop(context);
-                      commentsController.dispose();
-                    },
+                  : () => Navigator.pop(context),
               child: Text(
                 'Cancel',
                 style: GoogleFonts.manrope(
@@ -388,20 +386,23 @@ class _CustomerAppointmentsScreenState
               onPressed: isSubmitting || selectedRating == 0
                   ? null
                   : () async {
+                      // Capture before awaiting: the dialog's context is gone
+                      // once it closes, so results use the screen's messenger.
+                      final navigator = Navigator.of(context);
+                      final messenger = ScaffoldMessenger.of(this.context);
                       setDialogState(() {
                         isSubmitting = true;
                       });
 
+                      final appointmentId =
+                          (appointment['appointment_id'] ?? '').toString();
+                      Map<String, dynamic> result;
                       try {
-                        final appointmentId =
-                            appointment['appointment_id'] ?? '';
                         final customerId = _customerId ?? '';
-
                         if (appointmentId.isEmpty || customerId.isEmpty) {
                           throw Exception('Missing appointment or customer ID');
                         }
-
-                        final result = await ApiService.submitFeedback(
+                        result = await ApiService.submitFeedback(
                           appointmentId: appointmentId,
                           customerId: customerId,
                           rating: selectedRating,
@@ -409,68 +410,40 @@ class _CustomerAppointmentsScreenState
                               ? commentsController.text.trim()
                               : null,
                         );
-
-                        // Close dialog and dispose controller first
-                        commentsController.dispose();
-                        if (mounted) {
-                          Navigator.pop(context);
-                        }
-
-                        // Wait a frame before showing messages and reloading
-                        await Future.delayed(const Duration(milliseconds: 100));
-
-                        if (mounted) {
-                          if (result['success'] == true) {
-                            // Update feedback map immediately to show green button
-                            setState(() {
-                              _hasFeedbackMap[appointmentId] = true;
-                            });
-
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  'Thank you for your feedback!',
-                                  style: GoogleFonts.manrope(),
-                                ),
-                                backgroundColor: Colors.green,
-                              ),
-                            );
-                            // Reload appointments to refresh the UI
-                            _loadAppointments();
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  result['message'] ??
-                                      'Failed to submit feedback',
-                                  style: GoogleFonts.manrope(),
-                                ),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                          }
-                        }
                       } catch (e) {
-                        // Close dialog and dispose controller first
-                        commentsController.dispose();
-                        if (mounted) {
-                          Navigator.pop(context);
-                        }
+                        result = {
+                          'success': false,
+                          'message': e.toString().replaceFirst('Exception: ', ''),
+                        };
+                      }
 
-                        // Wait a frame before showing error
-                        await Future.delayed(const Duration(milliseconds: 100));
-
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                'Error: ${e.toString()}',
-                                style: GoogleFonts.manrope(),
-                              ),
-                              backgroundColor: Colors.red,
+                      navigator.pop();
+                      if (!mounted) return;
+                      if (result['success'] == true) {
+                        setState(() {
+                          _hasFeedbackMap[appointmentId] = true;
+                        });
+                        messenger.showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Thank you for your feedback!',
+                              style: GoogleFonts.manrope(),
                             ),
-                          );
-                        }
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                        _loadAppointments();
+                      } else {
+                        messenger.showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              result['message']?.toString() ??
+                                  'Failed to submit feedback',
+                              style: GoogleFonts.manrope(),
+                            ),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
                       }
                     },
               style: ElevatedButton.styleFrom(
@@ -790,13 +763,57 @@ class _CustomerAppointmentsScreenState
                   const SizedBox(height: 8),
                   // Price
                   Text(
-                    '₱${price.toString()}',
+                    ShopInfo.formatPrice(price),
                     style: GoogleFonts.manrope(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
                       color: const Color(0xFF0F8751),
                     ),
                   ),
+                  // Note written by the barber (or shop) for this booking.
+                  if ((appointment['notes'] ?? '').toString().trim().isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.inputBackground(context),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppColors.cardBorder(context)),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(Icons.sticky_note_2_outlined,
+                              size: 16, color: Color(0xFF1E88E5)),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Note from your barber',
+                                  style: GoogleFonts.manrope(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: const Color(0xFF1E88E5),
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  appointment['notes'].toString().trim(),
+                                  style: GoogleFonts.manrope(
+                                    fontSize: 12,
+                                    color: AppColors.textPrimary(context),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 8),
                   // Status and Action Buttons
                   if (status == 'canceled')

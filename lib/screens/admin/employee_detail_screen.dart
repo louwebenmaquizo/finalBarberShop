@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import '../../config/shop_info.dart';
 import '../../services/theme_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
@@ -166,6 +167,7 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
 
     try {
       final all = await EmployeeService.getAllEmployees();
+      if (!mounted) return;
       if (all.any((e) =>
           e['staff_id'] != widget.staffId &&
           (e['name'] ?? '').toString().trim().toLowerCase() ==
@@ -239,7 +241,7 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
             : _skillsController.text.trim(),
         'pay_rate': _payRateController.text.trim().isEmpty
             ? null
-            : double.tryParse(_payRateController.text.trim()),
+            : ShopInfo.parsePrice(_payRateController.text.trim()),
         'commission_rate': _commissionRateController.text.trim().isEmpty
             ? null
             : double.tryParse(_commissionRateController.text.trim()),
@@ -730,7 +732,7 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                             controller: _payRateController,
                             enabled: _isEditing,
                             decoration: InputDecoration(
-                              labelText: 'Pay Rate (₱)',
+                              labelText: 'Pay Rate (₫)',
                               prefixIcon: const Icon(Icons.attach_money),
                               border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12)),

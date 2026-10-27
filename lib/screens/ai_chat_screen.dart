@@ -64,24 +64,10 @@ class _AiChatScreenState extends State<AiChatScreen>
   late final AnimationController _dotController;
 
 
-  static const _customerSuggestions = [
-    '💈  Provide all names of barbers',
-    '✂️  Suggest a clean haircut for me',
-    '💈  What services are available?',
-    '⭐  Which barber is best for fades?',
-    '🕐  How long does a beard trim take?',
-    '💰  What are the cheapest services?',
-    '🎨  Best hairstyle for curly hair?',
-  ];
-
-  static const _adminSuggestions = [
-    '📊  How many bookings in the past 3 days?',
-    '📅  Show today\'s appointment schedule',
-    '💰  What is today\'s revenue & stats?',
-    '✂️  Add a hairstyle to catalog',
-    '👥  Add a new barber to staff',
-    '📋  List all catalog services',
-  ];
+  // Suggested questions are answered exactly from live data (see
+  // AiService.quickAnswer), never guessed by the AI.
+  static const _customerSuggestions = AiService.customerQuickQuestions;
+  static const _adminSuggestions = AiService.adminQuickQuestions;
 
   @override
   void initState() {
@@ -1044,7 +1030,7 @@ class _AiChatScreenState extends State<AiChatScreen>
   /// Interactive Card for each haircut suggested by the AI
   Widget _buildServiceActionCard(Map<String, dynamic> service) {
     final name = (service['name'] ?? 'Haircut').toString();
-    final price = service['price'] != null ? '₱${service['price']}' : '';
+    final price = service['price'] != null ? ShopInfo.formatPrice(service['price']) : '';
     final duration = service['duration_minutes'] != null
         ? '${service['duration_minutes']} min'
         : '30 min';
@@ -1218,7 +1204,7 @@ class _AiChatScreenState extends State<AiChatScreen>
   void _showHairstylePreviewModal(Map<String, dynamic> service) {
     final name = (service['name'] ?? 'Hairstyle').toString();
     final description = (service['description'] ?? 'A signature look from Liem Barber Shop.').toString();
-    final price = service['price'] != null ? '₱${service['price']}' : '';
+    final price = service['price'] != null ? ShopInfo.formatPrice(service['price']) : '';
     final duration = service['duration_minutes'] != null ? '${service['duration_minutes']} minutes' : '30 minutes';
     final imagePath = _getServiceImage(service);
 
@@ -1927,35 +1913,23 @@ class _AiChatScreenState extends State<AiChatScreen>
                   ),
                   _buildAdminQuickChip(
                     icon: Icons.calendar_today_outlined,
-                    label: 'Today\'s Schedule',
-                    onTap: () => _send('Show today\'s appointment schedule'),
+                    label: 'Today\'s Bookings',
+                    onTap: () => _send("Today's bookings"),
                   ),
                   _buildAdminQuickChip(
                     icon: Icons.payments_outlined,
-                    label: 'Revenue Summary',
-                    onTap: () => _send('What is today\'s revenue & stats?'),
+                    label: 'Today\'s Revenue',
+                    onTap: () => _send("Today's revenue"),
                   ),
                   _buildAdminQuickChip(
                     icon: Icons.add_circle_outline_rounded,
-                    label: 'Add Hairstyle',
-                    onTap: () {
-                      _controller.text = 'Add a hairstyle to catalog: ';
-                      _controller.selection = TextSelection.fromPosition(
-                        TextPosition(offset: _controller.text.length),
-                      );
-                      _focusNode.requestFocus();
-                    },
+                    label: 'Add Service',
+                    onTap: () => _send('Add Service'),
                   ),
                   _buildAdminQuickChip(
                     icon: Icons.person_add_alt_1_outlined,
                     label: 'Add Barber',
-                    onTap: () {
-                      _controller.text = 'Add a barber named ';
-                      _controller.selection = TextSelection.fromPosition(
-                        TextPosition(offset: _controller.text.length),
-                      );
-                      _focusNode.requestFocus();
-                    },
+                    onTap: () => _send('Add Barber'),
                   ),
                 ],
               ),
@@ -2087,7 +2061,7 @@ class _AiChatScreenState extends State<AiChatScreen>
     if (data == null) return const SizedBox.shrink();
 
     final name = (data['name'] ?? 'New Hairstyle').toString();
-    final price = data['price'] != null ? '₱${data['price']}' : '₱250';
+    final price = data['price'] != null ? ShopInfo.formatPrice(data['price']) : '';
     final duration = data['duration_minutes'] != null ? '${data['duration_minutes']} min' : '30 min';
     final category = (data['category_name'] ?? 'Haircuts').toString();
     final description = (data['description'] ?? 'Professional haircut style').toString();
@@ -3152,7 +3126,7 @@ class _AdminCatalogFormCardState extends State<_AdminCatalogFormCard> {
       _errorMessage = null;
     });
 
-    final price = double.tryParse(_priceCtrl.text.trim()) ?? 250.0;
+    final price = ShopInfo.parsePrice(_priceCtrl.text.trim()) ?? 0.0;
 
     String? categoryId = _selectedCategoryId;
     if (categoryId == null && widget.categories.isNotEmpty) {
@@ -3382,7 +3356,7 @@ class _AdminCatalogFormCardState extends State<_AdminCatalogFormCard> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Price (PHP) *',
+                              'Price (₫) *',
                               style: GoogleFonts.manrope(
                                 fontSize: 11.5,
                                 fontWeight: FontWeight.w600,
@@ -3398,7 +3372,7 @@ class _AdminCatalogFormCardState extends State<_AdminCatalogFormCard> {
                               decoration: InputDecoration(
                                 hintText: '250',
                                 hintStyle: GoogleFonts.manrope(fontSize: 13, color: AppColors.textSecondary(context)),
-                                prefixText: '₱ ',
+                                suffixText: '₫',
                                 prefixStyle: GoogleFonts.manrope(
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,
@@ -3432,7 +3406,7 @@ class _AdminCatalogFormCardState extends State<_AdminCatalogFormCard> {
                                 if (v == null || v.trim().isEmpty) {
                                   return 'Required';
                                 }
-                                final p = double.tryParse(v.trim());
+                                final p = ShopInfo.parsePrice(v.trim());
                                 if (p == null || p <= 0) {
                                   return 'Invalid price';
                                 }
@@ -3847,7 +3821,7 @@ class _InChatBookingSheetState extends State<_InChatBookingSheet> {
   @override
   Widget build(BuildContext context) {
     final serviceName = (_selectedService['name'] ?? 'Service').toString();
-    final price = _selectedService['price'] != null ? '₱${_selectedService['price']}' : '';
+    final price = _selectedService['price'] != null ? ShopInfo.formatPrice(_selectedService['price']) : '';
     final duration = _selectedService['duration_minutes'] != null
         ? '${_selectedService['duration_minutes']} min'
         : '30 min';
@@ -3945,7 +3919,7 @@ class _InChatBookingSheetState extends State<_InChatBookingSheet> {
                         (s['service_id'] ?? s['id']);
                     return ChoiceChip(
                       label: Text(
-                        '${s['name']} (₱${s['price']})',
+                        '${s['name']} (${ShopInfo.formatPrice(s['price'])})',
                         style: GoogleFonts.manrope(
                           fontSize: 12,
                           fontWeight:

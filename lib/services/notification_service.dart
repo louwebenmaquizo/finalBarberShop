@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../config/shop_info.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/api_config.dart';
 import 'supabase_service_helpers.dart';
@@ -253,7 +254,7 @@ class NotificationService {
       title: 'Daily Operations Summary 📊',
       body: todayAppts.isEmpty
           ? 'Store schedule open. Ready for appointments today.'
-          : '${todayAppts.length} appointments today. Total completed revenue: ₱${todayRevenue.toStringAsFixed(2)}.',
+          : '${todayAppts.length} appointments today. Total completed revenue: ${ShopInfo.formatPrice(todayRevenue)}.',
       timestamp: todayStart.add(const Duration(hours: 8)),
       icon: Icons.insights_rounded,
       color: const Color(0xFF1E88E5),
@@ -350,6 +351,24 @@ class NotificationService {
       final status = (appt['status']?.toString() ?? 'booked').toLowerCase();
       final startTime = SupabaseServiceHelpers.parseDateTime(appt['start_time']) ?? now;
       final timeStr = _formatFriendlyDateTime(startTime);
+
+      // A note written by the barber/shop. The id includes the note text so
+      // an edited note shows up as a new notification.
+      final note = (appt['notes'] ?? '').toString().trim();
+      if (note.isNotEmpty && status != 'canceled') {
+        output.add(AppNotification(
+          // Stable across app restarts (String.hashCode is not guaranteed to be).
+          id: 'cust_note_${id}_${note.codeUnits.fold<int>(0, (h, c) => (h * 31 + c) & 0x7fffffff)}',
+          title: 'Note from your barber 📝',
+          body: '$staffName ($serviceName, $timeStr): "$note"',
+          timestamp:
+              SupabaseServiceHelpers.parseDateTime(appt['updated_at']) ?? now,
+          icon: Icons.sticky_note_2_outlined,
+          color: const Color(0xFF1E88E5),
+          type: 'booking',
+          metadata: appt,
+        ));
+      }
 
       if (status == 'completed') {
         output.add(AppNotification(
